@@ -53,9 +53,15 @@ export function SectionCards() {
   // Helper function to determine if change is positive
   const isPositive = (change: string) => change.startsWith('+')
   
-  // Format currency
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+  // Format currency - shorter format for better fit
+  const formatCurrency = (amount: number) => {
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(1)}M`
+    } else if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(0)}K`
+    }
+    return `$${amount.toLocaleString()}`
+  }
   return (
     <div className="grid grid-cols-1 gap-8 px-6 lg:px-8 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       {/* Total Revenue */}

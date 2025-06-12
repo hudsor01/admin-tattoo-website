@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar"
 import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive"
 import { RecentSessions } from "@/components/dashboard/recent-sessions"
 import { SectionCards } from "@/components/dashboard/section-cards"
-import { SiteHeader } from "@/components/site-header"
+import { SiteHeader } from "@/components/layout/site-header"
 import {
   SidebarInset,
   SidebarProvider,
@@ -13,7 +13,7 @@ import {
 export default async function DashboardPage() {
   // Server-side authentication check
   const session = await getSession();
-  
+
   if (!session) {
     redirect("/");
   }

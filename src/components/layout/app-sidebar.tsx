@@ -1,22 +1,21 @@
 "use client"
 
 import * as React from "react"
+import { useState } from "react"
 import {
   IconCamera,
   IconChartBar,
   IconDashboard,
-  IconDatabase,
-  IconFileAi,
   IconFileDescription,
-  IconFileWord,
-  IconFolder,
-  IconHelp,
   IconInnerShadowTop,
   IconListDetails,
   IconReport,
-  IconSearch,
   IconSettings,
   IconUsers,
+  IconPlus,
+  IconUser,
+  IconCalendar,
+  IconCreditCard,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/layout/nav-documents"
@@ -32,148 +31,134 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useRouter } from "next/navigation"
 
 const data = {
   user: {
     name: "shadcn",
     email: "m@example.com",
-    avatar: "/globe.svg",
+    avatar: "https://github.com/shadcn.png",
   },
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/",
       icon: IconDashboard,
     },
     {
-      title: "Lifecycle",
-      url: "#",
+      title: "Customers",
+      url: "/customers",
+      icon: IconUsers,
+    },
+    {
+      title: "Payments",
+      url: "/payments",
+      icon: IconFileDescription,
+    },
+    {
+      title: "Appointments",
+      url: "/appointments",
       icon: IconListDetails,
     },
     {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder,
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: IconUsers,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
+      title: "Media Management",
+      url: "/media-management",
       icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
     },
     {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
+      title: "Analytics",
+      url: "/analytics",
+      icon: IconChartBar,
     },
   ],
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/settings",
       icon: IconSettings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
     },
   ],
   documents: [
     {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
       name: "Reports",
-      url: "#",
+      url: "/reports",
       icon: IconReport,
     },
     {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
+      name: "Messages",
+      url: "/messages",
+      icon: IconFileDescription,
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const router = useRouter()
+
+  const handleQuickCreate = (type: string) => {
+    switch (type) {
+      case 'customer':
+        router.push('/customers?action=create')
+        break
+      case 'appointment':
+        router.push('/appointments?action=create')
+        break
+      case 'payment':
+        router.push('/payments?action=create')
+        break
+      default:
+        router.push('/customers?action=create')
+    }
+  }
+
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
+    <Sidebar collapsible="offcanvas" className="bg-sidebar border-r border-sidebar-border" {...props}>
+      <SidebarHeader className="border-b border-border/30 pb-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
-              <a href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
-              </a>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  tooltip="Quick Create"
+                  className="bg-brand-gradient text-white hover:opacity-90 active:opacity-80 min-w-8 duration-200 ease-linear shadow-sm text-lg font-semibold py-4"
+                >
+                  <IconInnerShadowTop className="w-6 h-6" />
+                  <span>Quick Create</span>
+                  <IconPlus className="ml-auto w-4 h-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="start" className="w-48">
+                <DropdownMenuItem onClick={() => handleQuickCreate('customer')}>
+                  <IconUser className="w-4 h-4 mr-2" />
+                  New Customer
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleQuickCreate('appointment')}>
+                  <IconCalendar className="w-4 h-4 mr-2" />
+                  New Appointment
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleQuickCreate('payment')}>
+                  <IconCreditCard className="w-4 h-4 mr-2" />
+                  Record Payment
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
+      <SidebarContent className="py-4">
+        <div className="space-y-6">
+          <NavMain items={data.navMain} />
+          <NavDocuments items={data.documents} />
+        </div>
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-border/30 pt-4">
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>

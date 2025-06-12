@@ -25,6 +25,7 @@ import { DollarSign, Plus, Search, Filter, Download, CreditCard, CheckCircle, XC
 import { useQuery } from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState } from "react"
+import Link from "next/link"
 
 // Fetch payments from API
 const fetchPayments = async () => {
@@ -258,7 +259,7 @@ function PaymentItem({ payment }: { payment: any }) {
   }
 
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-orange-50/50 hover:border-orange-200 transition-colors">
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10">
           <AvatarImage src={payment.clientAvatar} />
@@ -268,9 +269,12 @@ function PaymentItem({ payment }: { payment: any }) {
         </Avatar>
         <div>
           <div className="flex items-center gap-2">
-            <h4 className="font-medium">
+            <Link 
+              href={`/customers?search=${encodeURIComponent(payment.clientName || '')}`}
+              className="font-medium hover:text-orange-600 hover:underline transition-colors"
+            >
               {payment.clientName || 'Unknown Client'}
-            </h4>
+            </Link>
             {getStatusIcon(payment.status)}
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

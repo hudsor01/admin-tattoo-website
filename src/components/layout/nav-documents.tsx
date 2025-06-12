@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import {
   IconDots,
   IconFolder,
@@ -38,15 +39,15 @@ export function NavDocuments({
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Documents</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-lg font-bold">Documents</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
-              <a href={item.url}>
-                <item.icon />
+            <SidebarMenuButton asChild className="text-lg font-semibold py-4">
+              <Link href={item.url}>
+                <item.icon className="w-6 h-6" />
                 <span>{item.name}</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -81,8 +82,8 @@ export function NavDocuments({
           </SidebarMenuItem>
         ))}
         <SidebarMenuItem>
-          <SidebarMenuButton className="text-sidebar-foreground/70">
-            <IconDots className="text-sidebar-foreground/70" />
+          <SidebarMenuButton className="text-sidebar-foreground/70 text-lg font-semibold py-4">
+            <IconDots className="text-sidebar-foreground/70 w-6 h-6" />
             <span>More</span>
           </SidebarMenuButton>
         </SidebarMenuItem>

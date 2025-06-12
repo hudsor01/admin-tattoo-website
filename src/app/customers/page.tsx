@@ -1,7 +1,7 @@
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SectionCards } from "@/components/dashboard/section-cards"
 import { CustomersList } from "@/components/customers/customers-list"
-import { SiteHeader } from "@/components/site-header"
+import { SiteHeader } from "@/components/layout/site-header"
 import {
   SidebarInset,
   SidebarProvider,

@@ -36,8 +36,8 @@ export async function GET() {
       estimatedHours: item.estimatedHours,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
-      // Add sync status - for now we'll assume all are synced
-      syncedToWebsite: true,
+      // Add sync status - SAFETY: Default to false to prevent placeholder images syncing to production
+      syncedToWebsite: false,
       websiteUrl: `https://ink37tattoos.com/gallery/${item.id}`
     }))
 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       type,
       isPublic = true,
       estimatedHours = 0,
-      syncToWebsite = true
+      syncToWebsite = false  // SAFETY: Default to false to require manual approval
     } = body
 
     // Get Fernando's artist ID

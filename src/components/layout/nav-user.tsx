@@ -1,11 +1,10 @@
 "use client"
 
 import {
-  IconCreditCard,
   IconDotsVertical,
-  IconLogout,
   IconNotification,
-  IconUserCircle,
+  IconSettings,
+  IconUser
 } from "@tabler/icons-react"
 
 import {
@@ -28,17 +27,37 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { LogoutMenuItem } from "@/components/auth/logout-button"
+import { useUser } from "@/lib/auth-client"
 
-export function NavUser({
-  user,
-}: {
-  user: {
+interface NavUserProps {
+  user?: {
     name: string
     email: string
     avatar: string
   }
-}) {
+}
+
+export function NavUser({ user: propUser }: NavUserProps) {
   const { isMobile } = useSidebar()
+  const { user: authUser } = useUser()
+
+  // Use auth user if available, fallback to prop user, then default
+  const user = authUser || propUser || {
+    name: "Admin User",
+    email: "admin@ink37tattoos.com",
+    avatar: "https://github.com/shadcn.png"
+  }
+
+  // Generate initials from name
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
+  }
 
   return (
     <SidebarMenu>
@@ -47,61 +66,71 @@ export function NavUser({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 transition-colors"
             >
-              <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+              <Avatar className="h-8 w-8 rounded-lg ring-2 ring-border">
+                <AvatarImage src={user.image || undefined} alt={user.name} />
+                <AvatarFallback className="rounded-lg bg-brand-gradient text-white font-semibold">
+                  {getInitials(user.name)}
+                </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="text-muted-foreground truncate text-xs">
+              <div className="grid flex-1 text-left leading-tight">
+                <span className="truncate font-semibold text-sidebar-foreground">
+                  {user.name}
+                </span>
+                <span className="text-sidebar-foreground/70 truncate text-sm">
                   {user.email}
                 </span>
               </div>
-              <IconDotsVertical className="ml-auto size-4" />
+              <IconDotsVertical className="ml-auto size-4 text-sidebar-foreground/70" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg shadow-lg border-border/50"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+              <div className="flex items-center gap-3 px-2 py-2 text-left">
+                <Avatar className="h-10 w-10 rounded-lg ring-2 ring-border">
+                  <AvatarImage src={user.image || undefined} alt={user.name} />
+                  <AvatarFallback className="rounded-lg bg-brand-gradient text-white font-semibold">
+                    {getInitials(user.name)}
+                  </AvatarFallback>
                 </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="text-muted-foreground truncate text-xs">
+                <div className="grid flex-1 text-left leading-tight">
+                  <span className="truncate font-semibold text-foreground">
+                    {user.name}
+                  </span>
+                  <span className="text-muted-foreground truncate text-sm">
                     {user.email}
                   </span>
+                  {authUser?.role && (
+                    <span className="text-xs text-brand-gradient font-medium capitalize">
+                      {authUser.role}
+                    </span>
+                  )}
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <IconUserCircle />
-                Account
+              <DropdownMenuItem className="text-sm py-2 cursor-pointer">
+                <IconUser className="w-4 h-4" />
+                Profile
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconCreditCard />
-                Billing
+              <DropdownMenuItem className="text-sm py-2 cursor-pointer">
+                <IconSettings className="w-4 h-4" />
+                Settings
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconNotification />
+              <DropdownMenuItem className="text-sm py-2 cursor-pointer">
+                <IconNotification className="w-4 h-4" />
                 Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <IconLogout />
-              Log out
-            </DropdownMenuItem>
+            <LogoutMenuItem />
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
