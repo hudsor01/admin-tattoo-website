@@ -3,14 +3,12 @@ import { customerFilterSchema, createCustomerSchema } from '@/lib/validations';
 import { createSuccessResponse, createErrorResponse, handleZodError } from '@/lib/error-handling';
 import { getCustomers, createCustomer } from '@/lib/db-operations';
 import { ZodError } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
     // In development, use real database data from Prisma
     if (process.env.NODE_ENV === 'development') {
-      const prisma = new PrismaClient();
-      
       try {
         const clients = await prisma.client.findMany({
           include: {

@@ -4,10 +4,8 @@
  * Secure admin user creation for small-scale deployment (max 2 users)
  */
 
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../src/lib/database'
 import { auth } from '../src/lib/auth'
-
-const prisma = new PrismaClient()
 
 interface CreateAdminParams {
   email: string

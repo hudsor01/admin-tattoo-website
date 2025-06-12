@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../src/lib/database';
 import { faker } from '@faker-js/faker';
 
 // Production safety check
@@ -6,8 +6,6 @@ if (process.env.NODE_ENV === 'production') {
   console.error('❌ SECURITY ERROR: Database seeding is not allowed in production!');
   process.exit(1);
 }
-
-const prisma = new PrismaClient();
 
 // Predefined data for consistency
 const TATTOO_STYLES = [
