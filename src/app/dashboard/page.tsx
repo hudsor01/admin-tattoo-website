@@ -1,13 +1,23 @@
+import { getSession } from "@/lib/server";
+import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/layout/app-sidebar"
+import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive"
+import { RecentSessions } from "@/components/dashboard/recent-sessions"
 import { SectionCards } from "@/components/dashboard/section-cards"
-import { CustomersList } from "@/components/customers/customers-list"
 import { SiteHeader } from "@/components/site-header"
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
 
-export default function CustomersPage() {
+export default async function DashboardPage() {
+  // Server-side authentication check
+  const session = await getSession();
+  
+  if (!session) {
+    redirect("/");
+  }
+
   return (
     <SidebarProvider
       style={
@@ -25,7 +35,10 @@ export default function CustomersPage() {
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <SectionCards />
               <div className="px-6 lg:px-8">
-                <CustomersList />
+                <ChartAreaInteractive />
+              </div>
+              <div className="px-6 lg:px-8">
+                <RecentSessions />
               </div>
             </div>
           </div>

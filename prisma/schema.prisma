@@ -175,6 +175,24 @@ model TattooDesign {
   @@map("tattoo_designs")
 }
 
+model AuditLog {
+  id         String    @id @default(cuid())
+  userId     String?   // Nullable for anonymous actions
+  action     String    // CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT, FAILED_LOGIN
+  resource   String    // Table/resource name
+  resourceId String?   // ID of the affected resource
+  ip         String    @db.VarChar(45) // IPv6 compatible
+  userAgent  String    @db.VarChar(500)
+  timestamp  DateTime  @default(now())
+  metadata   Json?     // Additional context data
+
+  @@index([userId])
+  @@index([resource])
+  @@index([timestamp])
+  @@index([action])
+  @@map("audit_logs")
+}
+
 enum SessionStatus {
   SCHEDULED
   IN_PROGRESS

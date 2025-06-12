@@ -212,7 +212,7 @@ export const useUpdateSubmissionStatus = () => {
 
       return { previousData };
     },
-    onError: (error, variables, context) => {
+    onError: (error, _variables, context) => {
       if (context?.previousData) {
         context.previousData.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
@@ -277,7 +277,7 @@ export const useUpdateFormTemplate = () => {
 
       return { previousData };
     },
-    onError: (error, variables, context) => {
+    onError: (error, _variables, context) => {
       if (context?.previousData) {
         context.previousData.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
@@ -311,7 +311,7 @@ export const useDeleteFormTemplate = () => {
 
       return { previousData };
     },
-    onError: (error, id, context) => {
+    onError: (error, _id, context) => {
       if (context?.previousData) {
         context.previousData.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);

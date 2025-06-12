@@ -18,7 +18,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { authClient } from "@/lib/auth-client"
-import { useUser } from "@/lib/auth-client"
 
 interface LogoutButtonProps {
   variant?: "default" | "ghost" | "outline" | "secondary" | "destructive" | "link"

@@ -177,7 +177,7 @@ export const useUpdateGalleryItem = () => {
 
       return { previousData };
     },
-    onError: (error, variables, context) => {
+    onError: (error, _variables, context) => {
       if (context?.previousData) {
         context.previousData.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
@@ -211,7 +211,7 @@ export const useDeleteGalleryItem = () => {
 
       return { previousData };
     },
-    onError: (error, id, context) => {
+    onError: (error, _id, context) => {
       if (context?.previousData) {
         context.previousData.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);

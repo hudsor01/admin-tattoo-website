@@ -3,19 +3,41 @@ import { customerFilterSchema, createCustomerSchema } from '@/lib/validations';
 import { createSuccessResponse, createErrorResponse, handleZodError } from '@/lib/error-handling';
 import { getCustomers, createCustomer } from '@/lib/db-operations';
 import { ZodError } from 'zod';
+import { PrismaClient } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
-    // In development, return mock customer data
+    // In development, use real database data from Prisma
     if (process.env.NODE_ENV === 'development') {
-      const mockCustomers = [
-        { id: '1', name: 'John Doe', email: 'john@example.com', phone: '+1-555-0123', address: '123 Main St', notes: 'Regular customer', _count: { bookings: 3 }, bookings: [{ startDate: new Date().toISOString() }] },
-        { id: '2', name: 'Jane Smith', email: 'jane@example.com', phone: '+1-555-0124', address: '456 Oak Ave', notes: 'Prefers afternoon appointments', _count: { bookings: 1 }, bookings: [{ startDate: new Date().toISOString() }] },
-        { id: '3', name: 'Mike Johnson', email: 'mike@example.com', phone: '+1-555-0125', address: '789 Pine St', notes: 'New client', _count: { bookings: 0 }, bookings: [] },
-        { id: '4', name: 'Sarah Wilson', email: 'sarah@example.com', phone: '+1-555-0126', address: '321 Elm St', notes: 'Large piece in progress', _count: { bookings: 5 }, bookings: [{ startDate: new Date().toISOString() }] },
-        { id: '5', name: 'David Brown', email: 'david@example.com', phone: '+1-555-0127', address: '654 Maple Dr', notes: 'Touch-up specialist', _count: { bookings: 2 }, bookings: [{ startDate: new Date().toISOString() }] }
-      ]
-      return NextResponse.json(createSuccessResponse(mockCustomers))
+      const prisma = new PrismaClient();
+      
+      try {
+        const clients = await prisma.client.findMany({
+          include: {
+            sessions: {
+              select: {
+                id: true,
+                appointmentDate: true,
+                status: true
+              }
+            },
+            appointments: {
+              select: {
+                id: true,
+                scheduledDate: true,
+                status: true
+              }
+            }
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        });
+        
+        return NextResponse.json(createSuccessResponse(clients));
+      } finally {
+        await prisma.$disconnect();
+      }
     }
 
     const { searchParams } = new URL(request.url);
@@ -58,8 +80,18 @@ export async function POST(request: NextRequest) {
     // Validate request body
     const validatedData = createCustomerSchema.parse(body);
     
+    // Transform name to firstName/lastName if needed
+    const clientData = {
+      ...validatedData,
+      firstName: validatedData.name?.split(' ')[0] || '',
+      lastName: validatedData.name?.split(' ').slice(1).join(' ') || '',
+      // Ensure required fields are not undefined for TypeScript
+      email: validatedData.email || '',
+      phone: validatedData.phone || '',
+    };
+    
     // Create new customer using real database operations
-    const newCustomer = await createCustomer(validatedData);
+    const newCustomer = await createCustomer(clientData);
     
     return NextResponse.json(
       createSuccessResponse(newCustomer, 'Customer created successfully'),

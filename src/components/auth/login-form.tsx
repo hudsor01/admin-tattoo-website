@@ -15,7 +15,7 @@ import { useUser } from "@/lib/auth-client"
 
 export function LoginForm({
   className,
-  redirectTo = "/",
+  redirectTo = "/dashboard",
   ...props
 }: React.ComponentProps<"form"> & { redirectTo?: string }) {
   const [email, setEmail] = useState("")
@@ -46,8 +46,9 @@ export function LoginForm({
       if (error) {
         setError(error.message || "Invalid email or password")
       } else if (data?.user) {
-        // Check if user has admin role
-        if ((data.user as any)?.role !== "admin") {
+        // Check if user has admin role (cast to UserWithRole for type safety)
+        const userWithRole = data.user as { role?: string }
+        if (userWithRole?.role !== "admin") {
           setError("Admin access required. Contact administrator for access.")
           await authClient.signOut()
           return
@@ -74,15 +75,9 @@ export function LoginForm({
       if (error) {
         setError("Failed to sign in with Google. Please try again.")
         setIsLoading(false)
-      } else if (data?.user) {
-        // Check admin role after social sign-in
-        if ((data.user as any)?.role !== "admin") {
-          setError("Admin access required. Contact administrator for access.")
-          await authClient.signOut()
-          setIsLoading(false)
-          return
-        }
-        // For social sign-in with admin role, redirect happens automatically
+      } else if (data?.url) {
+        // Handle social sign-in redirect
+        window.location.href = data.url;
       }
     } catch (err) {
       setError("Failed to sign in with Google. Please try again.")

@@ -2,19 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database'
 
-function generateMockChartData() {
-  const data = []
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    data.push({
-      date: date.toISOString().split('T')[0],
-      revenue: Math.floor(Math.random() * 500) + 100,
-      appointments: Math.floor(Math.random() * 10) + 2
-    })
-  }
-  return data
-}
+// function generateMockChartData() {
+//   const data = []
+//   for (let i = 29; i >= 0; i--) {
+//     const date = new Date()
+//     date.setDate(date.getDate() - i)
+//     data.push({
+//       date: date.toISOString().split('T')[0],
+//       revenue: Math.floor(Math.random() * 500) + 100,
+//       appointments: Math.floor(Math.random() * 10) + 2
+//     })
+//   }
+//   return data
+// }
 
 export async function GET(request: NextRequest) {
   try {
@@ -136,11 +136,11 @@ async function getDashboardStats() {
 
   return {
     revenue,
-    revenueChange: `${revenueChangeNum > 0 ? '+' : ''}${revenueChange}%`,
+    revenueChange: `${Number(revenueChange) > 0 ? '+' : ''}${revenueChange}%`,
     totalClients,
     clientsChange: `${clientsChange > 0 ? '+' : ''}${clientsChange}`,
     monthlyAppointments,
-    appointmentsChange: `${appointmentsChange > 0 ? '+' : ''}${appointmentsChange}%`,
+    appointmentsChange: `${Number(appointmentsChange) > 0 ? '+' : ''}${appointmentsChange}%`,
     // Calculate satisfaction rating based on completion rate
     averageRating: await calculateSatisfactionRating(),
     ratingChange: await calculateRatingChange()

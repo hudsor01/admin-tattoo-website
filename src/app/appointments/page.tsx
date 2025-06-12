@@ -1,5 +1,6 @@
 "use client"
 
+import { AdminRoute } from "@/lib/user"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import {
   Breadcrumb,
@@ -18,7 +19,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, User, Phone, Mail, Plus } from "lucide-react"
+import { Calendar, Clock, User, Phone, Plus } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -37,6 +38,7 @@ export default function AppointmentsPage() {
   })
 
   return (
+    <AdminRoute>
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
@@ -48,7 +50,7 @@ export default function AppointmentsPage() {
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
                     <BreadcrumbLink href="/dashboard">
-                      Ink37 Tattoos
+                      Dashboard
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
@@ -119,6 +121,7 @@ export default function AppointmentsPage() {
           </div>
         </SidebarInset>
       </SidebarProvider>
+    </AdminRoute>
   )
 }
 

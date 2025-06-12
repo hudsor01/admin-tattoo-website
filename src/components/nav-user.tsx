@@ -69,7 +69,7 @@ export function NavUser({ user: propUser }: NavUserProps) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 transition-colors"
             >
               <Avatar className="h-8 w-8 rounded-lg ring-2 ring-border">
-                <AvatarImage src={user.image || user.avatar} alt={user.name} />
+                <AvatarImage src={user.image || undefined} alt={user.name} />
                 <AvatarFallback className="rounded-lg bg-brand-gradient text-white font-semibold">
                   {getInitials(user.name)}
                 </AvatarFallback>
@@ -94,7 +94,7 @@ export function NavUser({ user: propUser }: NavUserProps) {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-3 px-2 py-2 text-left">
                 <Avatar className="h-10 w-10 rounded-lg ring-2 ring-border">
-                  <AvatarImage src={user.image || user.avatar} alt={user.name} />
+                  <AvatarImage src={user.image || undefined} alt={user.name} />
                   <AvatarFallback className="rounded-lg bg-brand-gradient text-white font-semibold">
                     {getInitials(user.name)}
                   </AvatarFallback>

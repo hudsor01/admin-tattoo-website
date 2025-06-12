@@ -1,5 +1,6 @@
 "use client"
 
+import { AdminRoute } from "@/lib/user"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import {
   Breadcrumb,
@@ -54,176 +55,178 @@ export default function PaymentsPage() {
   const completedPayments = payments?.filter((p: any) => p.status === 'completed').length || 0
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="/dashboard">
-                      Ink37 Tattoos
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Payments</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-          </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Payments</h1>
-                <p className="text-muted-foreground">
-                  Track and manage client payments and transactions
-                </p>
+    <AdminRoute>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+              <div className="flex items-center gap-2 px-4">
+                <SidebarTrigger className="-ml-1" />
+                <Separator orientation="vertical" className="mr-2 h-4" />
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    <BreadcrumbItem className="hidden md:block">
+                      <BreadcrumbLink href="/dashboard">
+                        Dashboard
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="hidden md:block" />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>Payments</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
               </div>
-              <div className="flex gap-2">
+            </header>
+            <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight">Payments</h1>
+                  <p className="text-muted-foreground">
+                    Track and manage client payments and transactions
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                  </Button>
+                  <Button className="bg-orange-500 hover:bg-orange-600">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Record Payment
+                  </Button>
+                </div>
+              </div>
+
+              {/* Payment Summary Cards */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Total Revenue
+                    </CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading ? (
+                      <Skeleton className="h-8 w-24" />
+                    ) : (
+                      <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      From completed payments
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Pending Payments
+                    </CardTitle>
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading ? (
+                      <Skeleton className="h-8 w-16" />
+                    ) : (
+                      <div className="text-2xl font-bold">{pendingPayments}</div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Awaiting confirmation
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Completed Payments
+                    </CardTitle>
+                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading ? (
+                      <Skeleton className="h-8 w-16" />
+                    ) : (
+                      <div className="text-2xl font-bold">{completedPayments}</div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Successfully processed
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Search and Filters */}
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search payments..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
                 <Button variant="outline" size="sm">
-                  <Download className="mr-2 h-4 w-4" />
-                  Export
-                </Button>
-                <Button className="bg-orange-500 hover:bg-orange-600">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Record Payment
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filter
                 </Button>
               </div>
-            </div>
 
-            {/* Payment Summary Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
+              {/* Payments List */}
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Revenue
-                  </CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardHeader>
+                  <CardTitle>Recent Payments</CardTitle>
+                  <CardDescription>
+                    All payment transactions and their current status
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-8 w-24" />
-                  ) : (
-                    <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    From completed payments
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Pending Payments
-                  </CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-8 w-16" />
-                  ) : (
-                    <div className="text-2xl font-bold">{pendingPayments}</div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Awaiting confirmation
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Completed Payments
-                  </CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-8 w-16" />
-                  ) : (
-                    <div className="text-2xl font-bold">{completedPayments}</div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Successfully processed
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search payments..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-              <Button variant="outline" size="sm">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-              </Button>
-            </div>
-
-            {/* Payments List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Payments</CardTitle>
-                <CardDescription>
-                  All payment transactions and their current status
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {isLoading ? (
-                    <>
-                      {[...Array(8)].map((_, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <Skeleton className="h-10 w-10 rounded-full" />
-                            <div className="space-y-1">
-                              <Skeleton className="h-4 w-32" />
-                              <Skeleton className="h-3 w-24" />
+                  <div className="space-y-4">
+                    {isLoading ? (
+                      <>
+                        {[...Array(8)].map((_, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="h-10 w-10 rounded-full" />
+                              <div className="space-y-1">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-24" />
+                              </div>
+                            </div>
+                            <div className="text-right space-y-1">
+                              <Skeleton className="h-4 w-16" />
+                              <Skeleton className="h-6 w-20" />
                             </div>
                           </div>
-                          <div className="text-right space-y-1">
-                            <Skeleton className="h-4 w-16" />
-                            <Skeleton className="h-6 w-20" />
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  ) : filteredPayments.length > 0 ? (
-                    filteredPayments.map((payment: any) => (
-                      <PaymentItem key={payment.id} payment={payment} />
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <DollarSign className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold">No payments found</h3>
-                      <p className="text-muted-foreground mb-4">
-                        {searchQuery ? 'No payments match your search.' : 'Start by recording your first payment.'}
-                      </p>
-                      {!searchQuery && (
-                        <Button className="bg-orange-500 hover:bg-orange-600">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Record First Payment
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+                        ))}
+                      </>
+                    ) : filteredPayments.length > 0 ? (
+                      filteredPayments.map((payment: any) => (
+                        <PaymentItem key={payment.id} payment={payment} />
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <DollarSign className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold">No payments found</h3>
+                        <p className="text-muted-foreground mb-4">
+                          {searchQuery ? 'No payments match your search.' : 'Start by recording your first payment.'}
+                        </p>
+                        {!searchQuery && (
+                          <Button className="bg-orange-500 hover:bg-orange-600">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Record First Payment
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
+    </AdminRoute>
   )
 }
 

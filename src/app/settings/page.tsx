@@ -1,9 +1,7 @@
-/**
- * Admin Settings Page
- * 
- * Production-ready settings management
- */
+"use client"
 
+import { AdminRoute } from "@/lib/user"
+import { AppSidebar } from "@/components/layout/app-sidebar"
 import { 
   Breadcrumb, 
   BreadcrumbItem, 
@@ -13,19 +11,25 @@ import {
   BreadcrumbSeparator 
 } from '@/components/ui/breadcrumb';
 import { Separator } from '@/components/ui/separator';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { 
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger 
+} from '@/components/ui/sidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Settings, Calendar, Palette, Bell } from 'lucide-react';
-import { getEnvSafe } from '@/lib/utils/env';
 
 export default function SettingsPage() {
   return (
-    <>
-      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+    <AdminRoute>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
         <div className="flex items-center gap-2 px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator
@@ -35,8 +39,8 @@ export default function SettingsPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/admin-dashboard">
-                  Ink 37 Tattoos
+                <BreadcrumbLink href="/dashboard">
+                  Dashboard
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
@@ -78,7 +82,7 @@ export default function SettingsPage() {
                 <Input 
                   id="studio-email" 
                   type="email" 
-                  defaultValue={getEnvSafe('CONTACT_EMAIL', 'info@ink37tattoos.com')} 
+                  defaultValue="info@ink37tattoos.com"
                 />
               </div>
               <div className="space-y-2">
@@ -86,7 +90,7 @@ export default function SettingsPage() {
                 <Input 
                   id="studio-phone" 
                   type="tel" 
-                  defaultValue={getEnvSafe('CONTACT_PHONE', '+1 (555) 123-4567')} 
+                  defaultValue="+1 (555) 123-4567"
                 />
               </div>
               <Button>Save Changes</Button>
@@ -128,7 +132,7 @@ export default function SettingsPage() {
                 <Input 
                   id="cal-webhook" 
                   readOnly 
-                  defaultValue={`${getEnvSafe('NEXT_PUBLIC_APP_URL', 'https://ink37tattoos.com')}/api/webhooks/cal`} 
+                  defaultValue="https://ink37tattoos.com/api/webhooks/cal" 
                 />
               </div>
               <Button variant="outline">Test Connection</Button>
@@ -211,6 +215,8 @@ export default function SettingsPage() {
           </Card>
         </div>
       </div>
-    </>
+        </SidebarInset>
+      </SidebarProvider>
+    </AdminRoute>
   );
 }

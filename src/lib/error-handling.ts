@@ -2,6 +2,27 @@ import { toast } from "sonner"
 import { ZodError } from "zod"
 import { ApiResponse } from "@/types/database"
 
+// Enhanced error types for security
+export enum ErrorType {
+  VALIDATION = 'VALIDATION',
+  AUTHENTICATION = 'AUTHENTICATION',
+  AUTHORIZATION = 'AUTHORIZATION',
+  NOT_FOUND = 'NOT_FOUND',
+  RATE_LIMIT = 'RATE_LIMIT',
+  DATABASE = 'DATABASE',
+  EXTERNAL_SERVICE = 'EXTERNAL_SERVICE',
+  INTERNAL = 'INTERNAL'
+}
+
+export interface SecurityError extends Error {
+  type: ErrorType
+  statusCode: number
+  isOperational: boolean
+  context?: Record<string, unknown>
+  userId?: string
+  ip?: string
+}
+
 // Error types
 export class ApiError extends Error {
   public statusCode: number

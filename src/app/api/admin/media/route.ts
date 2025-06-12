@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/database'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Skip auth in development for now
     if (process.env.NODE_ENV !== 'development') {

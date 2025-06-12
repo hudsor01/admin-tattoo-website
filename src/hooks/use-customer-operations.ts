@@ -112,119 +112,45 @@ export function useCustomerOperations(options: UseCustomerOperationsOptions = {}
       method: 'POST',
       body: JSON.stringify(data),
     }),
-    onMutate: async (newCustomer) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['customers'] });
-
-      // Snapshot the previous value
-      const previousCustomers = queryClient.getQueriesData({ queryKey: ['customers'] });
-
-      // Optimistically add new customer to the cache
-      queryClient.setQueriesData({ queryKey: ['customers'] }, (old: any[] | undefined) => {
-        if (!old) return [{ ...newCustomer, id: 'temp-' + Date.now() }];
-        return [{ ...newCustomer, id: 'temp-' + Date.now() }, ...old];
-      });
-
-      return { previousCustomers };
-    },
-    onError: (error, context) => {
-      // Rollback optimistic updates on error
-      if (context?.previousCustomers) {
-        context.previousCustomers.forEach(([queryKey, data]) => {
-          queryClient.setQueryData(queryKey, data);
-        });
-      }
+    onError: (error) => {
       showErrorToast(error, 'Failed to create customer');
       void logger.error('Failed to create customer:', error);
     },
-    onSuccess: (newCustomer) => {
-      // Update the cache with the real customer data
-      queryClient.setQueriesData({ queryKey: ['customers'] }, (old: any[] | undefined) => {
-        if (!old) return [newCustomer];
-        return old.map(customer =>
-          customer.id?.startsWith('temp-') ? newCustomer : customer
-        );
-      });
-
-      // Invalidate to ensure data consistency
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       showSuccessToast('Customer created successfully');
     }
   });
 
-  // Update customer mutation with optimistic updates
+  // Update customer mutation
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<CreateCustomer> }) =>
       fetchApi(`/api/admin/customers/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
-    onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['customers'] });
-
-      const previousData = queryClient.getQueriesData({ queryKey: ['customers'] });
-
-      // Optimistically update customer
-      queryClient.setQueriesData({ queryKey: ['customers'] }, (old: any[] | undefined) => {
-        return old?.map(customer =>
-          customer.id === id ? { ...customer, ...data } : customer
-        );
-      });
-
-      // Also update individual customer cache if it exists
-      queryClient.setQueryData(['customers', id], (old: any) =>
-        old ? { ...old, ...data } : undefined
-      );
-
-      return { previousData };
-    },
-    onError: (error, context) => {
-      if (context?.previousData) {
-        context.previousData.forEach(([queryKey, data]) => {
-          queryClient.setQueryData(queryKey, data);
-        });
-      }
+    onError: (error) => {
       showErrorToast(error, 'Failed to update customer');
       void logger.error('Failed to update customer:', error);
     },
     onSuccess: (updatedCustomer, { id }) => {
-      // Update individual customer cache
       queryClient.setQueryData(['customers', id], updatedCustomer);
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       showSuccessToast('Customer updated successfully');
     }
   });
 
-  // Delete customer mutation with optimistic updates
+  // Delete customer mutation
   const deleteMutation = useMutation({
     mutationFn: (customerId: string) => fetchApi(`/api/admin/customers/${customerId}`, {
       method: 'DELETE',
     }),
-    onMutate: async (customerId) => {
-      await queryClient.cancelQueries({ queryKey: ['customers'] });
-
-      const previousData = queryClient.getQueriesData({ queryKey: ['customers'] });
-
-      // Optimistically remove customer
-      queryClient.setQueriesData({ queryKey: ['customers'] }, (old: any[] | undefined) => {
-        return old?.filter(customer => customer.id !== customerId);
-      });
-
-      // Remove individual customer cache
-      queryClient.removeQueries({ queryKey: ['customers', customerId] });
-
-      return { previousData };
-    },
-    onError: (error, context) => {
-      if (context?.previousData) {
-        context.previousData.forEach(([queryKey, data]) => {
-          queryClient.setQueryData(queryKey, data);
-        });
-      }
+    onError: (error) => {
       showErrorToast(error, 'Failed to delete customer');
       void logger.error('Failed to delete customer:', error);
     },
-    onSuccess: () => {
+    onSuccess: (_, customerId) => {
+      queryClient.removeQueries({ queryKey: ['customers', customerId] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       showSuccessToast('Customer deleted successfully');
     }

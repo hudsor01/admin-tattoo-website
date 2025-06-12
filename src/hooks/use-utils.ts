@@ -73,7 +73,7 @@ export function hasErrorCause(error: Error): error is Error & { cause: unknown }
  */
 export function safeStringify(obj: unknown, maxLength = 200): string {
   const seen = new WeakSet();
-  const stringified = JSON.stringify(obj, (key, value) => {
+  const stringified = JSON.stringify(obj, (_key, value) => {
     // Handle special types
     if (typeof value === 'function') return '[Function]';
     if (value instanceof Error) return `[Error: ${value.message}]`;

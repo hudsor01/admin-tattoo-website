@@ -1,5 +1,6 @@
 "use client"
 
+import { AdminRoute } from "@/lib/user"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import {
   Breadcrumb,
@@ -31,14 +32,16 @@ const fetchAnalytics = async () => {
 }
 
 export default function AnalyticsPage() {
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading, error } = useQuery({
     queryKey: ['analytics'],
     queryFn: fetchAnalytics,
     refetchInterval: 60000, // Refresh every minute
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
   })
 
   return (
-
+    <AdminRoute>
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
@@ -50,7 +53,7 @@ export default function AnalyticsPage() {
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
                     <BreadcrumbLink href="/dashboard">
-                      Ink37 Tattoos
+                      Dashboard
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
@@ -81,6 +84,18 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
+            {/* Error State */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-2 text-red-800">
+                  <span className="font-medium">Failed to load analytics data</span>
+                </div>
+                <p className="text-red-600 text-sm mt-1">
+                  Please check your connection and try again. If the problem persists, contact support.
+                </p>
+              </div>
+            )}
+
             {/* Key Metrics */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <MetricCard
@@ -101,7 +116,7 @@ export default function AnalyticsPage() {
               />
               <MetricCard
                 title="Sessions This Month"
-                value={analytics?.monthySessions || 0}
+                value={analytics?.monthlySessions || 0}
                 change={analytics?.sessionsChange || 0}
                 icon={<Calendar className="h-4 w-4 text-muted-foreground" />}
                 format="number"
@@ -171,7 +186,7 @@ export default function AnalyticsPage() {
           </div>
         </SidebarInset>
       </SidebarProvider>
-
+    </AdminRoute>
   )
 }
 

@@ -1,27 +1,100 @@
 import { z } from "zod"
 
+// Security-focused validation helpers
+const sanitizeString = (str: string) => str.trim().replace(/[<>'"]/g, '');
+
 // Common validation schemas
 export const paginationSchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
+  page: z.coerce.number().int().positive().max(1000).default(1),
   limit: z.coerce.number().int().positive().max(100).default(10),
 })
 
 export const dateRangeSchema = z.object({
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
-})
+}).refine((data) => {
+  if (data.from && data.to) {
+    return new Date(data.from) <= new Date(data.to);
+  }
+  return true;
+}, "End date must be after start date")
 
-// Customer schemas
+// Enhanced security validation schemas
+export const secureEmailSchema = z.string()
+  .email("Invalid email address")
+  .max(254, "Email too long") // RFC 5321 limit
+  .toLowerCase()
+  .refine(email => {
+    // Block common attack patterns
+    const suspiciousPatterns = [
+      /javascript:/i,
+      /data:/i,
+      /vbscript:/i,
+      /<script/i,
+      /onload=/i
+    ];
+    return !suspiciousPatterns.some(pattern => pattern.test(email));
+  }, "Invalid email format")
+
+export const securePasswordSchema = z.string()
+  .min(12, "Password must be at least 12 characters")
+  .max(128, "Password too long")
+  .regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+    "Password must contain uppercase, lowercase, number, and special character"
+  )
+  .refine(password => {
+    // Common weak passwords
+    const weakPasswords = ['password', '123456', 'qwerty', 'admin'];
+    return !weakPasswords.some(weak => password.toLowerCase().includes(weak));
+  }, "Password is too common")
+
+export const secureNameSchema = z.string()
+  .min(1, "Name is required")
+  .max(100, "Name too long")
+  .regex(/^[a-zA-Z\s'-]+$/, "Name contains invalid characters")
+  .transform(sanitizeString)
+
+export const securePhoneSchema = z.string()
+  .max(20, "Phone number too long")
+  .regex(/^[\+]?[1-9][\d\s\-\(\)\.]{7,18}$/, "Invalid phone number format")
+  .optional()
+  .or(z.literal(""))
+
+// Customer schemas with enhanced security
 export const createCustomerSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  email: z.string().email("Invalid email address").optional().or(z.literal("")),
-  phone: z.string().min(10, "Phone number must be at least 10 digits").max(20, "Phone number too long").optional().or(z.literal("")),
-  dateOfBirth: z.string().optional(),
-  address: z.string().max(500, "Address too long").optional(),
-  emergencyContact: z.string().max(200, "Emergency contact info too long").optional(),
-  medicalConditions: z.string().max(1000, "Medical conditions description too long").optional(),
-  allergies: z.string().max(500, "Allergies description too long").optional(),
-  notes: z.string().max(2000, "Notes too long").optional()
+  name: secureNameSchema,
+  email: secureEmailSchema.optional().or(z.literal("")),
+  phone: securePhoneSchema,
+  dateOfBirth: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format")
+    .refine(date => {
+      const birthDate = new Date(date);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      return age >= 18 && age <= 120;
+    }, "Invalid age")
+    .optional(),
+  address: z.string()
+    .max(500, "Address too long")
+    .transform(sanitizeString)
+    .optional(),
+  emergencyContact: z.string()
+    .max(200, "Emergency contact info too long")
+    .transform(sanitizeString)
+    .optional(),
+  medicalConditions: z.string()
+    .max(1000, "Medical conditions description too long")
+    .transform(sanitizeString)
+    .optional(),
+  allergies: z.string()
+    .max(500, "Allergies description too long")
+    .transform(sanitizeString)
+    .optional(),
+  notes: z.string()
+    .max(2000, "Notes too long")
+    .transform(sanitizeString)
+    .optional()
 })
 
 export const updateCustomerSchema = z.object({
@@ -134,40 +207,77 @@ export const customerFilterSchema = z.object({
   offset: z.number().min(0).default(0)
 })
 
-// Auth schemas
+// Auth schemas with enhanced security
 export const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters")
+  email: secureEmailSchema,
+  password: z.string().min(1, "Password is required").max(128, "Password too long")
 })
 
 export const signupSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100, "Name too long"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: secureNameSchema,
+  email: secureEmailSchema,
+  password: securePasswordSchema,
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
-  path: ["confirmPassword"]
+  path: ["confirmPassword"],
 })
 
-// Dashboard analytics schemas
+// File upload validation
+export const fileUploadSchema = z.object({
+  filename: z.string()
+    .max(255, "Filename too long")
+    .regex(/^[a-zA-Z0-9._-]+$/, "Invalid filename characters"),
+  mimetype: z.enum([
+    'image/jpeg',
+    'image/jpg', 
+    'image/png',
+    'image/webp',
+    'application/pdf'
+  ], { errorMap: () => ({ message: "Invalid file type" }) }),
+  size: z.number()
+    .max(10 * 1024 * 1024, "File too large (max 10MB)")
+    .positive("Invalid file size")
+})
+
+// Analytics filter schema (was missing)
 export const analyticsFilterSchema = z.object({
-  period: z.enum(["7d", "30d", "90d", "1y"]).default("30d"),
   startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional()
+  endDate: z.string().datetime().optional(),
+  metrics: z.array(z.enum(['bookings', 'revenue', 'customers', 'retention'])).optional(),
+  period: z.enum(['day', 'week', 'month', 'year']).default('month')
 })
 
-// Response schemas
+// API rate limiting schema
+export const rateLimitSchema = z.object({
+  ip: z.string().ip(),
+  endpoint: z.string().max(200),
+  timestamp: z.number().int().positive()
+})
+
+// Audit log schema
+export const auditLogSchema = z.object({
+  userId: z.string().uuid().optional(),
+  action: z.enum(['CREATE', 'READ', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'FAILED_LOGIN']),
+  resource: z.string().max(100),
+  resourceId: z.string().uuid().optional(),
+  ip: z.string().max(45), // IPv6 max length
+  userAgent: z.string().max(500),
+  timestamp: z.string().datetime(),
+  metadata: z.record(z.unknown()).optional()
+})
+
+// Response schemas with generic types
 export const apiResponseSchema = z.object({
   success: z.boolean(),
-  data: z.any().optional(),
+  data: z.unknown().optional(),
   error: z.string().optional(),
   message: z.string().optional()
 })
 
 export const paginatedResponseSchema = z.object({
   success: z.boolean(),
-  data: z.array(z.any()),
+  data: z.array(z.unknown()),
   pagination: z.object({
     total: z.number(),
     limit: z.number(),
@@ -177,7 +287,7 @@ export const paginatedResponseSchema = z.object({
   error: z.string().optional()
 })
 
-// Type exports
+// Type exports with proper generics
 export type CreateCustomer = z.infer<typeof createCustomerSchema>
 export type UpdateCustomer = z.infer<typeof updateCustomerSchema>
 export type CreateAppointment = z.infer<typeof createAppointmentSchema>
@@ -188,8 +298,26 @@ export type CreateGalleryItem = z.infer<typeof createGalleryItemSchema>
 export type UpdateGalleryItem = z.infer<typeof updateGalleryItemSchema>
 export type AppointmentFilter = z.infer<typeof appointmentFilterSchema>
 export type CustomerFilter = z.infer<typeof customerFilterSchema>
+export type AnalyticsFilter = z.infer<typeof analyticsFilterSchema>
 export type Login = z.infer<typeof loginSchema>
 export type Signup = z.infer<typeof signupSchema>
-export type AnalyticsFilter = z.infer<typeof analyticsFilterSchema>
-export type ApiResponse<T = any> = { success: boolean; data?: T; error?: string; message?: string }
-export type PaginatedResponse<T = any> = { success: boolean; data: T[]; pagination: { total: number; limit: number; offset: number; hasMore: boolean }; error?: string }
+
+// API response types with proper generics
+export type ApiResponse<T = unknown> = { 
+  success: boolean; 
+  data?: T; 
+  error?: string; 
+  message?: string 
+}
+
+export type PaginatedResponse<T = unknown> = { 
+  success: boolean; 
+  data: T[]; 
+  pagination: { 
+    total: number; 
+    limit: number; 
+    offset: number; 
+    hasMore: boolean 
+  }; 
+  error?: string 
+}

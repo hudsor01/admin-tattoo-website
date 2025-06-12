@@ -17,7 +17,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({
   children,
   requireAdmin = false,
-  redirectTo = "/login",
+  redirectTo = "/",
   fallback
 }: ProtectedRouteProps) {
   const { user, isLoading } = useUser()
@@ -89,7 +89,7 @@ export function withAuth<T extends object>(
 // Admin-only wrapper
 export function AdminRoute({ children }: { children: React.ReactNode }) {
   return (
-    <ProtectedRoute requireAdmin redirectTo="/login">
+    <ProtectedRoute requireAdmin redirectTo="/">
       {children}
     </ProtectedRoute>
   )
@@ -134,7 +134,7 @@ export function UnauthorizedPage() {
             Go Back
           </button>
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/dashboard")}
             className="w-full px-4 py-2 text-sm font-medium text-white bg-brand-gradient hover:opacity-90 rounded-lg transition-opacity"
           >
             Go to Dashboard

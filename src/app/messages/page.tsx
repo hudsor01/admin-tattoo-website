@@ -1,5 +1,6 @@
 "use client"
 
+import { AdminRoute } from "@/lib/user"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import {
   Breadcrumb,
@@ -50,7 +51,7 @@ export default function MessagesPage() {
   )
 
   return (
-
+    <AdminRoute>
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
@@ -62,7 +63,7 @@ export default function MessagesPage() {
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
                     <BreadcrumbLink href="/dashboard">
-                      Ink37 Tattoos
+                      Dashboard
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
@@ -154,7 +155,7 @@ export default function MessagesPage() {
           </div>
         </SidebarInset>
       </SidebarProvider>
-
+    </AdminRoute>
   )
 }
 
