@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useState } from "react"
 import {
   IconCamera,
   IconChartBar,
@@ -18,7 +17,6 @@ import {
   IconCreditCard,
 } from "@tabler/icons-react"
 
-import { NavDocuments } from "@/components/layout/nav-documents"
 import { NavMain } from "@/components/layout/nav-main"
 import { NavSecondary } from "@/components/layout/nav-secondary"
 import { NavUser } from "@/components/layout/nav-user"
@@ -45,36 +43,45 @@ const data = {
     email: "m@example.com",
     avatar: "https://github.com/shadcn.png",
   },
-  navMain: [
+  dashboard: [
     {
       title: "Dashboard",
-      url: "/",
+      url: "/dashboard",
       icon: IconDashboard,
-    },
-    {
-      title: "Customers",
-      url: "/customers",
-      icon: IconUsers,
-    },
-    {
-      title: "Payments",
-      url: "/payments",
-      icon: IconFileDescription,
-    },
-    {
-      title: "Appointments",
-      url: "/appointments",
-      icon: IconListDetails,
     },
     {
       title: "Media Management",
       url: "/media-management",
       icon: IconCamera,
     },
+  ],
+  bookOfBusiness: [
+    {
+      title: "Appointments",
+      url: "/appointments",
+      icon: IconListDetails,
+    },
+    {
+      title: "Customers",
+      url: "/customers",
+      icon: IconUsers,
+    },
+  ],
+  financials: [
     {
       title: "Analytics",
       url: "/analytics",
       icon: IconChartBar,
+    },
+    {
+      title: "Payments",
+      url: "/payments",
+      icon: IconCreditCard,
+    },
+    {
+      title: "Reports",
+      url: "/reports",
+      icon: IconReport,
     },
   ],
   navSecondary: [
@@ -82,18 +89,6 @@ const data = {
       title: "Settings",
       url: "/settings",
       icon: IconSettings,
-    },
-  ],
-  documents: [
-    {
-      name: "Reports",
-      url: "/reports",
-      icon: IconReport,
-    },
-    {
-      name: "Messages",
-      url: "/messages",
-      icon: IconFileDescription,
     },
   ],
 }
@@ -152,9 +147,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent className="py-4">
-        <div className="space-y-6">
-          <NavMain items={data.navMain} />
-          <NavDocuments items={data.documents} />
+        <div className="space-y-8">
+          {/* Dashboard Section */}
+          <div className="space-y-2">
+            <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Dashboard
+            </div>
+            <NavMain items={data.dashboard} />
+          </div>
+
+          {/* Book of Business Section */}
+          <div className="space-y-2">
+            <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Book of Business
+            </div>
+            <NavMain items={data.bookOfBusiness} />
+          </div>
+
+          {/* Financials Section */}
+          <div className="space-y-2">
+            <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Financials
+            </div>
+            <NavMain items={data.financials} />
+          </div>
         </div>
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
