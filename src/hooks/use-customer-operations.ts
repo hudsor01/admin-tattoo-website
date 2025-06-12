@@ -1,0 +1,357 @@
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
+import { CreateCustomer, CustomerFilter } from '@/lib/validations'
+import { showErrorToast, showSuccessToast } from '@/lib/error-handling'
+import { logger } from '@/lib/logger'
+
+interface UseCustomerOperationsOptions {
+  search?: string
+  hasAppointments?: boolean
+  limit?: number
+  offset?: number
+}
+
+// Enhanced fetch function with proper error handling
+async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      const error = new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      (error as any).status = response.status;
+      (error as any).statusText = response.statusText;
+      throw error;
+    }
+
+    const result = await response.json();
+
+    // Handle API response format
+    if (result.success === false) {
+      throw new Error(result.error || 'API request failed');
+    }
+
+    return result.success !== undefined ? result.data : result;
+  } catch (error) {
+    void logger.error('Customer API fetch error:', error);
+    throw error;
+  }
+}
+
+// Query options factory for customers
+export function customersQueryOptions(filters: CustomerFilter) {
+  const params = new URLSearchParams();
+  if (filters.search) params.append('search', filters.search);
+  if (filters.hasAppointments !== undefined) params.append('hasAppointments', filters.hasAppointments.toString());
+  if (filters.limit) params.append('limit', filters.limit.toString());
+  if (filters.offset) params.append('offset', filters.offset.toString());
+
+  return queryOptions({
+    queryKey: ['customers', filters],
+    queryFn: () => {
+      const url = `/api/admin/customers${params.toString() ? `?${params}` : ''}`;
+      return fetchApi<any>(url).then(data => {
+        // Handle both paginated and direct array responses
+        return data?.data || data;
+      });
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+    retry: (failureCount, error: any) => {
+      // Don't retry on 4xx client errors
+      if (error?.status >= 400 && error?.status < 500) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
+}
+
+// Individual customer query options
+export function customerQueryOptions(id: string) {
+  return queryOptions({
+    queryKey: ['customers', id],
+    queryFn: () => fetchApi<any>(`/api/admin/customers/${id}`),
+    staleTime: 1000 * 60 * 10, // 10 minutes for individual customer
+    gcTime: 1000 * 60 * 30, // 30 minutes
+  });
+}
+
+export function useCustomerOperations(options: UseCustomerOperationsOptions = {}) {
+  const queryClient = useQueryClient();
+
+  // Memoized filters to prevent unnecessary re-renders
+  const [filters, setFilters] = useState<CustomerFilter>(() => ({
+    search: options.search,
+    hasAppointments: options.hasAppointments,
+    limit: options.limit || 20,
+    offset: options.offset || 0
+  }));
+
+  // Update filters when options change
+  useEffect(() => {
+    setFilters(prev => ({
+      ...prev,
+      search: options.search,
+      hasAppointments: options.hasAppointments
+    }));
+  }, [options.search, options.hasAppointments]);
+
+  // Fetch customers query using query options
+  const customersQuery = useQuery(customersQueryOptions(filters));
+
+  // Create customer mutation with optimistic updates
+  const createMutation = useMutation({
+    mutationFn: (data: CreateCustomer) => fetchApi('/api/admin/customers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    onMutate: async (newCustomer) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['customers'] });
+
+      // Snapshot the previous value
+      const previousCustomers = queryClient.getQueriesData({ queryKey: ['customers'] });
+
+      // Optimistically add new customer to the cache
+      queryClient.setQueriesData({ queryKey: ['customers'] }, (old: any[] | undefined) => {
+        if (!old) return [{ ...newCustomer, id: 'temp-' + Date.now() }];
+        return [{ ...newCustomer, id: 'temp-' + Date.now() }, ...old];
+      });
+
+      return { previousCustomers };
+    },
+    onError: (error, context) => {
+      // Rollback optimistic updates on error
+      if (context?.previousCustomers) {
+        context.previousCustomers.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      showErrorToast(error, 'Failed to create customer');
+      void logger.error('Failed to create customer:', error);
+    },
+    onSuccess: (newCustomer) => {
+      // Update the cache with the real customer data
+      queryClient.setQueriesData({ queryKey: ['customers'] }, (old: any[] | undefined) => {
+        if (!old) return [newCustomer];
+        return old.map(customer =>
+          customer.id?.startsWith('temp-') ? newCustomer : customer
+        );
+      });
+
+      // Invalidate to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      showSuccessToast('Customer created successfully');
+    }
+  });
+
+  // Update customer mutation with optimistic updates
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateCustomer> }) =>
+      fetchApi(`/api/admin/customers/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['customers'] });
+
+      const previousData = queryClient.getQueriesData({ queryKey: ['customers'] });
+
+      // Optimistically update customer
+      queryClient.setQueriesData({ queryKey: ['customers'] }, (old: any[] | undefined) => {
+        return old?.map(customer =>
+          customer.id === id ? { ...customer, ...data } : customer
+        );
+      });
+
+      // Also update individual customer cache if it exists
+      queryClient.setQueryData(['customers', id], (old: any) =>
+        old ? { ...old, ...data } : undefined
+      );
+
+      return { previousData };
+    },
+    onError: (error, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      showErrorToast(error, 'Failed to update customer');
+      void logger.error('Failed to update customer:', error);
+    },
+    onSuccess: (updatedCustomer, { id }) => {
+      // Update individual customer cache
+      queryClient.setQueryData(['customers', id], updatedCustomer);
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      showSuccessToast('Customer updated successfully');
+    }
+  });
+
+  // Delete customer mutation with optimistic updates
+  const deleteMutation = useMutation({
+    mutationFn: (customerId: string) => fetchApi(`/api/admin/customers/${customerId}`, {
+      method: 'DELETE',
+    }),
+    onMutate: async (customerId) => {
+      await queryClient.cancelQueries({ queryKey: ['customers'] });
+
+      const previousData = queryClient.getQueriesData({ queryKey: ['customers'] });
+
+      // Optimistically remove customer
+      queryClient.setQueriesData({ queryKey: ['customers'] }, (old: any[] | undefined) => {
+        return old?.filter(customer => customer.id !== customerId);
+      });
+
+      // Remove individual customer cache
+      queryClient.removeQueries({ queryKey: ['customers', customerId] });
+
+      return { previousData };
+    },
+    onError: (error, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      showErrorToast(error, 'Failed to delete customer');
+      void logger.error('Failed to delete customer:', error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      showSuccessToast('Customer deleted successfully');
+    }
+  });
+
+  // Memoized pagination helpers
+  const paginationHelpers = useMemo(() => ({
+    nextPage: () => {
+      setFilters(prev => ({
+        ...prev,
+        offset: prev.offset + prev.limit
+      }));
+    },
+
+    prevPage: () => {
+      setFilters(prev => ({
+        ...prev,
+        offset: Math.max(0, prev.offset - prev.limit)
+      }));
+    },
+
+    setSearch: (search: string) => {
+      setFilters(prev => ({
+        ...prev,
+        search,
+        offset: 0 // Reset to first page on search
+      }));
+    },
+
+    setPage: (page: number) => {
+      setFilters(prev => ({
+        ...prev,
+        offset: page * prev.limit
+      }));
+    },
+
+    currentPage: Math.floor(filters.offset / filters.limit),
+    hasNextPage: customersQuery.data?.length === filters.limit,
+    hasPrevPage: filters.offset > 0,
+  }), [filters, customersQuery.data?.length]);
+
+  // Memoized CRUD operations
+  const operations = useMemo(() => ({
+    createCustomer: async (data: CreateCustomer): Promise<boolean> => {
+      try {
+        await createMutation.mutateAsync(data);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
+    updateCustomer: async (id: string, data: Partial<CreateCustomer>): Promise<boolean> => {
+      try {
+        await updateMutation.mutateAsync({ id, data });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
+    deleteCustomer: async (id: string): Promise<boolean> => {
+      try {
+        await deleteMutation.mutateAsync(id);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  }), [createMutation, updateMutation, deleteMutation]);
+
+  // Prefetch utilities
+  const prefetchCustomer = useCallback((id: string) => {
+    queryClient.prefetchQuery(customerQueryOptions(id));
+  }, [queryClient]);
+
+  const prefetchNextPage = useCallback(() => {
+    if (paginationHelpers.hasNextPage) {
+      const nextFilters = { ...filters, offset: filters.offset + filters.limit };
+      queryClient.prefetchQuery(customersQueryOptions(nextFilters));
+    }
+  }, [queryClient, filters, paginationHelpers.hasNextPage]);
+
+  return {
+    // Data and loading states
+    customers: customersQuery.data,
+    isLoading: customersQuery.isLoading,
+    isFetching: customersQuery.isFetching,
+    error: customersQuery.error,
+    refetch: customersQuery.refetch,
+
+    // CRUD operations
+    ...operations,
+
+    // Loading states for mutations
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+
+    // Filter management
+    filters,
+    setFilters,
+
+    // Pagination
+    ...paginationHelpers,
+
+    // Prefetch utilities
+    prefetchCustomer,
+    prefetchNextPage,
+
+    // Query utilities
+    invalidateCustomers: () => queryClient.invalidateQueries({ queryKey: ['customers'] }),
+    removeCustomerFromCache: (id: string) => queryClient.removeQueries({ queryKey: ['customers', id] }),
+  };
+}
+
+// Individual customer hook
+export function useCustomer(id: string) {
+  return useQuery(customerQueryOptions(id));
+}
+
+// Prefetch hook for better UX
+export function usePrefetchCustomers() {
+  const queryClient = useQueryClient();
+
+  return useCallback((filters?: CustomerFilter) => {
+    const defaultFilters: CustomerFilter = { limit: 20, offset: 0, ...filters };
+    queryClient.prefetchQuery(customersQueryOptions(defaultFilters));
+  }, [queryClient]);
+}
