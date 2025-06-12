@@ -69,10 +69,6 @@ export default function AppointmentsPage() {
                   Manage client appointments and bookings
                 </p>
               </div>
-              <Button className="bg-orange-500 hover:bg-orange-600">
-                <Plus className="mr-2 h-4 w-4" />
-                New Appointment
-              </Button>
             </div>
 
             {/* Appointments Grid */}
@@ -80,7 +76,7 @@ export default function AppointmentsPage() {
               {isLoading ? (
                 <>
                   {[...Array(5)].map((_, i) => (
-                    <Card key={i}>
+                    <Card key={i} className="shadow-lg">
                       <CardHeader>
                         <Skeleton className="h-6 w-48" />
                         <Skeleton className="h-4 w-32" />
@@ -101,18 +97,14 @@ export default function AppointmentsPage() {
                   <AppointmentCard key={appointment.id} appointment={appointment} />
                 ))
               ) : (
-                <Card>
+                <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
                   <CardContent className="flex items-center justify-center h-48">
                     <div className="text-center">
                       <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold">No appointments found</h3>
+                      <h3 className="text-lg font-semibold">No appointments scheduled</h3>
                       <p className="text-muted-foreground mb-4">
-                        Start by creating your first appointment booking.
+                        Appointment management will be available soon.
                       </p>
-                      <Button className="bg-orange-500 hover:bg-orange-600">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create First Appointment
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -142,7 +134,7 @@ function AppointmentCard({ appointment }: { appointment: any }) {
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">
