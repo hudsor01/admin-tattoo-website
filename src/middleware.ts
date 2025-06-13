@@ -96,6 +96,12 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+    
+    // IMMEDIATELY allow auth routes to pass through without any restrictions
+    if (pathname.startsWith('/api/auth/')) {
+        return addSecurityHeaders(NextResponse.next());
+    }
+
     const clientIP = getClientIP(request);
     const userAgent = request.headers.get('user-agent') || '';
 
@@ -108,16 +114,11 @@ export function middleware(request: NextRequest) {
         return new NextResponse('Access Denied - IP Blocked', { status: 429 });
     }
 
-    // Validate user agent for non-API routes (exclude auth and health)
-    if (!pathname.startsWith('/api/health/') && !pathname.startsWith('/api/auth/') && !validateUserAgent(userAgent)) {
+    // Validate user agent for non-API routes (exclude health)
+    if (!pathname.startsWith('/api/health/') && !validateUserAgent(userAgent)) {
         // Suspicious user agent blocked
         SECURITY_CONFIG.suspiciousIPs.add(clientIP);
         return new NextResponse('Access Denied - Invalid Client', { status: 403 });
-    }
-
-    // Allow auth routes to pass through without restrictions
-    if (pathname.startsWith('/api/auth/')) {
-        return addSecurityHeaders(response);
     }
 
     // Rate limiting for other API routes

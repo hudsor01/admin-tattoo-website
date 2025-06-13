@@ -4,14 +4,12 @@ import { nextCookies } from "better-auth/next-js";
 import { PrismaClient } from "@prisma/client";
 import { getAuthConfig } from "@/lib/env-validation";
 
-// Create a dedicated Prisma client for auth using DIRECT_URL to bypass Accelerate
+// Use the main DATABASE_URL which is Prisma Accelerate compatible
 const authPrisma = new PrismaClient({
-    datasources: {
-        db: {
-            url: process.env.DIRECT_URL || process.env.DATABASE_URL
-        }
-    }
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'info', 'warn'] : ['error']
 });
+
+console.log("Auth Prisma client initialized with default DATABASE_URL");
 
 export const auth = betterAuth({
     database: prismaAdapter(authPrisma, { 
@@ -83,9 +81,7 @@ export const auth = betterAuth({
         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined
     ].filter((origin): origin is string => Boolean(origin)),
     ratelimit: {
-        enabled: true,
-        window: 60, // 1 minute
-        max: 100, // 100 requests per minute
+        enabled: false, // Disable Better Auth rate limiting for admin dashboard
     },
     logger: {
         disabled: process.env.NODE_ENV === "production",
