@@ -12,7 +12,8 @@
     "build:check": "npm run type-check && npm run build",
     "db:seed": "npx tsx scripts/seed-database.ts",
     "prisma:migrate": "prisma migrate deploy",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
