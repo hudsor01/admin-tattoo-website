@@ -16,24 +16,24 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().optional(),
   
   // Database
-  DATABASE_URL: z.string().optional(),
+  DATABASE_URL: z.string().min(1, 'Database URL is required'),
   
   // Authentication
-  BETTER_AUTH_SECRET: z.string().optional(),
-  BETTER_AUTH_URL: z.string().optional(),
-  NEXT_PUBLIC_BETTER_AUTH_URL: z.string().optional(),
+  BETTER_AUTH_SECRET: z.string().min(32, 'Auth secret must be at least 32 characters'),
+  BETTER_AUTH_URL: z.string().url().optional(),
+  NEXT_PUBLIC_BETTER_AUTH_URL: z.string().url().optional(),
   
   // OAuth providers (optional)
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   
   // External services
-  MAIN_WEBSITE_API_URL: z.string().optional(),
+  MAIN_WEBSITE_API_URL: z.string().url().optional(),
   MAIN_WEBSITE_API_KEY: z.string().optional(),
   
   // Security (required in production)
-  CSRF_SECRET: z.string().optional(),
-  ENCRYPTION_KEY: z.string().optional(),
+  CSRF_SECRET: z.string().min(32),
+  ENCRYPTION_KEY: z.string().min(32),
   
   // Monitoring and logging
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
@@ -113,9 +113,7 @@ let validatedEnv: Env;
 
 // Check if we're on the client side
 const isClientSide = typeof window !== 'undefined';
-const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || 
-                   process.env.npm_lifecycle_event === 'build' ||
-                   process.env.VERCEL_ENV === 'production';
+const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build';
 
 if (isClientSide) {
   // On client side, use very minimal validation with safe defaults
