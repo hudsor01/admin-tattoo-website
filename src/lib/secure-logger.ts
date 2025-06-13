@@ -31,8 +31,6 @@ const SENSITIVE_PATTERNS = [
   // Phone numbers
   /(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g,
   
-  // Credit card numbers (basic pattern)
-  /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
   
   // SSN pattern
   /\b\d{3}-\d{2}-\d{4}\b/g,
@@ -203,7 +201,7 @@ export class SecureLogger {
       timestamp: new Date().toISOString(),
     };
     
-    return JSON.stringify(logEntry, null, process.env.NODE_ENV === 'production' ? undefined : 2);
+    return JSON.stringify(logEntry);
   }
   
   error(message: string, data?: unknown): void {
@@ -222,11 +220,7 @@ export class SecureLogger {
   }
   
   debug(message: string, data?: unknown): void {
-    // Debug logging disabled in production for security
-    if (process.env.NODE_ENV !== 'production') {
-      const formatted = this.formatMessage(LogLevel.DEBUG, message, data);
-      console.debug(formatted);
-    }
+    // Debug logging disabled for security in production
   }
   
   // Create a child logger with additional context
@@ -270,7 +264,7 @@ function generateRequestId(): string {
  */
 export const logger = new SecureLogger({
   service: 'admin-tattoo-website',
-  environment: process.env.NODE_ENV || 'development',
+  environment: 'production',
 });
 
 /**
@@ -295,7 +289,7 @@ export function sanitizeError(error: unknown): unknown {
     return sanitizeObject({
       name: error.name,
       message: error.message,
-      stack: process.env.NODE_ENV === 'production' ? undefined : error.stack,
+      stack: undefined,
       cause: error.cause,
     });
   }

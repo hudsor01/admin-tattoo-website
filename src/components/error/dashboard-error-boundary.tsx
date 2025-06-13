@@ -136,16 +136,6 @@ export class DashboardErrorBoundary extends React.Component<DashboardErrorBounda
                   )}
                 </div>
                 
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="p-3 bg-gray-100 rounded-md">
-                    <p className="text-sm font-mono text-gray-700">
-                      {this.state.error.message}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Error ID: {this.state.errorId}
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Retry Information */}

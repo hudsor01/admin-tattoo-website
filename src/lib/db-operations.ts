@@ -27,12 +27,6 @@ function sanitizeSearchInput(input: string): string {
     .trim()
 }
 
-interface CreatePayment {
-  amount: number
-  sessionId?: string
-  clientId?: string
-  method?: string
-}
 
 // Customer operations
 export async function getCustomers(filters: CustomerFilter): Promise<PaginatedResponse<ClientResponse>> {
@@ -660,21 +654,6 @@ export async function deleteAppointment(id: string) {
   }
 }
 
-// Payment operations - Temporarily disabled as Payment model is not in current schema
-export async function createPayment(data: CreatePayment) {
-  try {
-    // For now, return a mock payment object
-    return {
-      id: 'temp-payment-' + Date.now(),
-      amount: data.amount || 0,
-      status: 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-  } catch {
-    throw new ApiError('Failed to create payment', 500)
-  }
-}
 
 // Dashboard analytics with caching
 const _getDashboardStatsUncached = async () => {

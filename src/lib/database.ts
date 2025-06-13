@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { env, isProduction, isDevelopment } from './env-validation'
+import { env, isProduction } from './env-validation'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -8,7 +8,7 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: isDevelopment ? ['query', 'info', 'warn', 'error'] : ['error'],
+    log: ['error'],
     datasources: {
       db: {
         url: env.DATABASE_URL,
@@ -17,13 +17,6 @@ export const prisma =
   })
 
 if (!isProduction) globalForPrisma.prisma = prisma
-
-// Enhanced error handling for database connections
-if (isDevelopment) {
-  prisma.$on('error' as never, (e) => {
-    console.error('Database error:', e)
-  })
-}
 
 // Connection health check
 export async function checkDatabaseConnection(): Promise<boolean> {

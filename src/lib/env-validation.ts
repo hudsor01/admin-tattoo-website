@@ -9,7 +9,7 @@ import { logger } from './secure-logger';
 // Define the schema for environment variables
 const envSchema = z.object({
   // Core application
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
   
   // Server configuration
   PORT: z.string().regex(/^\d+$/).transform(Number).default('3001'),
@@ -109,8 +109,8 @@ try {
       }
     } else {
       console.warn(errorMessage);
-      console.warn('Continuing with potentially invalid environment in development mode or client side');
-      // Use partial validation for development or client side
+      console.warn('Continuing with potentially invalid environment');
+      // Use partial validation for fallback
       validatedEnv = envSchema.partial().parse(process.env) as Env;
     }
   } else {
@@ -148,11 +148,11 @@ export const isTest = env.NODE_ENV === 'test';
 export function getDatabaseConfig() {
   return {
     url: env.DATABASE_URL,
-    // Add connection pooling and SSL settings based on environment
+    // Production SSL settings
     ssl: isProduction ? { rejectUnauthorized: false } : false,
     pool: {
-      min: isDevelopment ? 1 : 2,
-      max: isDevelopment ? 5 : 10,
+      min: 2,
+      max: 10,
     },
   };
 }

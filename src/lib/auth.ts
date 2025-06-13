@@ -1,11 +1,20 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
-import { prisma } from "@/lib/database";
+import { PrismaClient } from "@prisma/client";
 import { getAuthConfig, env } from "@/lib/env-validation";
 
+// Create a dedicated Prisma client for auth using DIRECT_URL to bypass Accelerate
+const authPrisma = new PrismaClient({
+    datasources: {
+        db: {
+            url: process.env.DIRECT_URL || process.env.DATABASE_URL
+        }
+    }
+});
+
 export const auth = betterAuth({
-    database: prismaAdapter(prisma, { 
+    database: prismaAdapter(authPrisma, { 
         provider: "postgresql" 
     }),
     emailAndPassword: { 

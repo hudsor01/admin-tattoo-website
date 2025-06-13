@@ -63,7 +63,6 @@ export const DEFAULT_SECURITY_HEADERS: SecurityHeadersConfig = {
     camera: [],
     microphone: [],
     geolocation: [],
-    payment: [],
     usb: [],
     bluetooth: [],
     magnetometer: [],
@@ -82,34 +81,6 @@ export const DEFAULT_SECURITY_HEADERS: SecurityHeadersConfig = {
   crossOriginResourcePolicy: 'same-origin',
 };
 
-/**
- * Development security headers (more permissive)
- */
-export const DEVELOPMENT_SECURITY_HEADERS: SecurityHeadersConfig = {
-  contentSecurityPolicy: [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-    "style-src 'self' 'unsafe-inline'",
-    "font-src 'self' data:",
-    "img-src 'self' data: blob: https:",
-    "media-src 'self' blob:",
-    "connect-src 'self' https://admin.ink37tattoos.com wss: ws:",
-    "frame-src 'self'",
-    "object-src 'none'",
-  ].join('; '),
-  
-  frameOptions: 'SAMEORIGIN',
-  contentTypeOptions: true,
-  referrerPolicy: 'strict-origin-when-cross-origin',
-  
-  // No HSTS in development
-  strictTransportSecurity: undefined,
-  
-  // More permissive in development
-  crossOriginEmbedderPolicy: 'unsafe-none',
-  crossOriginOpenerPolicy: 'unsafe-none',
-  crossOriginResourcePolicy: 'cross-origin',
-};
 
 /**
  * Convert security headers config to HTTP headers object
@@ -117,9 +88,7 @@ export const DEVELOPMENT_SECURITY_HEADERS: SecurityHeadersConfig = {
 export function createSecurityHeaders(config: SecurityHeadersConfig = {}): Record<string, string> {
   const headers: Record<string, string> = {};
   
-  const finalConfig = isProduction 
-    ? { ...DEFAULT_SECURITY_HEADERS, ...config }
-    : { ...DEVELOPMENT_SECURITY_HEADERS, ...config };
+  const finalConfig = { ...DEFAULT_SECURITY_HEADERS, ...config };
   
   // Content Security Policy
   if (finalConfig.contentSecurityPolicy) {
@@ -142,7 +111,7 @@ export function createSecurityHeaders(config: SecurityHeadersConfig = {}): Recor
   }
   
   // Strict-Transport-Security (HSTS)
-  if (finalConfig.strictTransportSecurity && isProduction) {
+  if (finalConfig.strictTransportSecurity) {
     const hsts = finalConfig.strictTransportSecurity;
     let hstsValue = `max-age=${hsts.maxAge}`;
     if (hsts.includeSubDomains) hstsValue += '; includeSubDomains';
@@ -260,14 +229,14 @@ export function validateSecurityConfig(config: SecurityHeadersConfig): {
     warnings.push('X-Frame-Options not set - clickjacking protection missing');
   }
   
-  // Check HSTS in production
-  if (isProduction && !config.strictTransportSecurity) {
-    warnings.push('HSTS not configured for production');
+  // Check HSTS
+  if (!config.strictTransportSecurity) {
+    warnings.push('HSTS not configured');
   }
   
   // Check HTTPS enforcement
-  if (isProduction && config.frameOptions !== 'DENY' && config.frameOptions !== 'SAMEORIGIN') {
-    warnings.push('Frame options should be DENY or SAMEORIGIN in production');
+  if (config.frameOptions !== 'DENY' && config.frameOptions !== 'SAMEORIGIN') {
+    warnings.push('Frame options should be DENY or SAMEORIGIN');
   }
   
   return { valid, warnings, errors };
@@ -296,7 +265,5 @@ export function logSecurityHeadersStatus(config: SecurityHeadersConfig): void {
   }
 }
 
-// Export default configuration based on environment
-export const securityHeaders = isProduction 
-  ? DEFAULT_SECURITY_HEADERS 
-  : DEVELOPMENT_SECURITY_HEADERS;
+// Export production security configuration
+export const securityHeaders = DEFAULT_SECURITY_HEADERS;

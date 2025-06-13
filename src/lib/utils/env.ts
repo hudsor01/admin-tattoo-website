@@ -63,18 +63,14 @@ export const ENV = {
   
   // Application
   NODE_ENV: getEnvOptional('NODE_ENV', 'production'),
-  PORT: getEnvNumber('PORT', 3000),
+  PORT: getEnvNumber('PORT', 3001),
   
   // External services
   UPLOADTHING_SECRET: getEnvOptional('UPLOADTHING_SECRET'),
   UPLOADTHING_APP_ID: getEnvOptional('UPLOADTHING_APP_ID'),
   
-  // Stripe (for payments)
-  STRIPE_SECRET_KEY: getEnvOptional('STRIPE_SECRET_KEY'),
-  STRIPE_PUBLISHABLE_KEY: getEnvOptional('STRIPE_PUBLISHABLE_KEY'),
-  STRIPE_WEBHOOK_SECRET: getEnvOptional('STRIPE_WEBHOOK_SECRET'),
 } as const;
 
-export const isDevelopment = ENV.NODE_ENV === 'development';
-export const isProduction = ENV.NODE_ENV === 'production';
-export const isTest = ENV.NODE_ENV === 'test';
+export const isDevelopment = false;
+export const isProduction = true;
+export const isTest = false;

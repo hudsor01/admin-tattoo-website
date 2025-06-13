@@ -52,13 +52,6 @@ export function handleCallbackError(
     args: safeStringify(context.args)
   };
   
-  // Send to error monitoring service in production (LogRocket, etc.)
-  // errorMonitoringService.captureError(normalizedError, errorInfo);
-  
-  // Log detailed info for development
-  if (process.env.NODE_ENV !== 'production') {
-    void logger.error('Error details:', errorInfo);
-  }
 }
 
 /**
