@@ -12,7 +12,6 @@ import {
   canManageResource,
   getUserPermissions
 } from './authorization';
-import { env } from './env-validation';
 
 // Enhanced user interface with authorization support
 export interface UserWithRole extends AuthorizedUser {
@@ -22,19 +21,9 @@ export interface UserWithRole extends AuthorizedUser {
     image?: string | null;
 }
 
-// Determine the correct base URL for auth client
-function getAuthClientBaseURL() {
-  // Always prioritize the production URL for this admin app
-  if (env.NEXT_PUBLIC_APP_URL) {
-    return env.NEXT_PUBLIC_APP_URL;
-  }
-  
-  // Production fallback
-  return "https://admin.ink37tattoos.com";
-}
-
+// Use production URL directly for auth client
 export const authClient = createAuthClient({
-    baseURL: getAuthClientBaseURL(),
+    baseURL: "https://admin.ink37tattoos.com",
 });
 
 export const {

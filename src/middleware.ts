@@ -108,22 +108,27 @@ export function middleware(request: NextRequest) {
         return new NextResponse('Access Denied - IP Blocked', { status: 429 });
     }
 
-    // Validate user agent for non-API routes
-    if (!pathname.startsWith('/api/health/') && !validateUserAgent(userAgent)) {
+    // Validate user agent for non-API routes (exclude auth and health)
+    if (!pathname.startsWith('/api/health/') && !pathname.startsWith('/api/auth/') && !validateUserAgent(userAgent)) {
         // Suspicious user agent blocked
         SECURITY_CONFIG.suspiciousIPs.add(clientIP);
         return new NextResponse('Access Denied - Invalid Client', { status: 403 });
     }
 
-    // Rate limiting for auth routes
-    if (pathname.startsWith('/api/auth/') && request.method === 'POST') {
+    // Allow auth routes to pass through without restrictions
+    if (pathname.startsWith('/api/auth/')) {
+        return addSecurityHeaders(response);
+    }
+
+    // Rate limiting for other API routes
+    if (pathname.startsWith('/api/') && request.method === 'POST') {
         if (!rateLimit(clientIP)) {
             // Rate limit exceeded
             return new NextResponse('Too Many Requests - Rate Limited', { status: 429 });
         }
     }
 
-    // Allow API routes, static files, and auth to pass through
+    // Allow API routes, static files to pass through
     if (pathname.startsWith('/api/') || pathname.startsWith('/_next/') || pathname === '/favicon.ico') {
         return addSecurityHeaders(response);
     }

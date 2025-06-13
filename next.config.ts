@@ -106,6 +106,43 @@ const nextConfig: NextConfig = {
         ]
       },
       {
+        source: '/api/auth/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate'
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache'
+          },
+          {
+            key: 'Expires',
+            value: '0'
+          },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: 'https://admin.ink37tattoos.com'
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS'
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization, Cookie, Set-Cookie'
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true'
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; connect-src 'self' https://admin.ink37tattoos.com; form-action 'self'"
+          }
+        ]
+      },
+      {
         source: '/api/health/(.*)',
         headers: [
           ...securityHeaders,

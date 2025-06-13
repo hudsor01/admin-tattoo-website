@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { PrismaClient } from "@prisma/client";
-import { getAuthConfig, env } from "@/lib/env-validation";
+import { getAuthConfig } from "@/lib/env-validation";
 
 // Create a dedicated Prisma client for auth using DIRECT_URL to bypass Accelerate
 const authPrisma = new PrismaClient({
@@ -79,7 +79,7 @@ export const auth = betterAuth({
     baseURL: getAuthConfig().baseUrl,
     trustedOrigins: [
         "https://admin.ink37tattoos.com",
-        env.NEXT_PUBLIC_APP_URL,
+        process.env.NEXT_PUBLIC_APP_URL,
         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined
     ].filter((origin): origin is string => Boolean(origin)),
     ratelimit: {
