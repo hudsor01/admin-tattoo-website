@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Mail, Phone, Calendar, User, Plus, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
+import type { ClientResponse } from '@/types/database'
 
 // Fetch customers from API
 const fetchCustomers = async () => {
@@ -24,7 +25,7 @@ export function CustomersList() {
     refetchInterval: 60000, // Refresh every minute
   })
 
-  const filteredCustomers = customers?.data?.filter((customer: any) => {
+  const filteredCustomers = customers?.data?.filter((customer: ClientResponse) => {
     const searchLower = searchTerm.toLowerCase()
     return (
       customer.firstName?.toLowerCase().includes(searchLower) ||
@@ -92,7 +93,7 @@ export function CustomersList() {
           </div>
         ) : filteredCustomers.length > 0 ? (
           <div className="space-y-3">
-            {filteredCustomers.map((customer: any) => (
+            {filteredCustomers.map((customer: ClientResponse) => (
               <CustomerCard key={customer.id} customer={customer} />
             ))}
             
@@ -111,8 +112,8 @@ export function CustomersList() {
   )
 }
 
-function CustomerCard({ customer }: { customer: any }) {
-  const formatDate = (dateString: string) => {
+function CustomerCard({ customer }: { customer: ClientResponse }) {
+  const formatDate = (dateString: string | Date) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -120,7 +121,7 @@ function CustomerCard({ customer }: { customer: any }) {
     })
   }
 
-  const calculateAge = (dateOfBirth: string) => {
+  const calculateAge = (dateOfBirth: string | Date) => {
     const today = new Date()
     const birthDate = new Date(dateOfBirth)
     let age = today.getFullYear() - birthDate.getFullYear()

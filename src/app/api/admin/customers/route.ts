@@ -1,55 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { customerFilterSchema, createCustomerSchema } from '@/lib/validations';
+import { customerFilterSchema, createCustomerSchema, CreateCustomer } from '@/lib/validations';
 import { createSuccessResponse, createErrorResponse, handleZodError } from '@/lib/error-handling';
 import { getCustomers, createCustomer } from '@/lib/db-operations';
 import { ZodError } from 'zod';
-import { prisma } from '@/lib/database';
+import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation';
 
-export async function GET(request: NextRequest) {
+const getCustomersHandler = async (request: NextRequest, validatedData?: { query?: Record<string, unknown> }) => {
   try {
-    // In development, use real database data from Prisma
-    if (process.env.NODE_ENV === 'development') {
-      try {
-        const clients = await prisma.client.findMany({
-          include: {
-            sessions: {
-              select: {
-                id: true,
-                appointmentDate: true,
-                status: true
-              }
-            },
-            appointments: {
-              select: {
-                id: true,
-                scheduledDate: true,
-                status: true
-              }
-            }
-          },
-          orderBy: {
-            createdAt: 'desc'
-          }
-        });
-        
-        return NextResponse.json(createSuccessResponse(clients));
-      } finally {
-        await prisma.$disconnect();
-      }
-    }
+    // Use validated query data if available, otherwise parse manually
+    const filters = validatedData?.query || (() => {
+      const { searchParams } = new URL(request.url);
+      return customerFilterSchema.parse({
+        search: searchParams.get('search') || undefined,
+        hasAppointments: searchParams.get('hasAppointments') === 'true' ? true : 
+                        searchParams.get('hasAppointments') === 'false' ? false : undefined,
+        limit: parseInt(searchParams.get('limit') || '10'),
+        offset: parseInt(searchParams.get('offset') || '0')
+      });
+    })();
 
-    const { searchParams } = new URL(request.url);
-    
-    // Parse and validate query parameters
-    const filters = customerFilterSchema.parse({
-      search: searchParams.get('search') || undefined,
-      hasAppointments: searchParams.get('hasAppointments') === 'true' ? true : 
-                      searchParams.get('hasAppointments') === 'false' ? false : undefined,
-      limit: parseInt(searchParams.get('limit') || '10'),
-      offset: parseInt(searchParams.get('offset') || '0')
-    });
-
-    // Use real database operations
+    // Use database operations with consistent validation across all environments
     const result = await getCustomers(filters);
 
     return NextResponse.json(createSuccessResponse(result));
@@ -71,21 +41,25 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+const createCustomerHandler = async (request: NextRequest, validatedData?: { body?: Record<string, unknown> }) => {
   try {
-    const body = await request.json();
+    // Use validated body data if available, otherwise parse manually
+    const parsedData = validatedData?.body || await (async () => {
+      const body = await request.json();
+      return createCustomerSchema.parse(body);
+    })();
     
-    // Validate request body
-    const validatedData = createCustomerSchema.parse(body);
+    // Type assertion to ensure we have the proper CreateCustomer type
+    const validatedCustomerData = parsedData as CreateCustomer;
     
     // Transform name to firstName/lastName if needed
     const clientData = {
-      ...validatedData,
-      firstName: validatedData.name?.split(' ')[0] || '',
-      lastName: validatedData.name?.split(' ').slice(1).join(' ') || '',
+      ...validatedCustomerData,
+      firstName: typeof validatedCustomerData.name === 'string' ? validatedCustomerData.name.split(' ')[0] || '' : '',
+      lastName: typeof validatedCustomerData.name === 'string' ? validatedCustomerData.name.split(' ').slice(1).join(' ') || '' : '',
       // Ensure required fields are not undefined for TypeScript
-      email: validatedData.email || '',
-      phone: validatedData.phone || '',
+      email: validatedCustomerData.email || '',
+      phone: validatedCustomerData.phone || '',
     };
     
     // Create new customer using real database operations
@@ -112,3 +86,14 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply security validation with new permission-based presets
+export const GET = withSecurityValidation({
+  ...SecurityPresets.CUSTOMER_READ,
+  querySchema: customerFilterSchema
+})(getCustomersHandler);
+
+export const POST = withSecurityValidation({
+  ...SecurityPresets.CUSTOMER_WRITE,
+  bodySchema: createCustomerSchema
+})(createCustomerHandler);

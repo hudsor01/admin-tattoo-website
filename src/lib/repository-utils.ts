@@ -1,29 +1,155 @@
 import { prisma } from '@/lib/database';
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+import { env, isProduction } from '@/lib/env-validation';
 
-/**
- * Generic repository pattern for common database operations
- * Reduces duplication in database operations
- */
+// Redis client for production
+let redis: unknown = null;
+
+// Initialize Redis in production
+async function getRedisClient() {
+  if (!isProduction) return null;
+  
+  if (!redis && env.REDIS_URL) {
+    try {
+      const { Redis } = await import('ioredis');
+      redis = new Redis(env.REDIS_URL, {
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+      });
+      await (redis as {ping(): Promise<string>}).ping();
+    } catch {
+      // Redis connection failed, using memory cache fallback
+      redis = null;
+    }
+  }
+  
+  return redis;
+}
+
+// Simple in-memory cache fallback
+const memoryCache = new Map<string, { data: unknown; timestamp: number }>();
+
+// Cache TTL constants in milliseconds
+export const CACHE_TTL = {
+  DASHBOARD_STATS: 5 * 60 * 1000, // 5 minutes
+  RECENT_APPOINTMENTS: 1 * 60 * 1000, // 1 minute
+  DEFAULT: 5 * 60 * 1000 // 5 minutes
+};
+
+// Generic caching wrapper with Redis support
+export function withCache<TArgs extends unknown[], TResult>(
+  fn: (...args: TArgs) => Promise<TResult>,
+  keyFn: (...args: TArgs) => string,
+  ttl: number = CACHE_TTL.DEFAULT
+): (...args: TArgs) => Promise<TResult> {
+  return async (...args: TArgs): Promise<TResult> => {
+    const key = keyFn(...args);
+    const now = Date.now();
+    
+    // Try Redis first in production
+    const redisClient = await getRedisClient();
+    if (redisClient) {
+      try {
+        const cached = await (redisClient as {get(key: string): Promise<string | null>}).get(key);
+        if (cached) {
+          return JSON.parse(cached) as TResult;
+        }
+      } catch {
+        // Redis operation failed, using memory cache fallback
+      }
+    }
+    
+    // Fallback to memory cache
+    const cached = memoryCache.get(key);
+    if (cached && now - cached.timestamp < ttl) {
+      return cached.data as TResult;
+    }
+    
+    // Call function and cache result
+    const result = await fn(...args);
+    
+    // Store in Redis if available
+    if (redisClient) {
+      try {
+        await (redisClient as {setex(key: string, seconds: number, value: string): Promise<unknown>}).setex(key, Math.floor(ttl / 1000), JSON.stringify(result));
+      } catch {
+        // Redis set operation failed
+      }
+    }
+    
+    // Always store in memory cache as fallback
+    memoryCache.set(key, { data: result, timestamp: now });
+    
+    return result;
+  };
+}
+
+// Clear cache utility
+export async function clearCache(pattern?: string) {
+  const redisClient = await getRedisClient();
+  
+  if (redisClient) {
+    try {
+      if (pattern) {
+        const keys = await (redisClient as {keys(pattern: string): Promise<string[]>}).keys(`*${pattern}*`);
+        if (keys.length > 0) {
+          await (redisClient as {del(...keys: string[]): Promise<number>}).del(...keys);
+        }
+      } else {
+        await (redisClient as {flushdb(): Promise<string>}).flushdb();
+      }
+    } catch {
+      // Redis clear operation failed
+    }
+  }
+  
+  // Clear memory cache
+  if (!pattern) {
+    memoryCache.clear();
+    return;
+  }
+  
+  // Clear entries matching pattern
+  for (const key of memoryCache.keys()) {
+    if (key.includes(pattern)) {
+      memoryCache.delete(key);
+    }
+  }
+}
+
+// Generic type for Prisma model delegates
+type PrismaModelDelegate = {
+  findMany: (args?: unknown) => Promise<unknown[]>;
+  findUnique: (args: { where: unknown; include?: unknown; select?: unknown }) => Promise<unknown | null>;
+  findFirst: (args: { where: unknown; include?: unknown; select?: unknown }) => Promise<unknown | null>;
+  create: (args: { data: unknown; include?: unknown; select?: unknown }) => Promise<unknown>;
+  update: (args: { where: unknown; data: unknown; include?: unknown; select?: unknown }) => Promise<unknown>;
+  delete: (args: { where: unknown }) => Promise<unknown>;
+  count: (args?: { where?: unknown }) => Promise<number>;
+};
+
 export class GenericRepository<
-  TModel,
   TCreateInput,
   TUpdateInput,
   TWhereUniqueInput = { id: string },
-  TWhereInput = any,
-  TOrderByInput = any
+  TWhereInput = Record<string, unknown>,
+  TOrderByInput = Record<string, unknown>
 > {
   constructor(
     private modelName: Prisma.ModelName,
-    private defaultInclude?: any,
-    private defaultSelect?: any
+    private defaultInclude?: Record<string, unknown>,
+    private defaultSelect?: Record<string, unknown>
   ) {}
 
   /**
    * Get model delegate from prisma client
    */
-  private get model() {
-    return (prisma as any)[this.modelName];
+  private get model(): PrismaModelDelegate {
+    const modelDelegate = (prisma as unknown as Record<string, PrismaModelDelegate>)[this.modelName];
+    if (!modelDelegate) {
+      throw new Error(`Model ${this.modelName} not found in Prisma client`);
+    }
+    return modelDelegate;
   }
 
   /**
@@ -32,8 +158,8 @@ export class GenericRepository<
   async findMany(options: {
     where?: TWhereInput;
     orderBy?: TOrderByInput;
-    include?: any;
-    select?: any;
+    include?: Record<string, unknown>;
+    select?: Record<string, unknown>;
     take?: number;
     skip?: number;
   } = {}) {
@@ -50,8 +176,8 @@ export class GenericRepository<
   async findUnique(
     where: TWhereUniqueInput,
     options: {
-      include?: any;
-      select?: any;
+      include?: Record<string, unknown>;
+      select?: Record<string, unknown>;
     } = {}
   ) {
     return this.model.findUnique({
@@ -67,8 +193,8 @@ export class GenericRepository<
   async create(
     data: TCreateInput,
     options: {
-      include?: any;
-      select?: any;
+      include?: Record<string, unknown>;
+      select?: Record<string, unknown>;
     } = {}
   ) {
     return this.model.create({
@@ -85,8 +211,8 @@ export class GenericRepository<
     where: TWhereUniqueInput,
     data: TUpdateInput,
     options: {
-      include?: any;
-      select?: any;
+      include?: Record<string, unknown>;
+      select?: Record<string, unknown>;
     } = {}
   ) {
     return this.model.update({
@@ -126,8 +252,8 @@ export class GenericRepository<
     where: TWhereInput,
     createData: TCreateInput,
     options: {
-      include?: any;
-      select?: any;
+      include?: Record<string, unknown>;
+      select?: Record<string, unknown>;
     } = {}
   ) {
     let record = await this.model.findFirst({
@@ -160,8 +286,8 @@ export class GenericRepository<
     options: {
       where?: TWhereInput;
       orderBy?: TOrderByInput;
-      include?: any;
-      select?: any;
+      include?: Record<string, unknown>;
+      select?: Record<string, unknown>;
       page?: number;
       limit?: number;
     } = {}
@@ -196,19 +322,17 @@ export class GenericRepository<
  * Utility function to create typed repository instances
  */
 export function createRepository<
-  TModel,
   TCreateInput,
   TUpdateInput,
   TWhereUniqueInput = { id: string },
-  TWhereInput = any,
-  TOrderByInput = any
+  TWhereInput = Record<string, unknown>,
+  TOrderByInput = Record<string, unknown>
 >(
   modelName: Prisma.ModelName,
-  defaultInclude?: any,
-  defaultSelect?: any
+  defaultInclude?: Record<string, unknown>,
+  defaultSelect?: Record<string, unknown>
 ) {
   return new GenericRepository<
-    TModel,
     TCreateInput,
     TUpdateInput,
     TWhereUniqueInput,
@@ -224,7 +348,7 @@ export const dbUtils = {
   /**
    * Execute multiple operations in a transaction
    */
-  async transaction<T>(operations: (tx: typeof prisma) => Promise<T>): Promise<T> {
+  async transaction<T>(operations: (tx: Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => Promise<T>): Promise<T> {
     return prisma.$transaction(operations);
   },
 
@@ -238,7 +362,7 @@ export const dbUtils = {
   /**
    * Execute raw query
    */
-  async queryRaw<T = unknown>(query: string, values?: any[]): Promise<T> {
+  async queryRaw<T = unknown>(query: string, values?: unknown[]): Promise<T> {
     return prisma.$queryRawUnsafe(query, ...(values || []));
   },
 
@@ -260,7 +384,7 @@ export const dbUtils = {
  */
 export const repositories = {
   clients: createRepository(
-    'client',
+    'Client',
     {
       appointments: {
         select: {
@@ -286,7 +410,7 @@ export const repositories = {
   ),
 
   appointments: createRepository(
-    'appointment',
+    'Appointment',
     {
       client: {
         select: {
@@ -307,7 +431,7 @@ export const repositories = {
   ),
 
   sessions: createRepository(
-    'tattooSession',
+    'TattooSession',
     {
       client: {
         select: {
@@ -328,7 +452,7 @@ export const repositories = {
   ),
 
   artists: createRepository(
-    'tattooArtist',
+    'TattooArtist',
     {
       _count: {
         select: {

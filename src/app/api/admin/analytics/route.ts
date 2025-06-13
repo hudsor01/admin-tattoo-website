@@ -1,21 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation';
+import { createSuccessResponse, createErrorResponse } from '@/lib/error-handling';
 
 const prisma = new PrismaClient();
 
-// Skip authentication in development - add proper auth in production
-const isDevelopment = process.env.NODE_ENV === 'development';
-
-export async function GET() {
+const getAnalyticsHandler = async (_request: NextRequest) => {
   try {
-    // Skip auth check in development
-    if (!isDevelopment) {
-      // TODO: Add proper authentication check for production
-      // const session = await getServerSession(authOptions);
-      // if (!session || session.user.role !== 'admin') {
-      //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      // }
-    }
 
     // Calculate date ranges
     const now = new Date();
@@ -165,17 +156,20 @@ export async function GET() {
       clientAcquisition
     };
 
-    return NextResponse.json(analyticsData);
+    return NextResponse.json(createSuccessResponse(analyticsData));
 
   } catch (error) {
     console.error('Analytics API error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch analytics data' }, 
+      createErrorResponse('Failed to fetch analytics data'),
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
-export async function POST() {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
-}
+// Apply security validation with analytics read preset
+export const GET = withSecurityValidation({
+  ...SecurityPresets.ANALYTICS_READ
+})(getAnalyticsHandler);

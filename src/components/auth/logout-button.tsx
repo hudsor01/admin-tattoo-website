@@ -84,7 +84,7 @@ export function LogoutButton({
               Sign Out
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base text-muted-foreground">
-              Are you sure you want to sign out? You'll need to sign in again to access your dashboard.
+              Are you sure you want to sign out? You&apos;ll need to sign in again to access your dashboard.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">

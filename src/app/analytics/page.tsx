@@ -1,6 +1,6 @@
 "use client"
 
-import { AdminRoute } from "@/lib/user"
+import { AdminRoute } from "@/components/auth/admin-route"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import {
   Breadcrumb,
@@ -18,10 +18,13 @@ import {
 } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive"
 import { DollarSign, Users, Calendar, TrendingUp, Download, Filter } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton"
+import { lazy, Suspense } from "react"
+
+// Lazy load heavy components
+const ChartAreaInteractive = lazy(() => import("@/components/dashboard/chart-area-interactive").then(mod => ({ default: mod.ChartAreaInteractive })))
 
 
 // Fetch analytics data from API
@@ -147,7 +150,9 @@ export default function AnalyticsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pl-2 relative">
-                  <ChartAreaInteractive />
+                  <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+                    <ChartAreaInteractive />
+                  </Suspense>
                 </CardContent>
               </Card>
               <Card className="col-span-3 shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
@@ -255,7 +260,7 @@ function MetricCard({ title, value, change, icon, format, isLoading, gradient }:
   )
 }
 
-function TopArtists({ artists, isLoading }: { artists: any[], isLoading: boolean }) {
+function TopArtists({ artists, isLoading }: { artists: Array<{ artistId: string; artistName: string; sessions: number; revenue: number; avgRating: number }>, isLoading: boolean }) {
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -280,7 +285,7 @@ function TopArtists({ artists, isLoading }: { artists: any[], isLoading: boolean
   return (
     <div className="space-y-3">
       {artists.slice(0, 5).map((artist, index) => (
-        <div key={artist.id} className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 hover:from-orange-50 hover:to-pink-50 transition-all duration-200 border border-gray-200">
+        <div key={artist.artistId} className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 hover:from-orange-50 hover:to-pink-50 transition-all duration-200 border border-gray-200">
           <div className="flex items-center gap-3">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
               index === 0 ? 'bg-gradient-to-r from-yellow-400 to-orange-500' :
@@ -290,7 +295,7 @@ function TopArtists({ artists, isLoading }: { artists: any[], isLoading: boolean
             }`}>
               #{index + 1}
             </div>
-            <span className="font-semibold text-gray-800">{artist.name}</span>
+            <span className="font-semibold text-gray-800">{artist.artistName}</span>
           </div>
           <span className="text-lg font-bold text-gray-900">${artist.revenue?.toLocaleString()}</span>
         </div>
@@ -299,7 +304,7 @@ function TopArtists({ artists, isLoading }: { artists: any[], isLoading: boolean
   )
 }
 
-function SessionTypesChart({ data, isLoading }: { data: any[], isLoading: boolean }) {
+function SessionTypesChart({ data, isLoading }: { data: Array<{ type: string; count: number }>, isLoading: boolean }) {
   if (isLoading) {
     return <Skeleton className="h-32 w-full" />
   }
@@ -312,12 +317,19 @@ function SessionTypesChart({ data, isLoading }: { data: any[], isLoading: boolea
     )
   }
 
+  // Calculate total and percentages
+  const total = data.reduce((sum, type) => sum + type.count, 0);
+  const dataWithPercentages = data.map(type => ({
+    ...type,
+    percentage: total > 0 ? Math.round((type.count / total) * 100) : 0
+  }));
+
   return (
     <div className="space-y-4">
-      {data.map((type, index) => (
+      {dataWithPercentages.map((type, index) => (
         <div key={index} className="p-3 rounded-lg bg-gradient-to-r from-green-50 to-teal-50 border border-green-200">
           <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-gray-800">{type.name}</span>
+            <span className="font-semibold text-gray-800">{type.type}</span>
             <span className="text-lg font-bold text-gray-900">{type.count}</span>
           </div>
           <div className="flex items-center gap-3">
@@ -335,7 +347,7 @@ function SessionTypesChart({ data, isLoading }: { data: any[], isLoading: boolea
   )
 }
 
-function ClientAcquisitionChart({ data, isLoading }: { data: any[], isLoading: boolean }) {
+function ClientAcquisitionChart({ data, isLoading }: { data: Array<{ month: string; newClients: number; returningClients: number }>, isLoading: boolean }) {
   if (isLoading) {
     return <Skeleton className="h-32 w-full" />
   }

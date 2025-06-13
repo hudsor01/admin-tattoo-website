@@ -47,15 +47,8 @@ const consoleLogger: LoggerInterface = {
       console.warn(`HTTP: ${message}`);
     }
   },
-  debug: (message: LogMessage, data?: LogData) => {
-    // Only log debug messages in development
-    if (process.env.NODE_ENV === 'development') {
-      if (data !== undefined) {
-        console.warn(`DEBUG: ${message}`, data);
-      } else {
-        console.warn(`DEBUG: ${message}`);
-      }
-    }
+  debug: (_message: LogMessage, _data?: LogData) => {
+    // Debug logging disabled in production
   },
 };
 
@@ -96,16 +89,8 @@ const serverLogger: LoggerInterface = {
       console.warn(`[${timestamp}] HTTP: ${message}`);
     }
   },
-  debug: (message: LogMessage, data?: LogData) => {
-    // Only log debug messages in development
-    if (process.env.NODE_ENV === 'development') {
-      const timestamp = new Date().toISOString();
-      if (data !== undefined) {
-        console.warn(`[${timestamp}] DEBUG: ${message}`, data);
-      } else {
-        console.warn(`[${timestamp}] DEBUG: ${message}`);
-      }
-    }
+  debug: (_message: LogMessage, _data?: LogData) => {
+    // Debug logging disabled in production
   },
 };
 

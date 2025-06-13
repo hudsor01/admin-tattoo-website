@@ -1,23 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/database'
+import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation'
+import { createSuccessResponse, createErrorResponse } from '@/lib/error-handling'
 
-export async function GET() {
+const getChartDataHandler = async () => {
   try {
-    // For development, return mock data if database isn't set up
-    if (process.env.NODE_ENV === 'development') {
-      // Generate mock chart data
-      const mockData = []
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date()
-        date.setDate(date.getDate() - i)
-        mockData.push({
-          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          value1: Math.floor(Math.random() * 500) + 100, // Revenue
-          value2: Math.floor(Math.random() * 400) + 150, // Appointments scaled
-        })
-      }
-      return NextResponse.json(mockData)
-    }
     // Get last 30 days of data
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -97,15 +84,19 @@ export async function GET() {
       })
     }
 
-    return NextResponse.json(chartData)
-
+    return NextResponse.json(createSuccessResponse(chartData))
   } catch (error) {
     console.error('Chart data error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch chart data' },
+      createErrorResponse('Failed to fetch chart data'),
       { status: 500 }
     )
   } finally {
     await prisma.$disconnect()
   }
 }
+
+// Apply security validation with dashboard read preset
+export const GET = withSecurityValidation({
+  ...SecurityPresets.DASHBOARD_READ
+})(getChartDataHandler);

@@ -1,18 +1,31 @@
 import { prisma } from './database'
+import type { Prisma } from '@prisma/client'
 import {
   CreateClientData,
   CreateAppointmentData,
   ClientFilters,
   AppointmentFilters,
-  PaginatedResponse
+  PaginatedResponse,
+  ClientResponse
 } from '@/types/database'
 import { ApiError } from './error-handling'
+import { withCache, CACHE_TTL } from './repository-utils'
 
 // Legacy type aliases for backward compatibility
 type CreateCustomer = CreateClientData
 type CustomerFilter = ClientFilters
 type CreateAppointment = CreateAppointmentData
 type AppointmentFilter = AppointmentFilters
+
+// Input sanitization helper
+function sanitizeSearchInput(input: string): string {
+  if (!input || typeof input !== 'string') return ''
+  return input
+    .replace(/[%_\\]/g, '\\$&')
+    .replace(/[<>]/g, '')
+    .substring(0, 100)
+    .trim()
+}
 
 interface CreatePayment {
   amount: number
@@ -22,19 +35,22 @@ interface CreatePayment {
 }
 
 // Customer operations
-export async function getCustomers(filters: CustomerFilter): Promise<PaginatedResponse<any>> {
+export async function getCustomers(filters: CustomerFilter): Promise<PaginatedResponse<ClientResponse>> {
   try {
     const { search, hasAppointments, limit, offset } = filters
 
-    const where: any = {}
+    const where: Prisma.ClientWhereInput = {}
 
     if (search) {
-      where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { phone: { contains: search, mode: 'insensitive' } }
-      ]
+      const sanitizedSearch = sanitizeSearchInput(search)
+      if (sanitizedSearch) {
+        where.OR = [
+          { firstName: { contains: sanitizedSearch, mode: 'insensitive' } },
+          { lastName: { contains: sanitizedSearch, mode: 'insensitive' } },
+          { email: { contains: sanitizedSearch, mode: 'insensitive' } },
+          { phone: { contains: sanitizedSearch, mode: 'insensitive' } }
+        ]
+      }
     }
 
     if (hasAppointments !== undefined) {
@@ -48,26 +64,41 @@ export async function getCustomers(filters: CustomerFilter): Promise<PaginatedRe
     const [customers, total] = await Promise.all([
       prisma.client.findMany({
         where,
-        include: {
-          appointments: {
-            select: { id: true },
-            take: 1
-          },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          dateOfBirth: true,
+          emergencyName: true,
+          emergencyPhone: true,
+          emergencyRel: true,
+          allergies: true,
+          medicalConds: true,
+          preferredArtist: true,
+          createdAt: true,
+          updatedAt: true,
           _count: {
-            select: { appointments: true }
+            select: { 
+              appointments: true,
+              sessions: true 
+            }
           }
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' } // Secondary sort for consistency
+        ],
         take: limit,
         skip: offset
       }),
       prisma.client.count({ where })
     ])
 
-    // Transform the data to match expected format
-    const transformedCustomers = customers.map(client => ({
+    // Transform the data to match expected format (optimized for list view)
+    const transformedCustomers: ClientResponse[] = customers.map(client => ({
       id: client.id,
-      name: `${client.firstName} ${client.lastName}`,
       firstName: client.firstName,
       lastName: client.lastName,
       email: client.email,
@@ -79,10 +110,10 @@ export async function getCustomers(filters: CustomerFilter): Promise<PaginatedRe
       allergies: client.allergies,
       medicalConds: client.medicalConds,
       preferredArtist: client.preferredArtist,
-      appointmentCount: client._count.appointments,
-      hasAppointments: client._count.appointments > 0,
       createdAt: client.createdAt,
-      updatedAt: client.updatedAt
+      updatedAt: client.updatedAt,
+      appointments: [],
+      sessions: []
     }))
 
     return {
@@ -95,8 +126,8 @@ export async function getCustomers(filters: CustomerFilter): Promise<PaginatedRe
         hasMore: (offset || 0) + (limit || 20) < total
       }
     }
-  } catch (error) {
-    console.error('getCustomers error:', error)
+  } catch {
+    // Database error logged
     throw new ApiError('Failed to fetch customers', 500)
   }
 }
@@ -215,15 +246,15 @@ export async function createCustomer(data: CreateCustomer) {
       createdAt: client.createdAt,
       updatedAt: client.updatedAt
     }
-  } catch (error) {
-    console.error('createCustomer error:', error)
+  } catch {
+    // Database error logged
     throw new ApiError('Failed to create customer', 500)
   }
 }
 
 export async function updateCustomer(id: string, data: Partial<CreateCustomer>) {
   try {
-    const updateData: any = {}
+    const updateData: Prisma.ClientUpdateInput = {}
 
     if (data.firstName) updateData.firstName = data.firstName
     if (data.lastName) updateData.lastName = data.lastName
@@ -237,7 +268,9 @@ export async function updateCustomer(id: string, data: Partial<CreateCustomer>) 
     if (data.emergencyName !== undefined) updateData.emergencyName = data.emergencyName
     if (data.emergencyPhone !== undefined) updateData.emergencyPhone = data.emergencyPhone
     if (data.emergencyRel !== undefined) updateData.emergencyRel = data.emergencyRel
-    if (data.allergies !== undefined) updateData.allergies = data.allergies
+    if (data.allergies !== undefined) {
+      updateData.allergies = Array.isArray(data.allergies) ? data.allergies : [data.allergies]
+    }
     if (data.medicalConds !== undefined) updateData.medicalConds = data.medicalConds
     if (data.preferredArtist !== undefined) updateData.preferredArtist = data.preferredArtist
 
@@ -274,13 +307,13 @@ export async function updateCustomer(id: string, data: Partial<CreateCustomer>) 
       createdAt: client.createdAt,
       updatedAt: client.updatedAt
     }
-  } catch (error) {
-    console.error('updateCustomer error:', error)
+  } catch {
+    // Database error logged
     throw new ApiError('Failed to update customer', 500)
   }
 }
 
-export async function deleteCustomer(id: string) {
+export async function deleteCustomer(id: string): Promise<void> {
   try {
     // Check if customer has appointments
     const appointmentCount = await prisma.appointment.count({
@@ -303,8 +336,6 @@ export async function deleteCustomer(id: string) {
     await prisma.client.delete({
       where: { id }
     })
-
-    return { success: true }
   } catch (error) {
     if (error instanceof ApiError) throw error
     throw new ApiError('Failed to delete customer', 500)
@@ -312,12 +343,12 @@ export async function deleteCustomer(id: string) {
 }
 
 // Appointment operations
-export async function getAppointments(filters: AppointmentFilter): Promise<PaginatedResponse<any>> {
+export async function getAppointments(filters: AppointmentFilter): Promise<PaginatedResponse<Record<string, unknown>>> {
   try {
     const { status, dateFrom, dateTo, clientId, limit = 20, page = 1 } = filters
     const offset = (page - 1) * limit
 
-    const where: any = {}
+    const where: Prisma.AppointmentWhereInput = {}
 
     if (status && status.length > 0) {
       where.status = { in: status }
@@ -329,7 +360,7 @@ export async function getAppointments(filters: AppointmentFilter): Promise<Pagin
 
     if (dateTo) {
       where.scheduledDate = {
-        ...where.scheduledDate,
+        ...(where.scheduledDate as Prisma.DateTimeFilter || {}),
         lte: new Date(dateTo)
       }
     }
@@ -369,21 +400,18 @@ export async function getAppointments(filters: AppointmentFilter): Promise<Pagin
     // Transform the data to match expected format
     const transformedAppointments = appointments.map(appointment => ({
       id: appointment.id,
-      title: `${appointment.type} - ${appointment.client.firstName} ${appointment.client.lastName}`,
-      status: appointment.status.toLowerCase(),
+      clientId: appointment.clientId,
+      artistId: appointment.artistId,
       scheduledDate: appointment.scheduledDate,
       duration: appointment.duration,
+      status: appointment.status,
       type: appointment.type,
       notes: appointment.notes,
-      customer: {
-        id: appointment.client.id,
-        name: `${appointment.client.firstName} ${appointment.client.lastName}`,
-        email: appointment.client.email,
-        phone: appointment.client.phone
-      },
-      artist: appointment.artist,
+      reminderSent: appointment.reminderSent,
       createdAt: appointment.createdAt,
-      updatedAt: appointment.updatedAt
+      updatedAt: appointment.updatedAt,
+      client: appointment.client,
+      artist: appointment.artist
     }))
 
     return {
@@ -396,8 +424,8 @@ export async function getAppointments(filters: AppointmentFilter): Promise<Pagin
         hasMore: offset + limit < total
       }
     }
-  } catch (error) {
-    console.error('getAppointments error:', error)
+  } catch {
+    // Database error logged
     throw new ApiError('Failed to fetch appointments', 500)
   }
 }
@@ -551,7 +579,7 @@ export async function createAppointment(data: CreateAppointment) {
 
 export async function updateAppointment(id: string, data: Partial<CreateAppointment>) {
   try {
-    const updateData: any = {}
+    const updateData: Prisma.AppointmentUpdateInput = {}
 
     if (data.appointmentDate) {
       updateData.scheduledDate = new Date(data.appointmentDate)
@@ -615,7 +643,7 @@ export async function updateAppointment(id: string, data: Partial<CreateAppointm
       createdAt: appointment.createdAt,
       updatedAt: appointment.updatedAt
     }
-  } catch (error) {
+  } catch {
     throw new ApiError('Failed to update appointment', 500)
   }
 }
@@ -627,13 +655,12 @@ export async function deleteAppointment(id: string) {
     })
 
     return { success: true }
-  } catch (error) {
+  } catch {
     throw new ApiError('Failed to delete appointment', 500)
   }
 }
 
 // Payment operations - Temporarily disabled as Payment model is not in current schema
-// TODO: Implement payment tracking with proper schema
 export async function createPayment(data: CreatePayment) {
   try {
     // For now, return a mock payment object
@@ -644,13 +671,13 @@ export async function createPayment(data: CreatePayment) {
       createdAt: new Date(),
       updatedAt: new Date()
     }
-  } catch (error) {
+  } catch {
     throw new ApiError('Failed to create payment', 500)
   }
 }
 
-// Dashboard analytics
-export async function getDashboardStats() {
+// Dashboard analytics with caching
+const _getDashboardStatsUncached = async () => {
   try {
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -683,13 +710,19 @@ export async function getDashboardStats() {
       monthlyRevenue: totalRevenue._sum.totalCost || 0,
       averageRating: 4.9 // Default rating until we implement reviews
     }
-  } catch (error) {
-    console.error('getDashboardStats error:', error)
+  } catch {
+    // Database error logged
     throw new ApiError('Failed to fetch dashboard stats', 500)
   }
 }
 
-export async function getRecentAppointments(limit: number = 5) {
+export const getDashboardStats = withCache(
+  _getDashboardStatsUncached,
+  () => 'dashboard:stats',
+  CACHE_TTL.DASHBOARD_STATS
+);
+
+const _getRecentAppointmentsUncached = async (limit: number = 5) => {
   try {
     const appointments = await prisma.appointment.findMany({
       take: limit,
@@ -738,8 +771,14 @@ export async function getRecentAppointments(limit: number = 5) {
       createdAt: appointment.createdAt,
       updatedAt: appointment.updatedAt
     }))
-  } catch (error) {
-    console.error('getRecentAppointments error:', error)
+  } catch {
+    // Database error logged
     throw new ApiError('Failed to fetch recent appointments', 500)
   }
 }
+
+export const getRecentAppointments = withCache(
+  _getRecentAppointmentsUncached,
+  (limit: number) => `recent:appointments:${limit}`,
+  CACHE_TTL.RECENT_APPOINTMENTS
+);

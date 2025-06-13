@@ -15,8 +15,8 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
       const error = new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-      (error as any).status = response.status;
-      (error as any).statusText = response.statusText;
+      (error as Error & { status?: number; statusText?: string }).status = response.status;
+      (error as Error & { status?: number; statusText?: string }).statusText = response.statusText;
       throw error;
     }
 
@@ -206,7 +206,14 @@ export function artistPerformanceOptions(artistId: string, filters: AnalyticsFil
     queryKey: ['analytics', 'artists', artistId, 'performance', filters],
     queryFn: () => {
       const url = `/api/admin/analytics/artists/${artistId}/performance${params.toString() ? `?${params}` : ''}`;
-      return fetchApi<any>(url);
+      return fetchApi<{
+        sessions: number;
+        revenue: number;
+        avgSessionValue: number;
+        clientSatisfaction: number;
+        popularStyles: Array<{ style: string; count: number }>;
+        monthlyTrends: Array<{ month: string; sessions: number; revenue: number }>;
+      }>(url);
     },
     staleTime: 1000 * 60 * 10, // 10 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
@@ -216,14 +223,26 @@ export function artistPerformanceOptions(artistId: string, filters: AnalyticsFil
 export function realTimeAnalyticsOptions() {
   return queryOptions({
     queryKey: ['analytics', 'realtime'],
-    queryFn: () => fetchApi<any>('/api/admin/analytics/realtime'),
+    queryFn: () => fetchApi<{
+      activeUsers: number;
+      pendingBookings: number;
+      todayRevenue: number;
+      sessionsInProgress: number;
+      recentActivity: Array<{ type: string; timestamp: string; details: string }>;
+    }>('/api/admin/analytics/realtime'),
     staleTime: 1000 * 30, // 30 seconds for real-time data
     gcTime: 1000 * 60 * 2, // 2 minutes
     refetchInterval: 1000 * 30, // Auto-refresh every 30 seconds
   });
 }
 
-export function customReportOptions(reportConfig: any) {
+export function customReportOptions(reportConfig: {
+  type: string;
+  metrics: string[];
+  filters: AnalyticsFilters;
+  groupBy?: string;
+  sortBy?: string;
+}) {
   return queryOptions({
     queryKey: ['analytics', 'custom-report', reportConfig],
     queryFn: () => fetchApi('/api/admin/analytics/custom-report', {
@@ -260,7 +279,13 @@ export const useRealTimeAnalytics = () => {
   return useQuery(realTimeAnalyticsOptions());
 };
 
-export const useCustomReport = (reportConfig: any, enabled = true) => {
+export const useCustomReport = (reportConfig: {
+  type: string;
+  metrics: string[];
+  filters: AnalyticsFilters;
+  groupBy?: string;
+  sortBy?: string;
+}, enabled = true) => {
   return useQuery({
     ...customReportOptions(reportConfig),
     enabled,
@@ -272,7 +297,12 @@ export const useSaveCustomReport = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (reportData: any) =>
+    mutationFn: (reportData: {
+      name: string;
+      description?: string;
+      config: Record<string, unknown>;
+      schedule?: string;
+    }) =>
       fetchApi('/api/admin/analytics/reports', {
         method: 'POST',
         body: JSON.stringify(reportData),
@@ -307,7 +337,14 @@ export const useSetAnalyticsAlert = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (alertConfig: any) =>
+    mutationFn: (alertConfig: {
+      name: string;
+      metric: string;
+      condition: 'greater_than' | 'less_than' | 'equals';
+      threshold: number;
+      frequency: 'realtime' | 'hourly' | 'daily' | 'weekly';
+      recipients: string[];
+    }) =>
       fetchApi('/api/admin/analytics/alerts', {
         method: 'POST',
         body: JSON.stringify(alertConfig),

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CalendarDays, Clock, DollarSign, User } from "lucide-react"
+import type { TattooSessionWithClient } from '@/types/database'
 
 // Fetch recent sessions from API
 const fetchRecentSessions = async () => {
@@ -58,7 +59,7 @@ export function RecentSessions() {
           </div>
         ) : sessions?.data?.length > 0 ? (
           <div className="space-y-4">
-            {sessions.data.slice(0, 10).map((session: any) => (
+            {sessions.data.slice(0, 10).map((session: TattooSessionWithClient) => (
               <SessionCard key={session.id} session={session} />
             ))}
           </div>
@@ -72,7 +73,7 @@ export function RecentSessions() {
   )
 }
 
-function SessionCard({ session }: { session: any }) {
+function SessionCard({ session }: { session: TattooSessionWithClient }) {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'completed':
@@ -90,7 +91,7 @@ function SessionCard({ session }: { session: any }) {
     }
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -139,13 +140,13 @@ function SessionCard({ session }: { session: any }) {
             {session.totalCost && (
               <div className="flex items-center gap-1">
                 <DollarSign className="h-3 w-3" />
-                <span>{formatCurrency(session.totalCost)}</span>
+                <span>{formatCurrency(Number(session.totalCost))}</span>
               </div>
             )}
           </div>
           
           <p className="text-xs text-gray-500 mt-1 truncate">
-            {session.style} • {session.placement}
+            {session.designDescription}
           </p>
         </div>
       </div>

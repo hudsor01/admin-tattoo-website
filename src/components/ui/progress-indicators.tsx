@@ -314,3 +314,6 @@ export function PulseDot({ color = 'primary', size = 'md', className }: PulseDot
     </div>
   );
 }
+
+// Re-export unified components from loading-spinner.tsx for consolidation
+export { LoadingSpinner } from './loading-spinner';

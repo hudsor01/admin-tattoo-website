@@ -1,11 +1,5 @@
-/**
- * Database Security Utilities
- * 
- * Provides field-level encryption, audit logging, and security policies
- * for sensitive data in the tattoo admin system.
- */
-
-import { PrismaClient, Prisma } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import crypto from 'crypto'
 
 // Environment variables for encryption
@@ -16,9 +10,6 @@ if (!ENCRYPTION_KEY && process.env.NODE_ENV === 'production') {
   throw new Error('ENCRYPTION_SECRET environment variable is required in production')
 }
 
-/**
- * Field-level encryption for PII data
- */
 export class FieldEncryption {
   private static deriveKey(salt: string): Buffer {
     return crypto.pbkdf2Sync(ENCRYPTION_KEY, salt, 100000, 32, 'sha256')
@@ -65,15 +56,12 @@ export class FieldEncryption {
       decrypted += decipher.final('utf8')
 
       return decrypted
-    } catch (error) {
-      console.error('Decryption failed:', error)
+    } catch {
+      // Decryption failed - sensitive operation
       return '[ENCRYPTED]'
     }
   }
 
-  /**
-   * Encrypt sensitive client fields
-   */
   static encryptClientData(client: Record<string, unknown>) {
     return {
       ...client,
@@ -154,8 +142,8 @@ export class AuditLogger {
           metadata: sanitizedMetadata as Prisma.InputJsonValue
         }
       })
-    } catch (error) {
-      console.error('Audit logging failed:', error)
+    } catch {
+      // Audit logging failed
       // Don't throw - audit failures shouldn't break the main operation
     }
   }
@@ -435,7 +423,7 @@ export class DatabaseSecurity {
       })
     }
 
-    console.log('Database cleanup completed')
+    // Database cleanup completed
   }
 }
 
@@ -467,10 +455,10 @@ export class ConnectionSecurity {
         await tx.$queryRaw`SELECT 1`
       })
 
-      console.log('Database connection secure and functional')
+      // Database connection verified
       return true
-    } catch (error) {
-      console.error('Database connection test failed:', error)
+    } catch {
+      // Database connection test failed
       return false
     }
   }

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { authClient } from "@/lib/auth-client"
 import { useUser } from "@/lib/auth-client"
+import { isAdmin, AuthorizedUser } from "@/lib/authorization"
 
 export function LoginForm({
   className,
@@ -46,16 +47,16 @@ export function LoginForm({
       if (error) {
         setError(error.message || "Invalid email or password")
       } else if (data?.user) {
-        // Check if user has admin role (cast to UserWithRole for type safety)
-        const userWithRole = data.user as { role?: string }
-        if (userWithRole?.role !== "admin") {
+        // Check if user has admin access using new authorization system
+        const user = data.user as unknown as AuthorizedUser
+        if (!isAdmin(user)) {
           setError("Admin access required. Contact administrator for access.")
           await authClient.signOut()
           return
         }
         router.push(redirectTo)
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred. Please try again.")
     } finally {
       setIsLoading(false)
@@ -79,7 +80,7 @@ export function LoginForm({
         // Handle social sign-in redirect
         window.location.href = data.url;
       }
-    } catch (err) {
+    } catch {
       setError("Failed to sign in with Google. Please try again.")
       setIsLoading(false)
     }

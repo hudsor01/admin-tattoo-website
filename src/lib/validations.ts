@@ -1,7 +1,10 @@
 import { z } from "zod"
-
-// Security-focused validation helpers
-const sanitizeString = (str: string) => str.trim().replace(/[<>'"]/g, '');
+import { 
+  sanitizeString, 
+  sanitizeEmail, 
+  sanitizePhone, 
+  containsSuspiciousPatterns 
+} from './sanitization';
 
 // Common validation schemas
 export const paginationSchema = z.object({
@@ -23,24 +26,31 @@ export const dateRangeSchema = z.object({
 export const secureEmailSchema = z.string()
   .email("Invalid email address")
   .max(254, "Email too long") // RFC 5321 limit
-  .toLowerCase()
   .refine(email => {
-    // Block common attack patterns
-    const suspiciousPatterns = [
-      /javascript:/i,
-      /data:/i,
-      /vbscript:/i,
-      /<script/i,
-      /onload=/i
+    // Block common attack patterns and validate structure
+    if (containsSuspiciousPatterns(email)) return false;
+    const additionalPatterns = [
+      /@.*@/, // Double @ not allowed
+      /\.\./, // Double dots not allowed
+      /^\./, // Cannot start with dot
+      /\.$/, // Cannot end with dot
     ];
-    return !suspiciousPatterns.some(pattern => pattern.test(email));
+    return !additionalPatterns.some(pattern => pattern.test(email));
   }, "Invalid email format")
+  .refine(email => {
+    // Additional RFC compliance checks
+    const parts = email.split('@');
+    if (parts.length !== 2) return false;
+    const [local, domain] = parts;
+    return local && domain && local.length <= 64 && domain.length <= 253 && domain.includes('.');
+  }, "Email format not compliant")
+  .transform(sanitizeEmail)
 
 export const securePasswordSchema = z.string()
   .min(12, "Password must be at least 12 characters")
   .max(128, "Password too long")
   .regex(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
     "Password must contain uppercase, lowercase, number, and special character"
   )
   .refine(password => {
@@ -52,12 +62,15 @@ export const securePasswordSchema = z.string()
 export const secureNameSchema = z.string()
   .min(1, "Name is required")
   .max(100, "Name too long")
-  .regex(/^[a-zA-Z\s'-]+$/, "Name contains invalid characters")
+  .regex(/^[a-zA-Z\s'.-]+$/, "Name contains invalid characters")
+  .refine(name => !containsSuspiciousPatterns(name), "Name contains forbidden content")
   .transform(sanitizeString)
 
 export const securePhoneSchema = z.string()
   .max(20, "Phone number too long")
   .regex(/^[\+]?[1-9][\d\s\-\(\)\.]{7,18}$/, "Invalid phone number format")
+  .refine(phone => !containsSuspiciousPatterns(phone), "Phone number contains invalid characters")
+  .transform(sanitizePhone)
   .optional()
   .or(z.literal(""))
 

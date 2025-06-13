@@ -1,6 +1,6 @@
 "use client"
 
-import { useUser } from "@/lib/user"
+import { useUser, useIsVerifiedAdmin } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { ReactNode, useEffect } from "react"
 
@@ -11,6 +11,7 @@ interface RequireAdminProps {
 
 export function RequireAdmin({ children, fallback }: RequireAdminProps) {
   const { user, isLoading } = useUser()
+  const isVerifiedAdmin = useIsVerifiedAdmin()
   const router = useRouter()
 
   useEffect(() => {
@@ -21,13 +22,13 @@ export function RequireAdmin({ children, fallback }: RequireAdminProps) {
         return
       }
 
-      // Check if user has admin role
-      if (user.role !== 'admin') {
+      // Check if user has verified admin access using new authorization system
+      if (!isVerifiedAdmin) {
         router.push('/login?error=insufficient_permissions')
         return
       }
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, isVerifiedAdmin, router])
 
   // Show loading state while checking auth
   if (isLoading) {
@@ -42,11 +43,11 @@ export function RequireAdmin({ children, fallback }: RequireAdminProps) {
   }
 
   // Don't render children until auth is verified
-  if (!user || user.role !== 'admin') {
+  if (!user || !isVerifiedAdmin) {
     return null
   }
 
-  // User is authenticated and has admin role
+  // User is authenticated and has verified admin access
   return <>{children}</>
 }
 

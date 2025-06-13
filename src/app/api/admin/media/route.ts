@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/database'
+import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation'
+import { createSuccessResponse, createErrorResponse } from '@/lib/error-handling'
+import { sanitizeString, sanitizeArrayOfStrings } from '@/lib/sanitization'
 
-export async function GET() {
+const getMediaHandler = async (_request: NextRequest) => {
   try {
-    // Skip auth in development for now
-    if (process.env.NODE_ENV !== 'development') {
-      // Auth check would go here
-    }
 
     // Get media items from TattooDesign table
     const mediaItems = await prisma.tattooDesign.findMany({
@@ -41,22 +40,20 @@ export async function GET() {
       websiteUrl: `https://ink37tattoos.com/gallery/${item.id}`
     }))
 
-    return NextResponse.json(transformedItems)
+    return NextResponse.json(createSuccessResponse(transformedItems))
   } catch (error) {
     console.error('Media API error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch media items' },
+      createErrorResponse('Failed to fetch media items'),
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
-export async function POST(request: NextRequest) {
+const createMediaHandler = async (request: NextRequest) => {
   try {
-    // Skip auth in development for now
-    if (process.env.NODE_ENV !== 'development') {
-      // Auth check would go here
-    }
 
     const body = await request.json()
     const { 
@@ -70,6 +67,13 @@ export async function POST(request: NextRequest) {
       estimatedHours = 0,
       syncToWebsite = false  // SAFETY: Default to false to require manual approval
     } = body
+
+    // Sanitize input data
+    const sanitizedTitle = sanitizeString(title)
+    const sanitizedDescription = sanitizeString(description || '')
+    const sanitizedStyle = sanitizeString(style || 'Traditional')
+    const sanitizedTags = sanitizeArrayOfStrings(tags || [])
+    const sanitizedMediaUrl = sanitizeString(mediaUrl)
 
     // Get Fernando's artist ID
     const fernando = await prisma.tattooArtist.findFirst({
@@ -86,14 +90,14 @@ export async function POST(request: NextRequest) {
     // Create media item in database
     const mediaItem = await prisma.tattooDesign.create({
       data: {
-        title,
-        description: description || '',
-        style: style || 'Traditional',
-        tags: tags || [],
-        imageUrl: mediaUrl,
+        title: sanitizedTitle,
+        description: sanitizedDescription,
+        style: sanitizedStyle,
+        tags: sanitizedTags,
+        imageUrl: sanitizedMediaUrl,
         artistId: fernando.id,
         isPublic,
-        estimatedHours: Number(estimatedHours),
+        estimatedHours: parseFloat(String(estimatedHours)),
         popularity: 0
       },
       include: {
@@ -108,7 +112,10 @@ export async function POST(request: NextRequest) {
     // If syncToWebsite is true, sync to main website
     if (syncToWebsite) {
       try {
-        await syncToMainWebsite(mediaItem, type)
+        await syncToMainWebsite({
+          ...mediaItem,
+          estimatedHours: Number(mediaItem.estimatedHours)
+        }, type)
       } catch (syncError) {
         console.error('Failed to sync to main website:', syncError)
         // Don't fail the request if sync fails, just log it
@@ -128,25 +135,47 @@ export async function POST(request: NextRequest) {
       artistName: mediaItem.artist.name,
       isPublic: mediaItem.isPublic,
       popularity: mediaItem.popularity,
-      estimatedHours: mediaItem.estimatedHours,
+      estimatedHours: Number(mediaItem.estimatedHours),
       createdAt: mediaItem.createdAt,
       updatedAt: mediaItem.updatedAt,
       syncedToWebsite: syncToWebsite,
       websiteUrl: `https://ink37tattoos.com/gallery/${mediaItem.id}`
     }
 
-    return NextResponse.json(transformedItem, { status: 201 })
+    return NextResponse.json(createSuccessResponse(transformedItem), { status: 201 })
   } catch (error) {
     console.error('Create media error:', error)
     return NextResponse.json(
-      { error: 'Failed to create media item' },
+      createErrorResponse('Failed to create media item'),
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
+// Apply security validation
+export const GET = withSecurityValidation({
+  ...SecurityPresets.MEDIA_READ
+})(getMediaHandler)
+
+export const POST = withSecurityValidation({
+  ...SecurityPresets.MEDIA_UPLOAD
+})(createMediaHandler)
+
 // Function to sync media to main website
-async function syncToMainWebsite(mediaItem: any, type: string) {
+async function syncToMainWebsite(mediaItem: {
+  id: string;
+  title: string;
+  description: string;
+  style: string;
+  tags: string[];
+  imageUrl: string;
+  isPublic: boolean;
+  estimatedHours: number;
+  createdAt: Date;
+  artist: { name: string };
+}, type: string) {
   const mainWebsiteApiUrl = process.env.MAIN_WEBSITE_API_URL || 'https://ink37tattoos.com/api'
   const syncEndpoint = `${mainWebsiteApiUrl}/gallery/sync`
 
@@ -160,7 +189,7 @@ async function syncToMainWebsite(mediaItem: any, type: string) {
     type: type,
     artistName: mediaItem.artist.name,
     isPublic: mediaItem.isPublic,
-    estimatedHours: mediaItem.estimatedHours,
+    estimatedHours: Number(mediaItem.estimatedHours),
     source: 'admin-dashboard',
     createdAt: mediaItem.createdAt
   }

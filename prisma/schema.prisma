@@ -175,6 +175,7 @@ model TattooDesign {
   @@map("tattoo_designs")
 }
 
+
 model AuditLog {
   id         String    @id @default(cuid())
   userId     String?   // Nullable for anonymous actions
@@ -215,3 +216,4 @@ enum AppointmentType {
   TOUCH_UP
   REMOVAL
 }
+

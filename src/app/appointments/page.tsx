@@ -1,6 +1,6 @@
 "use client"
 
-import { AdminRoute } from "@/lib/user"
+import { AdminRoute } from "@/components/auth/admin-route"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import {
   Breadcrumb,
@@ -17,11 +17,11 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, User, Phone, Plus } from "lucide-react"
+import { Calendar, Clock, User, Phone } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton"
+import type { AppointmentResponse } from '@/types/database'
 
 // Fetch appointments from API
 const fetchAppointments = async () => {
@@ -93,7 +93,7 @@ export default function AppointmentsPage() {
                   ))}
                 </>
               ) : appointments?.length > 0 ? (
-                appointments.map((appointment: any) => (
+                appointments.map((appointment: AppointmentResponse) => (
                   <AppointmentCard key={appointment.id} appointment={appointment} />
                 ))
               ) : (
@@ -117,7 +117,7 @@ export default function AppointmentsPage() {
   )
 }
 
-function AppointmentCard({ appointment }: { appointment: any }) {
+function AppointmentCard({ appointment }: { appointment: AppointmentResponse }) {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'confirmed':
@@ -138,33 +138,33 @@ function AppointmentCard({ appointment }: { appointment: any }) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">
-            {appointment.clientName || `${appointment.client?.firstName} ${appointment.client?.lastName}`}
+            {`${appointment.client?.firstName} ${appointment.client?.lastName}` || 'Unknown Client'}
           </CardTitle>
           <Badge className={getStatusColor(appointment.status)}>
             {appointment.status || 'Pending'}
           </Badge>
         </div>
         <CardDescription>
-          {appointment.sessionType || 'Tattoo Session'}
+          {appointment.type || 'Tattoo Session'}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span>{new Date(appointment.appointmentDate).toLocaleDateString()}</span>
+            <span>{new Date(appointment.scheduledDate).toLocaleDateString()}</span>
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <span>{appointment.appointmentTime || new Date(appointment.appointmentDate).toLocaleTimeString()}</span>
+            <span>{new Date(appointment.scheduledDate).toLocaleTimeString()}</span>
           </div>
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
-            <span>{appointment.artistName || appointment.artist?.firstName}</span>
+            <span>{appointment.artist?.name || 'Unknown Artist'}</span>
           </div>
           <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-muted-foreground" />
-            <span>{appointment.clientPhone || appointment.client?.phone || 'N/A'}</span>
+            <span>{appointment.client?.phone || 'N/A'}</span>
           </div>
         </div>
         {appointment.notes && (

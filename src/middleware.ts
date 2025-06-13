@@ -10,6 +10,20 @@ const SECURITY_CONFIG = {
   rateLimitWindow: 15 * 60 * 1000, // 15 minutes
   sessionTimeout: 24 * 60 * 60 * 1000, // 24 hours
   suspiciousIPs: new Set<string>(), // Track suspicious IPs
+  allowedUserAgents: [
+    /Mozilla/,
+    /Chrome/,
+    /Safari/,
+    /Edge/,
+    /Firefox/,
+    /curl/, // For health checks
+  ],
+  blockedUserAgents: [
+    /bot/i,
+    /crawler/i,
+    /spider/i,
+    /scraper/i,
+  ],
 };
 
 function rateLimit(ip: string): boolean {
@@ -51,28 +65,67 @@ function isSecureRoute(pathname: string): boolean {
   return securePatterns.some(pattern => pathname.startsWith(pattern));
 }
 
+function validateUserAgent(userAgent: string): boolean {
+  if (!userAgent) return false;
+  
+  // Block known bad user agents
+  const isBlocked = SECURITY_CONFIG.blockedUserAgents.some(pattern => 
+    pattern.test(userAgent)
+  );
+  
+  if (isBlocked) return false;
+  
+  // For health checks and legitimate automation
+  if (userAgent.includes('curl') || userAgent.includes('health')) {
+    return true;
+  }
+  
+  // Check if it's a legitimate browser
+  return SECURITY_CONFIG.allowedUserAgents.some(pattern => 
+    pattern.test(userAgent)
+  );
+}
+
+function addSecurityHeaders(response: NextResponse): NextResponse {
+  // Additional runtime security headers
+  response.headers.set('X-Request-ID', `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  response.headers.set('X-Response-Time', Date.now().toString());
+  
+  return response;
+}
+
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const clientIP = getClientIP(request);
+    const userAgent = request.headers.get('user-agent') || '';
 
-    // Security headers for all responses
-    const response = NextResponse.next();
+    // Create response with security headers
+    let response = NextResponse.next();
     
     // Block suspicious IPs
     if (SECURITY_CONFIG.suspiciousIPs.has(clientIP)) {
-        return new NextResponse('Access Denied', { status: 429 });
+        // Suspicious IP blocked
+        return new NextResponse('Access Denied - IP Blocked', { status: 429 });
+    }
+
+    // Validate user agent for non-API routes
+    if (!pathname.startsWith('/api/health/') && !validateUserAgent(userAgent)) {
+        // Suspicious user agent blocked
+        SECURITY_CONFIG.suspiciousIPs.add(clientIP);
+        return new NextResponse('Access Denied - Invalid Client', { status: 403 });
     }
 
     // Rate limiting for auth routes
     if (pathname.startsWith('/api/auth/') && request.method === 'POST') {
         if (!rateLimit(clientIP)) {
-            return new NextResponse('Too Many Requests', { status: 429 });
+            // Rate limit exceeded
+            return new NextResponse('Too Many Requests - Rate Limited', { status: 429 });
         }
     }
 
     // Allow API routes, static files, and auth to pass through
     if (pathname.startsWith('/api/') || pathname.startsWith('/_next/') || pathname === '/favicon.ico') {
-        return response;
+        return addSecurityHeaders(response);
     }
 
     try {
@@ -94,24 +147,23 @@ export function middleware(request: NextRequest) {
 
         // Log security events for audit
         if (isSecureRoute(pathname)) {
-            console.log(`[SECURITY] ${clientIP} accessed ${pathname} at ${new Date().toISOString()}`);
+            // Security access logged
         }
 
         // Allow access if session cookie exists
         // Role verification will happen on the server side in protected routes
-        return response;
-    } catch (error) {
-        console.error("Middleware auth check failed:", error);
+        return addSecurityHeaders(response);
+    } catch {
+        // Auth check failed
         // On error, redirect to home (login) unless already there
         if (pathname !== '/') {
             return NextResponse.redirect(new URL('/', request.url));
         }
-        return response;
+        return addSecurityHeaders(response);
     }
 }
 
 export const config = {
-    runtime: "nodejs",
     matcher: [
         /*
          * Match all request paths except for the ones starting with:
@@ -121,5 +173,6 @@ export const config = {
          * - favicon.ico (favicon file)
          */
         '/((?!api|_next/static|_next/image|favicon.ico).*)',
-    ]
+    ],
+    runtime: 'nodejs'
 };

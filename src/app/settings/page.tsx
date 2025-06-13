@@ -1,6 +1,6 @@
 "use client"
 
-import { AdminRoute } from "@/lib/user"
+import { AdminRoute } from "@/components/auth/admin-route"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { 
   Breadcrumb, 

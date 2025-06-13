@@ -15,8 +15,8 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
       const error = new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-      (error as any).status = response.status;
-      (error as any).statusText = response.statusText;
+      (error as Error & { status?: number; statusText?: string }).status = response.status;
+      (error as Error & { status?: number; statusText?: string }).statusText = response.statusText;
       throw error;
     }
 
@@ -89,7 +89,7 @@ export function galleryItemOptions(id: string) {
 export function galleryStatsOptions() {
   return queryOptions({
     queryKey: ['gallery', 'stats'],
-    queryFn: () => fetchApi<any>('/api/admin/gallery/stats'),
+    queryFn: () => fetchApi<{ totalImages: number; totalVideos: number; recentUploads: number; popularTags: Array<{ tag: string; count: number }> }>('/api/admin/gallery/stats'),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 20, // 20 minutes
   });

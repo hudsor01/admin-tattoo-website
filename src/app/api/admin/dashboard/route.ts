@@ -1,42 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database'
-
-// function generateMockChartData() {
-//   const data = []
-//   for (let i = 29; i >= 0; i--) {
-//     const date = new Date()
-//     date.setDate(date.getDate() - i)
-//     data.push({
-//       date: date.toISOString().split('T')[0],
-//       revenue: Math.floor(Math.random() * 500) + 100,
-//       appointments: Math.floor(Math.random() * 10) + 2
-//     })
-//   }
-//   return data
-// }
+import { isVerifiedAdmin, BetterAuthUser, toBetterAuthUser } from '@/lib/authorization'
 
 export async function GET(request: NextRequest) {
   try {
-    // Skip auth in development for now
-    if (process.env.NODE_ENV !== 'development') {
-      // Get session to verify authentication
-      const session = await auth.api.getSession({
-        headers: request.headers,
-      })
+    // Always enforce authentication
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    })
 
-      if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      }
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-      // Check if user is admin
-      const user = session.user
-      const adminEmails = process.env.ADMIN_USER_IDS?.split(',').map(email => email.replace(/"/g, '')) || []
-      const isAdmin = adminEmails.includes(user.email) || user.role === 'admin'
-
-      if (!isAdmin) {
-        return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-      }
+    // Check if user has verified admin access using new authorization system
+    const user = toBetterAuthUser(session.user as BetterAuthUser)
+    if (!isVerifiedAdmin(user)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
     // Fetch all dashboard data in parallel

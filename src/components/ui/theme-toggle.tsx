@@ -16,7 +16,7 @@ export function ThemeToggle() {
   const { setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
-  void React.useEffect(() => {
+  React.useEffect(() => {
     setMounted(true);
   }, []);
 
@@ -33,8 +33,8 @@ export function ThemeToggle() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="icon" className="shrink-0">
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all -rotate-90@dark scale-0@dark" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all rotate-0@dark scale-100@dark" />
+          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
@@ -55,3 +55,6 @@ export function ThemeToggle() {
     </DropdownMenu>
   );
 }
+
+// Legacy alias for backwards compatibility
+export const ModeToggle = ThemeToggle;

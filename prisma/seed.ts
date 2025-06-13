@@ -3,10 +3,10 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding database...')
+  // Seeding database
 
   // Create admin users
-  const adminUser1 = await prisma.user.upsert({
+  const _adminUser1 = await prisma.user.upsert({
     where: { email: 'ink37tattoos@gmail.com' },
     update: {},
     create: {
@@ -17,7 +17,7 @@ async function main() {
     }
   })
 
-  const adminUser2 = await prisma.user.upsert({
+  const _adminUser2 = await prisma.user.upsert({
     where: { email: 'fennyg83@gmail.com' },
     update: {},
     create: {
@@ -28,7 +28,7 @@ async function main() {
     }
   })
 
-  console.log('✅ Admin users created:', { adminUser1, adminUser2 })
+  // Admin users created
 
   // Create tattoo artists
   const fernando = await prisma.tattooArtist.create({
@@ -314,19 +314,19 @@ async function main() {
     await prisma.tattooDesign.create({ data: designData })
   }
 
-  console.log('✅ Database seeded successfully!')
-  console.log(`📊 Created:`)
-  console.log(`   • 2 admin users`)
-  console.log(`   • ${2} artists`)
-  console.log(`   • ${createdClients.length} clients`)
-  console.log(`   • ${sessions.length} tattoo sessions`)
-  console.log(`   • ${appointments.length} appointments`)
-  console.log(`   • ${designs.length} design portfolio items`)
+  // Database seeded successfully
+  // Database seeding completed:
+  // - 2 admin users
+  // - 2 artists
+  // - Multiple clients
+  // - Multiple sessions
+  // - Multiple appointments
+  // - Multiple designs
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Error seeding database:', e)
+  .catch((_e) => {
+    // Database seeding failed
     process.exit(1)
   })
   .finally(async () => {

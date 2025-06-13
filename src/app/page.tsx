@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "@/lib/auth-client"
-import { useUser } from "@/lib/user"
+import { useUser, useIsVerifiedAdmin } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,13 +19,14 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, isLoading: userLoading } = useUser()
+  const isVerifiedAdmin = useIsVerifiedAdmin()
 
   // Check if user is already authenticated and redirect to dashboard
   useEffect(() => {
-    if (!userLoading && user && user.role === 'admin') {
+    if (!userLoading && user && isVerifiedAdmin) {
       router.push('/dashboard')
     }
-  }, [user, userLoading, router])
+  }, [user, userLoading, isVerifiedAdmin, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,7 +45,7 @@ function LoginForm() {
         // Successful sign in - redirect to dashboard
         router.push('/dashboard')
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred. Please try again.")
     } finally {
       setIsLoading(false)
@@ -64,7 +65,7 @@ function LoginForm() {
   }
 
   // Don't show login form if user is already authenticated
-  if (user && user.role === 'admin') {
+  if (user && isVerifiedAdmin) {
     return null
   }
 

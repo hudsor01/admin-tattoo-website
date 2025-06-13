@@ -61,14 +61,14 @@ export type DesignWithArtist = Prisma.TattooDesignGetPayload<{
 export type { DashboardStats } from './dashboard';
 
 // API Response types
-export interface ApiResponse<T = unknown> {
+export interface ApiResponse<T = void> {
   success: boolean;
   data?: T;
   error?: string;
   message?: string;
 }
 
-export interface PaginatedResponse<T = unknown> {
+export interface PaginatedResponse<T = Record<string, unknown>> {
   success: boolean;
   data: T[];
   pagination: {
@@ -83,6 +83,7 @@ export interface PaginatedResponse<T = unknown> {
 // API Response types for admin endpoints
 export interface AppointmentResponse extends Appointment {
   client?: Client;
+  artist?: TattooArtist;
 }
 
 export interface ClientResponse extends Client {
@@ -90,27 +91,13 @@ export interface ClientResponse extends Client {
   sessions?: TattooSession[];
 }
 
-export interface CustomerResponse extends Client {
-  appointments?: Appointment[];
-  sessions?: TattooSession[];
-}
+// Use ClientResponse instead of CustomerResponse for consistency
 
 export interface TattooSessionResponse extends TattooSession {
   client?: Client;
   artist?: TattooArtist;
 }
 
-export interface PaymentResponse {
-  id: string;
-  amount: number;
-  status: string;
-  method: string;
-  sessionId?: string;
-  clientId?: string;
-  createdAt: Date;
-  client?: Client;
-  session?: TattooSession;
-}
 
 // Search and filter types
 export interface AppointmentFilters {

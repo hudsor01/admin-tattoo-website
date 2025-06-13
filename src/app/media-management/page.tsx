@@ -19,10 +19,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Image, Search, Filter, Eye, Edit, Trash2, Video } from "lucide-react"
+import { ImageIcon, Search, Filter, Eye, Edit, Trash2, Video } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
+import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState } from "react"
+import type { TattooDesignWithArtist } from '@/types/database'
 
 // Fetch media items from API
 const fetchMediaItems = async () => {
@@ -40,10 +42,10 @@ export default function MediaManagementPage() {
     refetchInterval: 60000, // Refresh every minute
   })
 
-  const filteredItems = mediaItems?.filter((item: any) =>
+  const filteredItems = mediaItems?.filter((item: TattooDesignWithArtist & { mediaUrl: string; type: string; syncedToWebsite: boolean; websiteUrl: string }) =>
     item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.tags?.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    item.artistName?.toLowerCase().includes(searchQuery.toLowerCase())
+    item.artist?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || []
 
   return (
@@ -83,7 +85,7 @@ export default function MediaManagementPage() {
                   onClick={() => setUploadType('photo')}
                   className={uploadType === 'photo' ? 'bg-orange-500 hover:bg-orange-600' : ''}
                 >
-                  <Image className="mr-2 h-4 w-4" />
+                  <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                   Upload Photo
                 </Button>
                 <Button
@@ -129,7 +131,7 @@ export default function MediaManagementPage() {
                   ))}
                 </>
               ) : filteredItems?.length > 0 ? (
-                filteredItems.map((item: any) => (
+                filteredItems.map((item: TattooDesignWithArtist & { mediaUrl: string; type: string; syncedToWebsite: boolean; websiteUrl: string }) => (
                   <MediaItemCard key={item.id} item={item} />
                 ))
               ) : (
@@ -137,14 +139,14 @@ export default function MediaManagementPage() {
                   <Card>
                     <CardContent className="flex items-center justify-center h-48">
                       <div className="text-center">
-                        <Image className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                        <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
                         <h3 className="text-lg font-semibold">No media items found</h3>
                         <p className="text-muted-foreground mb-4">
                           Start by uploading your first photo or video.
                         </p>
                         <div className="flex gap-2 justify-center">
                           <Button className="bg-orange-500 hover:bg-orange-600">
-                            <Image className="mr-2 h-4 w-4" />
+                            <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                             Upload Photo
                           </Button>
                           <Button variant="outline">
@@ -164,13 +166,13 @@ export default function MediaManagementPage() {
   )
 }
 
-function MediaItemCard({ item }: { item: any }) {
+function MediaItemCard({ item }: { item: TattooDesignWithArtist & { mediaUrl: string; type: string; syncedToWebsite: boolean; websiteUrl: string } }) {
   const isVideo = item.type === 'video' || item.mediaUrl?.includes('.mp4') || item.mediaUrl?.includes('.mov')
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
       <div className="relative">
-        <div className="h-48 bg-gray-100 flex items-center justify-center">
+        <div className="relative h-48 bg-gray-100 flex items-center justify-center">
           {item.mediaUrl || item.imageUrl ? (
             isVideo ? (
               <video
@@ -178,18 +180,20 @@ function MediaItemCard({ item }: { item: any }) {
                 className="w-full h-full object-cover"
                 controls={false}
                 muted
-                poster={item.thumbnail}
+                poster={item.imageUrl}
               />
             ) : (
-              <img
+              <Image
                 src={item.mediaUrl || item.imageUrl}
                 alt={item.title || 'Tattoo'}
-                className="w-full h-full object-cover"
+                className="object-cover"
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
               />
             )
           ) : (
             <div className="flex flex-col items-center gap-2">
-              {isVideo ? <Video className="h-16 w-16 text-muted-foreground" /> : <Image className="h-16 w-16 text-muted-foreground" />}
+              {isVideo ? <Video className="h-16 w-16 text-muted-foreground" aria-hidden="true" /> : <ImageIcon className="h-16 w-16 text-muted-foreground" aria-hidden="true" />}
             </div>
           )}
         </div>
@@ -225,7 +229,7 @@ function MediaItemCard({ item }: { item: any }) {
           {item.title || 'Untitled Tattoo'}
         </CardTitle>
         <CardDescription>
-          By {item.artistName || item.artist?.firstName || 'Unknown Artist'}
+          By {item.artist?.name || 'Unknown Artist'}
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">

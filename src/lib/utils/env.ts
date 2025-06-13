@@ -54,7 +54,7 @@ export const ENV = {
   DATABASE_URL: getEnvSafe('DATABASE_URL'),
   
   // Auth
-  BETTER_AUTH_URL: getEnvOptional('BETTER_AUTH_URL', 'http://localhost:3001'),
+  BETTER_AUTH_URL: getEnvSafe('BETTER_AUTH_URL'),
   BETTER_AUTH_SECRET: getEnvSafe('BETTER_AUTH_SECRET', 'fallback-secret-for-dev'),
   
   // Google OAuth

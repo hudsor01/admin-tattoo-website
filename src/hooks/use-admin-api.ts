@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query';
 import type { DashboardStats } from '@/types/database';
-import type { AppointmentResponse, CustomerResponse, PaymentResponse } from '@/types/database';
+import type { AppointmentResponse, ClientResponse } from '@/types/database';
 import type { FilterParams } from '@/types/filters';
 import { logger } from '@/lib/logger';
 
@@ -105,42 +105,13 @@ export function customersOptions(filters?: FilterParams) {
     queryKey: ['admin', 'customers', filters],
     queryFn: () => {
       const url = `${API_BASE_URL}/customers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      return fetchApi<CustomerResponse[]>(url);
+      return fetchApi<ClientResponse[]>(url);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
   });
 }
 
-export function paymentsOptions(filters?: FilterParams) {
-  const queryParams = new URLSearchParams();
-
-  if (filters?.sessionStatus && filters.sessionStatus !== 'ALL') {
-    queryParams.append('status', filters.sessionStatus);
-  }
-  if (filters?.startDate) {
-    queryParams.append('startDate', filters.startDate);
-  }
-  if (filters?.endDate) {
-    queryParams.append('endDate', filters.endDate);
-  }
-  if (filters?.limit) {
-    queryParams.append('limit', filters.limit.toString());
-  }
-  if (filters?.offset) {
-    queryParams.append('offset', filters.offset.toString());
-  }
-
-  return queryOptions({
-    queryKey: ['admin', 'payments', filters],
-    queryFn: () => {
-      const url = `${API_BASE_URL}/payments${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      return fetchApi<PaymentResponse[]>(url);
-    },
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    gcTime: 1000 * 60 * 15, // 15 minutes
-  });
-}
 
 // Add this type at the top or import from your types module
 export interface MessageResponse {
@@ -165,8 +136,14 @@ export function messagesOptions() {
 export function recentSessionsOptions(limit = 10) {
   // Define a type for recent session if available, otherwise use unknown[]
   type RecentSession = {
-    // Define fields if known, else use unknown
-    [key: string]: unknown;
+    id: string;
+    clientName: string;
+    artistName: string;
+    type: string;
+    duration: number;
+    amount: number;
+    date: string;
+    status: 'completed' | 'in-progress' | 'scheduled';
   };
   return queryOptions({
     queryKey: ['admin', 'dashboard', 'recent-sessions', limit],
@@ -179,9 +156,10 @@ export function recentSessionsOptions(limit = 10) {
 export function chartDataOptions() {
   // Define a type for chart data if available, otherwise use unknown
   type ChartData = {
-    // Define fields if known, else use unknown
-    [key: string]: unknown;
-  };
+    date: string;
+    revenue: number;
+    sessions: number;
+  }[];
   return queryOptions({
     queryKey: ['admin', 'dashboard', 'chart-data'],
     queryFn: () => fetchApi<ChartData>(`${API_BASE_URL}/dashboard/chart-data`),
@@ -203,9 +181,6 @@ export const useAdminCustomers = (filters?: FilterParams) => {
   return useQuery(customersOptions(filters));
 };
 
-export const useAdminPayments = (filters?: FilterParams) => {
-  return useQuery(paymentsOptions(filters));
-};
 
 export const useAdminMessages = () => {
   return useQuery(messagesOptions());
@@ -280,7 +255,7 @@ export const useDeleteCustomer = () => {
       const previousCustomers = queryClient.getQueriesData({ queryKey: ['admin', 'customers'] });
 
       // Optimistically remove customer
-      queryClient.setQueriesData({ queryKey: ['admin', 'customers'] }, (old: CustomerResponse[] | undefined) => {
+      queryClient.setQueriesData({ queryKey: ['admin', 'customers'] }, (old: ClientResponse[] | undefined) => {
         return old?.filter(customer => customer.id !== customerId);
       });
 
@@ -329,19 +304,19 @@ export const useSendMessage = () => {
 export const useCreateCustomer = () => {
   const queryClient = useQueryClient();
 
-  // Define a type for customer creation input if available, otherwise use Partial<CustomerResponse>
-  type CreateCustomerInput = Partial<CustomerResponse>;
+  // Define a type for customer creation input if available, otherwise use Partial<ClientResponse>
+  type CreateCustomerInput = Partial<ClientResponse>;
 
   return useMutation({
     mutationFn: async (customerData: CreateCustomerInput) => {
-      return fetchApi<CustomerResponse>(`${API_BASE_URL}/customers`, {
+      return fetchApi<ClientResponse>(`${API_BASE_URL}/customers`, {
         method: 'POST',
         body: JSON.stringify(customerData),
       });
     },
     onSuccess: (newCustomer) => {
       // Add new customer to the cache optimistically
-      queryClient.setQueriesData({ queryKey: ['admin', 'customers'] }, (old: CustomerResponse[] | undefined) => {
+      queryClient.setQueriesData({ queryKey: ['admin', 'customers'] }, (old: ClientResponse[] | undefined) => {
         return old ? [newCustomer, ...old] : [newCustomer];
       });
 
@@ -359,7 +334,7 @@ export const useUpdateCustomer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updateData }: { id: string } & Partial<CustomerResponse>) => {
+    mutationFn: async ({ id, ...updateData }: { id: string } & Partial<ClientResponse>) => {
       return fetchApi(`${API_BASE_URL}/customers/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(updateData),
@@ -371,7 +346,7 @@ export const useUpdateCustomer = () => {
       const previousCustomers = queryClient.getQueriesData({ queryKey: ['admin', 'customers'] });
 
       // Optimistically update customer
-      queryClient.setQueriesData({ queryKey: ['admin', 'customers'] }, (old: CustomerResponse[] | undefined) => {
+      queryClient.setQueriesData({ queryKey: ['admin', 'customers'] }, (old: ClientResponse[] | undefined) => {
         return old?.map(customer =>
           customer.id === id ? { ...customer, ...updateData } : customer
         );

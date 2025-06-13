@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ZodError, ZodSchema } from 'zod';
 import { createSuccessResponse, createErrorResponse, handleZodError, handleApiError } from '@/lib/error-handling';
 
-export type ApiHandler<T = unknown> = (
+export type ApiHandler<T = void> = (
   request: NextRequest,
   context?: { params: Record<string, string> }
 ) => Promise<T>;
@@ -44,8 +44,8 @@ export function withApiHandler<T>(
       }
 
       // Add validated data to request for handler use
-      (request as any).validatedBody = validatedBody;
-      (request as any).validatedQuery = validatedQuery;
+      (request as NextRequest & { validatedBody?: unknown; validatedQuery?: unknown }).validatedBody = validatedBody;
+      (request as NextRequest & { validatedBody?: unknown; validatedQuery?: unknown }).validatedQuery = validatedQuery;
 
       const result = await handler(request, context);
       
@@ -82,10 +82,10 @@ export function withApiHandler<T>(
 export function createCrudHandlers<T>(
   entityName: string,
   operations: {
-    getAll?: (filters?: any) => Promise<T[]>;
+    getAll?: (filters?: Record<string, unknown>) => Promise<T[]>;
     getById?: (id: string) => Promise<T>;
-    create?: (data: any) => Promise<T>;
-    update?: (id: string, data: any) => Promise<T>;
+    create?: (data: Record<string, unknown>) => Promise<T>;
+    update?: (id: string, data: Record<string, unknown>) => Promise<T>;
     delete?: (id: string) => Promise<void>;
   },
   schemas: {
@@ -94,7 +94,7 @@ export function createCrudHandlers<T>(
     query?: ZodSchema;
   } = {}
 ) {
-  const handlers: Record<string, Function> = {};
+  const handlers: Record<string, (req: NextRequest, context?: { params: Record<string, string> }) => Promise<NextResponse>> = {};
 
   // GET handler (list all)
   if (operations.getAll) {
@@ -112,7 +112,7 @@ export function createCrudHandlers<T>(
   if (operations.create) {
     handlers.POST = withApiHandler(
       async (request: NextRequest) => {
-        const data = (request as any).validatedBody;
+        const data = (request as NextRequest & { validatedBody?: Record<string, unknown> }).validatedBody || {};
         const result = await operations.create!(data);
         return NextResponse.json(
           createSuccessResponse(result, `${entityName} created successfully`),
@@ -133,19 +133,19 @@ export function createResourceHandlers<T>(
   entityName: string,
   operations: {
     getById?: (id: string) => Promise<T>;
-    update?: (id: string, data: any) => Promise<T>;
+    update?: (id: string, data: Record<string, unknown>) => Promise<T>;
     delete?: (id: string) => Promise<void>;
   },
   schemas: {
     update?: ZodSchema;
   } = {}
 ) {
-  const handlers: Record<string, Function> = {};
+  const handlers: Record<string, (req: NextRequest, context?: { params: Record<string, string> }) => Promise<NextResponse>> = {};
 
   // GET handler (single item)
   if (operations.getById) {
     handlers.GET = withApiHandler(
-      async (request: NextRequest, context) => {
+      async (_request: NextRequest, context) => {
         const id = context?.params?.id;
         if (!id) {
           throw new Error(`${entityName} ID is required`);
@@ -158,12 +158,12 @@ export function createResourceHandlers<T>(
   // PATCH handler (update)
   if (operations.update) {
     handlers.PATCH = withApiHandler(
-      async (request: NextRequest, context) => {
+      async (_request: NextRequest, context) => {
         const id = context?.params?.id;
         if (!id) {
           throw new Error(`${entityName} ID is required`);
         }
-        const data = (request as any).validatedBody;
+        const data = (_request as NextRequest & { validatedBody?: Record<string, unknown> }).validatedBody || {};
         const result = await operations.update!(id, data);
         return NextResponse.json(
           createSuccessResponse(result, `${entityName} updated successfully`)
@@ -176,7 +176,7 @@ export function createResourceHandlers<T>(
   // DELETE handler
   if (operations.delete) {
     handlers.DELETE = withApiHandler(
-      async (request: NextRequest, context) => {
+      async (_request: NextRequest, context) => {
         const id = context?.params?.id;
         if (!id) {
           throw new Error(`${entityName} ID is required`);

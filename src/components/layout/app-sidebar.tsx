@@ -5,7 +5,6 @@ import {
   IconCamera,
   IconChartBar,
   IconDashboard,
-  IconFileDescription,
   IconInnerShadowTop,
   IconListDetails,
   IconReport,
@@ -14,7 +13,6 @@ import {
   IconPlus,
   IconUser,
   IconCalendar,
-  IconCreditCard,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/layout/nav-main"
@@ -74,11 +72,6 @@ const data = {
       icon: IconChartBar,
     },
     {
-      title: "Payments",
-      url: "/payments",
-      icon: IconCreditCard,
-    },
-    {
       title: "Reports",
       url: "/reports",
       icon: IconReport,
@@ -103,9 +96,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         break
       case 'appointment':
         router.push('/appointments?action=create')
-        break
-      case 'payment':
-        router.push('/payments?action=create')
         break
       default:
         router.push('/customers?action=create')
@@ -136,10 +126,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <DropdownMenuItem onClick={() => handleQuickCreate('appointment')}>
                   <IconCalendar className="w-4 h-4 mr-2" />
                   New Appointment
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleQuickCreate('payment')}>
-                  <IconCreditCard className="w-4 h-4 mr-2" />
-                  Record Payment
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

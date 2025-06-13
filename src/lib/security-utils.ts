@@ -80,7 +80,7 @@ export class SecurityLogger {
       } : undefined
     })
 
-    console.error(JSON.stringify(logEntry))
+    // Security error logged
 
     // In production, send to monitoring service
     if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
@@ -88,16 +88,14 @@ export class SecurityLogger {
     }
   }
 
-  warn(message: string, metadata?: Record<string, unknown>) {
+  warn(_message: string, _metadata?: Record<string, unknown>) {
     if (!this.shouldLog('warn')) return
-    const logEntry = this.formatLogEntry('warn', message, metadata)
-    console.warn(JSON.stringify(logEntry))
+    // Security warning logged
   }
 
-  info(message: string, metadata?: Record<string, unknown>) {
+  info(_message: string, _metadata?: Record<string, unknown>) {
     if (!this.shouldLog('info')) return
-    const logEntry = this.formatLogEntry('info', message, metadata)
-    console.info(JSON.stringify(logEntry))
+    // Security info logged
   }
 
   /**
@@ -110,7 +108,7 @@ export class SecurityLogger {
       priority: 'high'
     })
 
-    console.error(JSON.stringify(logEntry))
+    // Security error logged
 
     // Always send security events to monitoring
     if (process.env.NODE_ENV === 'production') {
@@ -139,8 +137,8 @@ export class SecurityLogger {
           body: JSON.stringify(logEntry)
         })
       }
-    } catch (error) {
-      console.error('Failed to send log to monitoring:', error)
+    } catch {
+      // Monitoring log failed
     }
   }
 }

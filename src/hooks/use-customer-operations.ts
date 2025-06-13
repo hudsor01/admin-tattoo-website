@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/r
 import { CreateCustomer, CustomerFilter } from '@/lib/validations'
 import { showErrorToast, showSuccessToast } from '@/lib/error-handling'
 import { logger } from '@/lib/logger'
+import type { ClientResponse } from '@/types/database'
 
 interface UseCustomerOperationsOptions {
   search?: string
@@ -24,9 +25,9 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-      const error = new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-      (error as any).status = response.status;
-      (error as any).statusText = response.statusText;
+      const error = new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`) as Error & { status?: number; statusText?: string };
+      error.status = response.status;
+      error.statusText = response.statusText;
       throw error;
     }
 
@@ -56,16 +57,16 @@ export function customersQueryOptions(filters: CustomerFilter) {
     queryKey: ['customers', filters],
     queryFn: () => {
       const url = `/api/admin/customers${params.toString() ? `?${params}` : ''}`;
-      return fetchApi<any>(url).then(data => {
+      return fetchApi<ClientResponse[]>(url).then(data => {
         // Handle both paginated and direct array responses
-        return data?.data || data;
+        return Array.isArray(data) ? data : (data as { data?: ClientResponse[] }).data || [];
       });
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: Error & { status?: number }) => {
       // Don't retry on 4xx client errors
-      if (error?.status >= 400 && error?.status < 500) {
+      if (error?.status && error.status >= 400 && error.status < 500) {
         return false;
       }
       return failureCount < 3;
@@ -77,7 +78,7 @@ export function customersQueryOptions(filters: CustomerFilter) {
 export function customerQueryOptions(id: string) {
   return queryOptions({
     queryKey: ['customers', id],
-    queryFn: () => fetchApi<any>(`/api/admin/customers/${id}`),
+    queryFn: () => fetchApi<ClientResponse>(`/api/admin/customers/${id}`),
     staleTime: 1000 * 60 * 10, // 10 minutes for individual customer
     gcTime: 1000 * 60 * 30, // 30 minutes
   });

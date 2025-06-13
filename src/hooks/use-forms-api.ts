@@ -15,8 +15,8 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
       const error = new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-      (error as any).status = response.status;
-      (error as any).statusText = response.statusText;
+      (error as Error & { status?: number; statusText?: string }).status = response.status;
+      (error as Error & { status?: number; statusText?: string }).statusText = response.statusText;
       throw error;
     }
 
@@ -34,7 +34,7 @@ interface FormSubmission {
   clientId?: string;
   clientName: string;
   clientEmail: string;
-  submissionData: Record<string, any>;
+  submissionData: Record<string, unknown>;
   status: 'new' | 'reviewed' | 'processed' | 'archived';
   submittedAt: string;
   reviewedAt?: string;
@@ -133,7 +133,7 @@ export function formTemplateOptions(id: string) {
 export function formStatsOptions() {
   return queryOptions({
     queryKey: ['forms', 'stats'],
-    queryFn: () => fetchApi<any>('/api/admin/forms/stats'),
+    queryFn: () => fetchApi<{ totalSubmissions: number; pendingReview: number; recentSubmissions: FormSubmission[] }>('/api/admin/forms/stats'),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 20, // 20 minutes
   });
@@ -193,7 +193,7 @@ export const useUpdateSubmissionStatus = () => {
         return old?.map(submission => 
           submission.id === id ? { 
             ...submission, 
-            status: status as any, 
+            status: status as FormSubmission['status'], 
             notes,
             reviewedAt: new Date().toISOString()
           } : submission
@@ -204,7 +204,7 @@ export const useUpdateSubmissionStatus = () => {
       queryClient.setQueryData(['forms', 'submissions', id], (old: FormSubmission | undefined) => 
         old ? { 
           ...old, 
-          status: status as any, 
+          status: status as FormSubmission['status'], 
           notes,
           reviewedAt: new Date().toISOString()
         } : undefined
