@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://admin.ink37tattoos.com/$1",
+      "permanent": false,
+      "has": [
+        {
+          "type": "host",
+          "value": "^(?!admin\\.ink37tattoos\\.com$).*\\.vercel\\.app$"
+        }
+      ]
+    }
+  ]
+}
