@@ -87,9 +87,11 @@ export const auth = betterAuth({
         disabled: process.env.NODE_ENV === "production",
     },
     advanced: {
-        generateId: () => `usr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         crossSubDomainCookies: {
             enabled: false,
+        },
+        database: {
+            generateId: () => `usr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         }
     },
     plugins: [

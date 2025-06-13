@@ -25,7 +25,9 @@ export function CustomersList() {
     refetchInterval: 60000, // Refresh every minute
   })
 
-  const filteredCustomers = customers?.data?.filter((customer: ClientResponse) => {
+  // Ensure customers data is always an array before filtering
+  const safeCustomersData = Array.isArray(customers?.data) ? customers.data : []
+  const filteredCustomers = safeCustomersData.filter((customer: ClientResponse) => {
     const searchLower = searchTerm.toLowerCase()
     return (
       customer.firstName?.toLowerCase().includes(searchLower) ||
@@ -33,7 +35,7 @@ export function CustomersList() {
       customer.email?.toLowerCase().includes(searchLower) ||
       customer.phone?.includes(searchTerm)
     )
-  }) || []
+  })
 
   if (error) {
     return (

@@ -30,7 +30,9 @@ import type { TattooDesignWithArtist } from '@/types/database'
 const fetchMediaItems = async () => {
   const response = await fetch('/api/admin/media')
   if (!response.ok) throw new Error('Failed to fetch media items')
-  return response.json()
+  const result = await response.json()
+  // Handle API response wrapper format
+  return result.success ? result.data : []
 }
 
 export default function MediaManagementPage() {
@@ -42,11 +44,13 @@ export default function MediaManagementPage() {
     refetchInterval: 60000, // Refresh every minute
   })
 
-  const filteredItems = mediaItems?.filter((item: TattooDesignWithArtist & { mediaUrl: string; type: string; syncedToWebsite: boolean; websiteUrl: string }) =>
+  // Ensure mediaItems is always an array before filtering
+  const safeMediaItems = Array.isArray(mediaItems) ? mediaItems : []
+  const filteredItems = safeMediaItems.filter((item: any) =>
     item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.tags?.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    item.artist?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || []
+    item.artistName?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
       <SidebarProvider>
@@ -131,7 +135,7 @@ export default function MediaManagementPage() {
                   ))}
                 </>
               ) : filteredItems?.length > 0 ? (
-                filteredItems.map((item: TattooDesignWithArtist & { mediaUrl: string; type: string; syncedToWebsite: boolean; websiteUrl: string }) => (
+                filteredItems.map((item: any) => (
                   <MediaItemCard key={item.id} item={item} />
                 ))
               ) : (
@@ -166,7 +170,7 @@ export default function MediaManagementPage() {
   )
 }
 
-function MediaItemCard({ item }: { item: TattooDesignWithArtist & { mediaUrl: string; type: string; syncedToWebsite: boolean; websiteUrl: string } }) {
+function MediaItemCard({ item }: { item: any }) {
   const isVideo = item.type === 'video' || item.mediaUrl?.includes('.mp4') || item.mediaUrl?.includes('.mov')
 
   return (
@@ -229,7 +233,7 @@ function MediaItemCard({ item }: { item: TattooDesignWithArtist & { mediaUrl: st
           {item.title || 'Untitled Tattoo'}
         </CardTitle>
         <CardDescription>
-          By {item.artist?.name || 'Unknown Artist'}
+          By {item.artistName || 'Unknown Artist'}
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
