@@ -64,59 +64,90 @@ const productionEnvSchema = envSchema;
 // Validate and parse environment variables
 let validatedEnv: Env;
 
-try {
-  // Determine which schema to use
-  const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || 
-                     process.env.npm_lifecycle_event === 'build';
-  
-  let schema;
-  
-  if (isBuildTime || process.env.SKIP_ENV_VALIDATION === 'true') {
-    // During build time or when explicitly skipped, use very lenient validation
-    schema = envSchema.partial();
-  } else if (process.env.NODE_ENV === 'production') {
-    schema = productionEnvSchema;
-  } else {
-    schema = envSchema;
-  }
-  
-  validatedEnv = schema.parse(process.env) as Env;
-} catch (error) {
-  if (error instanceof z.ZodError) {
-    const missingVars = error.errors
-      .filter(err => err.code === 'invalid_type' && err.received === 'undefined')
-      .map(err => err.path.join('.'));
+// Check if we're on the client side
+const isClientSide = typeof window !== 'undefined';
+const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || 
+                   process.env.npm_lifecycle_event === 'build';
+
+if (isClientSide) {
+  // On client side, use very minimal validation with safe defaults
+  validatedEnv = {
+    NODE_ENV: 'production',
+    PORT: 3001,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    DATABASE_URL: '', // Not available on client
+    BETTER_AUTH_SECRET: '', // Not available on client
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: '', // Not available on client
+    MAIN_WEBSITE_API_URL: process.env.MAIN_WEBSITE_API_URL,
+    MAIN_WEBSITE_API_KEY: '', // Not available on client
+    CSRF_SECRET: '', // Not available on client
+    ENCRYPTION_KEY: '', // Not available on client
+    LOG_LEVEL: 'info',
+    MAX_FILE_SIZE: 104857600,
+    UPLOAD_DIR: './public/uploads',
+    GOOGLE_ANALYTICS_ID: process.env.GOOGLE_ANALYTICS_ID,
+    POSTHOG_API_KEY: process.env.POSTHOG_API_KEY,
+    ENABLE_REGISTRATION: false,
+    ENABLE_EMAIL_VERIFICATION: true,
+    ENABLE_RATE_LIMITING: true,
+    ENABLE_AUDIT_LOGGING: true,
+    SKIP_ENV_VALIDATION: false,
+  } as Env;
+} else {
+  // Server-side validation
+  try {
+    let schema;
     
-    const invalidVars = error.errors
-      .filter(err => err.code !== 'invalid_type' || err.received !== 'undefined')
-      .map(err => `${err.path.join('.')}: ${err.message}`);
-    
-    let errorMessage = 'Environment validation failed:\n';
-    
-    if (missingVars.length > 0) {
-      errorMessage += `Missing required variables: ${missingVars.join(', ')}\n`;
+    if (isBuildTime || process.env.SKIP_ENV_VALIDATION === 'true') {
+      // During build time or when explicitly skipped, use very lenient validation
+      schema = envSchema.partial();
+    } else if (process.env.NODE_ENV === 'production') {
+      schema = productionEnvSchema;
+    } else {
+      schema = envSchema;
     }
     
-    if (invalidVars.length > 0) {
-      errorMessage += `Invalid variables: ${invalidVars.join(', ')}\n`;
-    }
-    
-    // Only crash in production on the server side
-    if (process.env.NODE_ENV === 'production' && typeof window === 'undefined') {
-      console.error(errorMessage);
+    validatedEnv = schema.parse(process.env) as Env;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const missingVars = error.errors
+        .filter(err => err.code === 'invalid_type' && err.received === 'undefined')
+        .map(err => err.path.join('.'));
+      
+      const invalidVars = error.errors
+        .filter(err => err.code !== 'invalid_type' || err.received !== 'undefined')
+        .map(err => `${err.path.join('.')}: ${err.message}`);
+      
+      let errorMessage = 'Environment validation failed:\n';
+      
+      if (missingVars.length > 0) {
+        errorMessage += `Missing required variables: ${missingVars.join(', ')}\n`;
+      }
+      
+      if (invalidVars.length > 0) {
+        errorMessage += `Invalid variables: ${invalidVars.join(', ')}\n`;
+      }
+      
+      // Only crash in production on the server side
+      if (process.env.NODE_ENV === 'production') {
+        console.error(errorMessage);
+        if (typeof process !== 'undefined' && process.exit) {
+          process.exit(1);
+        }
+      } else {
+        console.warn(errorMessage);
+        console.warn('Continuing with potentially invalid environment');
+        // Use partial validation for fallback
+        validatedEnv = envSchema.partial().parse(process.env) as Env;
+      }
+    } else {
+      console.error('Failed to parse environment variables:', error);
       if (typeof process !== 'undefined' && process.exit) {
         process.exit(1);
       }
-    } else {
-      console.warn(errorMessage);
-      console.warn('Continuing with potentially invalid environment');
-      // Use partial validation for fallback
-      validatedEnv = envSchema.partial().parse(process.env) as Env;
-    }
-  } else {
-    console.error('Failed to parse environment variables:', error);
-    if (typeof window === 'undefined' && typeof process !== 'undefined' && process.exit) {
-      process.exit(1);
     }
   }
 }
@@ -294,10 +325,6 @@ export function logEnvironmentStatus(): void {
 }
 
 // Automatically validate on import in production (but not during build or on client side)
-const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || 
-                   process.env.npm_lifecycle_event === 'build';
-const isClientSide = typeof window !== 'undefined';
-
 if (isProduction && !env.SKIP_ENV_VALIDATION && !isBuildTime && !isClientSide) {
   logEnvironmentStatus();
 }
