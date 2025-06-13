@@ -14,7 +14,7 @@ const CSRF_CONFIG = {
   maxAge: 60 * 60 * 1000, // 1 hour
   cookieName: 'csrf-token',
   headerName: 'x-csrf-token',
-  secretKey: env.CSRF_SECRET || env.BETTER_AUTH_SECRET.substring(0, 32),
+  secretKey: env.CSRF_SECRET || env.BETTER_AUTH_SECRET.substring(0, 64),
 } as const;
 
 export interface CSRFTokenData {
