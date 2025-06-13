@@ -26,14 +26,6 @@ export function handleCallbackError(
 ): void {
   // Preserve the original error stack
   void logger.error(`Callback execution failed in ${context.context ?? 'unknown context'}:`, error);
-  
-  // Normalize the error to standard Error object
-  const normalizedError = error instanceof Error ? error : new Error(String(error));
-  
-  // Capture error source
-  const errorSource = new Error().stack?.split('\n').slice(2).join('\n');
-  
-  
 }
 
 /**
