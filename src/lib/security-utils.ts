@@ -32,46 +32,13 @@ export class SecurityLogger {
     return messageLevel <= currentLevelIndex
   }
 
-  private sanitizeData(data: unknown): unknown {
-    if (typeof data !== 'object' || data === null) {
-      return data
-    }
 
-    const sensitiveKeys = [
-      'password', 'token', 'secret', 'key', 'authorization', 
-      'cookie', 'session', 'ssn', 'phone', 'email'
-    ]
-
-    const sanitized: Record<string, unknown> = { ...(data as Record<string, unknown>) }
-    
-    for (const key of Object.keys(sanitized)) {
-      const lowerKey = key.toLowerCase()
-      if (sensitiveKeys.some(sensitive => lowerKey.includes(sensitive))) {
-        sanitized[key] = '[REDACTED]'
-      } else if (typeof sanitized[key] === 'object') {
-        sanitized[key] = this.sanitizeData(sanitized[key])
-      }
-    }
-
-    return sanitized
-  }
-
-  private formatLogEntry(level: string, message: string, metadata?: Record<string, unknown>) {
-    const sanitizedMeta = this.sanitizeData(metadata ?? {});
-    return {
-      timestamp: new Date().toISOString(),
-      level,
-      message,
-      ...(typeof sanitizedMeta === 'object' && sanitizedMeta !== null ? sanitizedMeta : {}),
-      environment: process.env.NODE_ENV,
-      service: 'tattoo-admin'
-    }
-  }
 
   error(message: string, error?: Error, metadata?: Record<string, unknown>) {
     if (!this.shouldLog('error')) return
 
-    const logEntry = this.formatLogEntry('error', message, {
+    // Security error logged
+    console.error('Security Error:', message, {
       ...metadata,
       error: error ? {
         name: error.name,
@@ -79,41 +46,31 @@ export class SecurityLogger {
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       } : undefined
     })
-
-    // Security error logged
-
-    // In production, send to monitoring service
-    if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
-      this.sendToMonitoring('error', logEntry)
-    }
   }
 
-  warn(_message: string, _metadata?: Record<string, unknown>) {
+  warn(message: string, metadata?: Record<string, unknown>) {
     if (!this.shouldLog('warn')) return
-    // Security warning logged
+    console.warn('Security Warning:', message, metadata)
   }
 
-  info(_message: string, _metadata?: Record<string, unknown>) {
+  info(message: string, metadata?: Record<string, unknown>) {
     if (!this.shouldLog('info')) return
-    // Security info logged
+    console.info('Security Info:', message, metadata)
   }
 
   /**
    * Log security events with high priority
    */
   security(event: string, metadata?: Record<string, unknown>) {
-    const logEntry = this.formatLogEntry('security', `SECURITY: ${event}`, {
+    // Security error logged
+    console.error('SECURITY EVENT:', event, {
       ...metadata,
       securityEvent: true,
-      priority: 'high'
+      priority: 'high',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      service: 'tattoo-admin'
     })
-
-    // Security error logged
-
-    // Always send security events to monitoring
-    if (process.env.NODE_ENV === 'production') {
-      this.sendToMonitoring('security', logEntry)
-    }
   }
 
   /**
@@ -127,20 +84,6 @@ export class SecurityLogger {
     })
   }
 
-  private async sendToMonitoring(_level: string, logEntry: Record<string, unknown>) {
-    try {
-      // Custom monitoring webhook
-      if (process.env.MONITORING_WEBHOOK) {
-        await fetch(process.env.MONITORING_WEBHOOK, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(logEntry)
-        })
-      }
-    } catch {
-      // Monitoring log failed
-    }
-  }
 }
 
 /**

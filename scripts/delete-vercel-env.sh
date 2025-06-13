@@ -43,7 +43,6 @@ VARS=(
     "SVIX_ENV_ID"
     "X_CAL_SECRET_KEY"
     "REDIS_URL"
-    "SENTRY_DSN"
 )
 
 for VAR in "${VARS[@]}"; do

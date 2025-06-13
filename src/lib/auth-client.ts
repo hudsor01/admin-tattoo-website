@@ -12,7 +12,7 @@ import {
   canManageResource,
   getUserPermissions
 } from './authorization';
-import { getAuthConfig } from './env-validation';
+import { env } from './env-validation';
 
 // Enhanced user interface with authorization support
 export interface UserWithRole extends AuthorizedUser {
@@ -22,8 +22,24 @@ export interface UserWithRole extends AuthorizedUser {
     image?: string | null;
 }
 
+// Determine the correct base URL for auth client
+function getAuthClientBaseURL() {
+  // In production, always use the production URL
+  if (env.NODE_ENV === "production") {
+    return "https://admin.ink37tattoos.com";
+  }
+  
+  // In development, use localhost
+  if (env.NODE_ENV === "development") {
+    return "http://localhost:3001";
+  }
+  
+  // Fallback to env variable
+  return env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
+}
+
 export const authClient = createAuthClient({
-    baseURL: getAuthConfig().baseUrl,
+    baseURL: getAuthClientBaseURL(),
 });
 
 export const {
@@ -128,5 +144,3 @@ export function useAdminPermissions() {
 
 // Export authorization utilities for direct use
 export { Permission, Role, isAdmin, isVerifiedAdmin, canAccessDashboard, canManageResource };
-
-

@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { authClient } from "@/lib/auth-client"
 import { useUser } from "@/lib/auth-client"
 import { isAdmin, AuthorizedUser } from "@/lib/authorization"
+import { useAuthErrorHandler } from "./auth-error-boundary"
 
 export function LoginForm({
   className,
@@ -25,6 +26,7 @@ export function LoginForm({
   const [error, setError] = useState("")
   const router = useRouter()
   const { user, isLoading: authLoading } = useUser()
+  const { handleAuthError } = useAuthErrorHandler()
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -56,8 +58,8 @@ export function LoginForm({
         }
         router.push(redirectTo)
       }
-    } catch {
-      setError("An unexpected error occurred. Please try again.")
+    } catch (err) {
+      setError(handleAuthError(err))
     } finally {
       setIsLoading(false)
     }
@@ -80,8 +82,8 @@ export function LoginForm({
         // Handle social sign-in redirect
         window.location.href = data.url;
       }
-    } catch {
-      setError("Failed to sign in with Google. Please try again.")
+    } catch (err) {
+      setError(handleAuthError(err))
       setIsLoading(false)
     }
   }

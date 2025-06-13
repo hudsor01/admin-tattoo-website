@@ -60,11 +60,10 @@ async function createAdminUser() {
       data: {
         id: `acc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId: user.id,
-        accountId: user.id,
+        accountId: email, // Better Auth uses email as accountId for credential accounts
         providerId: 'credential',
         type: 'credential',
-        // Note: Better Auth handles password storage differently
-        // This is just for initial setup
+        password: hashedPassword, // Better Auth stores the hashed password here
       }
     });
 

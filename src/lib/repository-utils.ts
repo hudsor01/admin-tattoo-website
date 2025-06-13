@@ -1,32 +1,7 @@
 import { prisma } from '@/lib/database';
 import type { Prisma } from '@prisma/client';
-import { env, isProduction } from '@/lib/env-validation';
 
-// Redis client for production
-let redis: unknown = null;
-
-// Initialize Redis in production
-async function getRedisClient() {
-  if (!isProduction) return null;
-  
-  if (!redis && env.REDIS_URL) {
-    try {
-      const { Redis } = await import('ioredis');
-      redis = new Redis(env.REDIS_URL, {
-        maxRetriesPerRequest: 3,
-        lazyConnect: true,
-      });
-      await (redis as {ping(): Promise<string>}).ping();
-    } catch {
-      // Redis connection failed, using memory cache fallback
-      redis = null;
-    }
-  }
-  
-  return redis;
-}
-
-// Simple in-memory cache fallback
+// Simple in-memory cache
 const memoryCache = new Map<string, { data: unknown; timestamp: number }>();
 
 // Cache TTL constants in milliseconds
@@ -36,7 +11,7 @@ export const CACHE_TTL = {
   DEFAULT: 5 * 60 * 1000 // 5 minutes
 };
 
-// Generic caching wrapper with Redis support
+// Generic caching wrapper with in-memory cache
 export function withCache<TArgs extends unknown[], TResult>(
   fn: (...args: TArgs) => Promise<TResult>,
   keyFn: (...args: TArgs) => string,
@@ -46,20 +21,7 @@ export function withCache<TArgs extends unknown[], TResult>(
     const key = keyFn(...args);
     const now = Date.now();
     
-    // Try Redis first in production
-    const redisClient = await getRedisClient();
-    if (redisClient) {
-      try {
-        const cached = await (redisClient as {get(key: string): Promise<string | null>}).get(key);
-        if (cached) {
-          return JSON.parse(cached) as TResult;
-        }
-      } catch {
-        // Redis operation failed, using memory cache fallback
-      }
-    }
-    
-    // Fallback to memory cache
+    // Check memory cache
     const cached = memoryCache.get(key);
     if (cached && now - cached.timestamp < ttl) {
       return cached.data as TResult;
@@ -68,16 +30,7 @@ export function withCache<TArgs extends unknown[], TResult>(
     // Call function and cache result
     const result = await fn(...args);
     
-    // Store in Redis if available
-    if (redisClient) {
-      try {
-        await (redisClient as {setex(key: string, seconds: number, value: string): Promise<unknown>}).setex(key, Math.floor(ttl / 1000), JSON.stringify(result));
-      } catch {
-        // Redis set operation failed
-      }
-    }
-    
-    // Always store in memory cache as fallback
+    // Store in memory cache
     memoryCache.set(key, { data: result, timestamp: now });
     
     return result;
@@ -85,24 +38,7 @@ export function withCache<TArgs extends unknown[], TResult>(
 }
 
 // Clear cache utility
-export async function clearCache(pattern?: string) {
-  const redisClient = await getRedisClient();
-  
-  if (redisClient) {
-    try {
-      if (pattern) {
-        const keys = await (redisClient as {keys(pattern: string): Promise<string[]>}).keys(`*${pattern}*`);
-        if (keys.length > 0) {
-          await (redisClient as {del(...keys: string[]): Promise<number>}).del(...keys);
-        }
-      } else {
-        await (redisClient as {flushdb(): Promise<string>}).flushdb();
-      }
-    } catch {
-      // Redis clear operation failed
-    }
-  }
-  
+export function clearCache(pattern?: string) {
   // Clear memory cache
   if (!pattern) {
     memoryCache.clear();

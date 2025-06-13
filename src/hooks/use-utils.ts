@@ -52,7 +52,7 @@ export function handleCallbackError(
     args: safeStringify(context.args)
   };
   
-  // Send to error monitoring service in production (Sentry, LogRocket, etc.)
+  // Send to error monitoring service in production (LogRocket, etc.)
   // errorMonitoringService.captureError(normalizedError, errorInfo);
   
   // Log detailed info for development

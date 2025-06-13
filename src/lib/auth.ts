@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/database";
-import { env } from "@/lib/env-validation";
+import { getAuthConfig } from "@/lib/env-validation";
 
 export const auth = betterAuth({
     database: prismaAdapter(prisma, { 
@@ -15,9 +15,9 @@ export const auth = betterAuth({
         maxPasswordLength: 128,
     },
     socialProviders: {
-        google: env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET ? {
-            clientId: env.GOOGLE_CLIENT_ID,
-            clientSecret: env.GOOGLE_CLIENT_SECRET,
+        google: process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? {
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
             scope: ["email", "profile"],
         } : undefined
     },
@@ -51,34 +51,29 @@ export const auth = betterAuth({
     },
     cookies: {
         sessionToken: {
-            name: "__Secure-ink37-session",
+            name: "better-auth.session-token",
             httpOnly: true,
-            secure: env.NODE_ENV === "production",
-            sameSite: "strict", // More secure than lax for admin panel
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax", // Changed from strict to lax for better compatibility
             path: "/",
             maxAge: 60 * 60 * 24 * 7, // 7 days
-            // Only set domain for production on the actual domain, not Vercel preview
-            domain: env.NODE_ENV === "production" && env.NEXT_PUBLIC_APP_URL?.includes("ink37tattoos.com") ? ".ink37tattoos.com" : undefined
         },
-        // Additional CSRF token cookie
         csrfToken: {
-            name: "__Host-csrf-token",
+            name: "better-auth.csrf-token",
             httpOnly: false,
-            secure: env.NODE_ENV === "production",
-            sameSite: "strict",
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
             path: "/",
             maxAge: 60 * 60 * 24, // 24 hours
         }
     },
-    baseURL: env.NEXT_PUBLIC_APP_URL,
+    baseURL: getAuthConfig().baseUrl,
     trustedOrigins: [
-        "https://admin.ink37tattoos.com", // Always prioritize the custom domain
-        env.NEXT_PUBLIC_APP_URL,
+        "https://admin.ink37tattoos.com",
+        process.env.NEXT_PUBLIC_APP_URL,
         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
-        // Add current Vercel deployment URL if it exists
         process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : undefined,
-        // Add localhost for development
-        env.NODE_ENV === "development" ? "http://localhost:3001" : undefined
+        process.env.NODE_ENV === "development" ? "http://localhost:3001" : undefined
     ].filter((origin): origin is string => Boolean(origin)),
     ratelimit: {
         enabled: true,
@@ -86,15 +81,15 @@ export const auth = betterAuth({
         max: 100, // 100 requests per minute
     },
     logger: {
-        disabled: env.NODE_ENV === "production",
+        disabled: process.env.NODE_ENV === "production",
     },
     advanced: {
         generateId: () => `usr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         crossSubDomainCookies: {
-            enabled: false, // We're using a single domain
+            enabled: false,
         }
     },
     plugins: [
-        nextCookies() // Enables automatic cookie setting for server actions
+        nextCookies()
     ],
 });

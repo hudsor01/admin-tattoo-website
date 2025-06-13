@@ -26,8 +26,6 @@ const envSchema = z.object({
   // OAuth providers (optional)
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
-  GITHUB_CLIENT_ID: z.string().optional(),
-  GITHUB_CLIENT_SECRET: z.string().optional(),
   
   // External services
   MAIN_WEBSITE_API_URL: z.string().url().optional(),
@@ -37,16 +35,8 @@ const envSchema = z.object({
   CSRF_SECRET: z.string().min(32),
   ENCRYPTION_KEY: z.string().min(32),
   
-  // Rate limiting (Redis required in production)
-  REDIS_URL: z.string().url().optional(),
-  REDIS_HOST: z.string().optional(),
-  REDIS_PORT: z.string().regex(/^\d+$/).transform(Number).optional(),
-  REDIS_PASSWORD: z.string().optional(),
-  
   // Monitoring and logging
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
-  SENTRY_DSN: z.string().url().optional(),
-  HONEYBADGER_API_KEY: z.string().optional(),
   
   // File upload
   MAX_FILE_SIZE: z.string().regex(/^\d+$/).transform(Number).default('104857600'), // 100MB
@@ -69,12 +59,7 @@ const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 // Production-specific schema with stricter requirements
-const productionEnvSchema = envSchema.extend({
-  // Make Redis optional in production - we'll use in-memory fallback
-  REDIS_URL: z.string().url().optional(),
-  // Make monitoring optional in production - we'll use console logging fallback
-  SENTRY_DSN: z.string().url().optional(),
-});
+const productionEnvSchema = envSchema;
 
 // Validate and parse environment variables
 let validatedEnv: Env;
@@ -86,16 +71,16 @@ try {
   
   let schema;
   
-  if (isBuildTime) {
-    // During build time, use more lenient validation
-    schema = envSchema;
+  if (isBuildTime || process.env.SKIP_ENV_VALIDATION === 'true') {
+    // During build time or when explicitly skipped, use very lenient validation
+    schema = envSchema.partial();
   } else if (process.env.NODE_ENV === 'production') {
     schema = productionEnvSchema;
   } else {
     schema = envSchema;
   }
   
-  validatedEnv = schema.parse(process.env);
+  validatedEnv = schema.parse(process.env) as Env;
 } catch (error) {
   if (error instanceof z.ZodError) {
     const missingVars = error.errors
@@ -178,27 +163,23 @@ export function getDatabaseConfig() {
 export function getAuthConfig() {
   // Determine the correct base URL for Better Auth
   // Priority: explicit BETTER_AUTH_URL > PUBLIC_BETTER_AUTH_URL > PUBLIC_APP_URL > Vercel URL > localhost
-  const baseUrl = env.BETTER_AUTH_URL || 
-                  env.NEXT_PUBLIC_BETTER_AUTH_URL || 
-                  env.NEXT_PUBLIC_APP_URL ||
+  const baseUrl = process.env.BETTER_AUTH_URL || 
+                  process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 
+                  process.env.NEXT_PUBLIC_APP_URL ||
                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
-                  (env.NODE_ENV === 'development' ? 'http://localhost:3001' : undefined);
+                  (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : undefined);
   
   if (!baseUrl) {
     throw new Error('No base URL configured for Better Auth. Please set BETTER_AUTH_URL or NEXT_PUBLIC_APP_URL');
   }
   
   return {
-    secret: env.BETTER_AUTH_SECRET,
+    secret: process.env.BETTER_AUTH_SECRET || env.BETTER_AUTH_SECRET,
     baseUrl,
     providers: {
-      google: env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET ? {
-        clientId: env.GOOGLE_CLIENT_ID,
-        clientSecret: env.GOOGLE_CLIENT_SECRET,
-      } : undefined,
-      github: env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET ? {
-        clientId: env.GITHUB_CLIENT_ID,
-        clientSecret: env.GITHUB_CLIENT_SECRET,
+      google: process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       } : undefined,
     },
   };
@@ -210,13 +191,7 @@ export function getAuthConfig() {
 export function getRateLimitConfig() {
   return {
     enabled: env.ENABLE_RATE_LIMITING,
-    redis: env.REDIS_URL ? {
-      url: env.REDIS_URL,
-    } : env.REDIS_HOST ? {
-      host: env.REDIS_HOST,
-      port: env.REDIS_PORT || 6379,
-      password: env.REDIS_PASSWORD,
-    } : undefined,
+    // Using in-memory store only - no Redis dependency
   };
 }
 
@@ -246,12 +221,7 @@ export function getLoggingConfig() {
   return {
     level: env.LOG_LEVEL,
     enableAuditLogging: env.ENABLE_AUDIT_LOGGING,
-    sentry: env.SENTRY_DSN ? {
-      dsn: env.SENTRY_DSN,
-    } : undefined,
-    honeybadger: env.HONEYBADGER_API_KEY ? {
-      apiKey: env.HONEYBADGER_API_KEY,
-    } : undefined,
+    // Using console logging only - no external monitoring services
   };
 }
 
