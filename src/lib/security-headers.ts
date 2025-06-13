@@ -93,7 +93,7 @@ export const DEVELOPMENT_SECURITY_HEADERS: SecurityHeadersConfig = {
     "font-src 'self' data:",
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob:",
-    "connect-src 'self' ws: wss:",
+    "connect-src 'self' https://admin.ink37tattoos.com wss: ws:",
     "frame-src 'self'",
     "object-src 'none'",
   ].join('; '),

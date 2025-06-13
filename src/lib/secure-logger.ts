@@ -203,7 +203,7 @@ export class SecureLogger {
       timestamp: new Date().toISOString(),
     };
     
-    return JSON.stringify(logEntry, null, process.env.NODE_ENV === 'development' ? 2 : undefined);
+    return JSON.stringify(logEntry, null, process.env.NODE_ENV === 'production' ? undefined : 2);
   }
   
   error(message: string, data?: unknown): void {
@@ -222,7 +222,8 @@ export class SecureLogger {
   }
   
   debug(message: string, data?: unknown): void {
-    if (process.env.NODE_ENV === 'development') {
+    // Debug logging disabled in production for security
+    if (process.env.NODE_ENV !== 'production') {
       const formatted = this.formatMessage(LogLevel.DEBUG, message, data);
       console.debug(formatted);
     }
@@ -294,7 +295,7 @@ export function sanitizeError(error: unknown): unknown {
     return sanitizeObject({
       name: error.name,
       message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      stack: process.env.NODE_ENV === 'production' ? undefined : error.stack,
       cause: error.cause,
     });
   }

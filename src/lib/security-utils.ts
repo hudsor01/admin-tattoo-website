@@ -43,7 +43,7 @@ export class SecurityLogger {
       error: error ? {
         name: error.name,
         message: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
       } : undefined
     })
   }

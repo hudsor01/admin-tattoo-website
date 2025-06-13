@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/database";
-import { getAuthConfig } from "@/lib/env-validation";
+import { getAuthConfig, env } from "@/lib/env-validation";
 
 export const auth = betterAuth({
     database: prismaAdapter(prisma, { 
@@ -70,10 +70,8 @@ export const auth = betterAuth({
     baseURL: getAuthConfig().baseUrl,
     trustedOrigins: [
         "https://admin.ink37tattoos.com",
-        process.env.NEXT_PUBLIC_APP_URL,
-        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
-        process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : undefined,
-        process.env.NODE_ENV === "development" ? "http://localhost:3001" : undefined
+        env.NEXT_PUBLIC_APP_URL,
+        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined
     ].filter((origin): origin is string => Boolean(origin)),
     ratelimit: {
         enabled: true,

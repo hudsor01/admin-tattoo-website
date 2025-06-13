@@ -48,17 +48,6 @@ export class ApiErrorBoundary extends React.Component<ApiErrorBoundaryProps, Api
 
     // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
-
-    // In production, you could send this to an error reporting service
-    if (process.env.NODE_ENV === 'production') {
-      // Example: Send to error reporting service
-      // sendErrorReport({
-      //   message: error.message,
-      //   stack: error.stack,
-      //   errorId: this.state.errorId,
-      //   componentStack: errorInfo.componentStack
-      // });
-    }
   }
 
   reset = () => {
@@ -93,7 +82,7 @@ export class ApiErrorBoundary extends React.Component<ApiErrorBoundaryProps, Api
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {process.env.NODE_ENV === 'development' && (
+              {process.env.NODE_ENV !== 'production' && (
                 <div className="p-3 bg-gray-100 rounded-md">
                   <p className="text-xs font-mono text-gray-700">
                     {this.state.error?.message}

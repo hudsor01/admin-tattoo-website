@@ -162,16 +162,11 @@ export function getDatabaseConfig() {
  */
 export function getAuthConfig() {
   // Determine the correct base URL for Better Auth
-  // Priority: explicit BETTER_AUTH_URL > PUBLIC_BETTER_AUTH_URL > PUBLIC_APP_URL > Vercel URL > localhost
+  // Priority: explicit BETTER_AUTH_URL > PUBLIC_APP_URL > Vercel URL > production fallback
   const baseUrl = process.env.BETTER_AUTH_URL || 
-                  process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 
                   process.env.NEXT_PUBLIC_APP_URL ||
-                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
-                  (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : undefined);
-  
-  if (!baseUrl) {
-    throw new Error('No base URL configured for Better Auth. Please set BETTER_AUTH_URL or NEXT_PUBLIC_APP_URL');
-  }
+                  (process.env.VERCEL_URL === 'https://admin.ink37tattoos.com' ? process.env.VERCEL_URL : undefined) ||
+                  'https://admin.ink37tattoos.com';
   
   return {
     secret: process.env.BETTER_AUTH_SECRET || env.BETTER_AUTH_SECRET,

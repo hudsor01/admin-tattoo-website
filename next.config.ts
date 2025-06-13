@@ -124,17 +124,6 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', '@tabler/icons-react'],
   },
   
-  // Turbopack configuration for development
-  ...(process.env.NODE_ENV === 'development' ? {
-    turbopack: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
-  } : {}),
   images: {
     remotePatterns: [
       {

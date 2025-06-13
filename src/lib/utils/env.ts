@@ -55,15 +55,15 @@ export const ENV = {
   
   // Auth
   BETTER_AUTH_URL: getEnvSafe('BETTER_AUTH_URL'),
-  BETTER_AUTH_SECRET: getEnvSafe('BETTER_AUTH_SECRET', 'fallback-secret-for-dev'),
+  BETTER_AUTH_SECRET: getEnvSafe('BETTER_AUTH_SECRET'),
   
   // Google OAuth
   GOOGLE_CLIENT_ID: getEnvOptional('GOOGLE_CLIENT_ID'),
   GOOGLE_CLIENT_SECRET: getEnvOptional('GOOGLE_CLIENT_SECRET'),
   
   // Application
-  NODE_ENV: getEnvOptional('NODE_ENV', 'development'),
-  PORT: getEnvNumber('PORT', 3001),
+  NODE_ENV: getEnvOptional('NODE_ENV', 'production'),
+  PORT: getEnvNumber('PORT', 3000),
   
   // External services
   UPLOADTHING_SECRET: getEnvOptional('UPLOADTHING_SECRET'),

@@ -24,18 +24,13 @@ export interface UserWithRole extends AuthorizedUser {
 
 // Determine the correct base URL for auth client
 function getAuthClientBaseURL() {
-  // In production, always use the production URL
-  if (env.NODE_ENV === "production") {
-    return "https://admin.ink37tattoos.com";
+  // Always prioritize the production URL for this admin app
+  if (env.NEXT_PUBLIC_APP_URL) {
+    return env.NEXT_PUBLIC_APP_URL;
   }
   
-  // In development, use localhost
-  if (env.NODE_ENV === "development") {
-    return "http://localhost:3001";
-  }
-  
-  // Fallback to env variable
-  return env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
+  // Production fallback
+  return "https://admin.ink37tattoos.com";
 }
 
 export const authClient = createAuthClient({
