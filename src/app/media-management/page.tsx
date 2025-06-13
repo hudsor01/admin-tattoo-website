@@ -24,7 +24,26 @@ import { useQuery } from "@tanstack/react-query"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState } from "react"
-import type { TattooDesignWithArtist } from '@/types/database'
+
+// Media item type
+interface MediaItem {
+  id: string
+  title: string
+  description: string
+  style: string
+  tags: string[]
+  mediaUrl: string
+  imageUrl: string
+  type: string
+  artistName: string
+  isPublic: boolean
+  popularity: number
+  estimatedHours: number
+  createdAt: string
+  updatedAt: string
+  syncedToWebsite: boolean
+  websiteUrl: string
+}
 
 // Fetch media items from API
 const fetchMediaItems = async () => {
@@ -45,8 +64,8 @@ export default function MediaManagementPage() {
   })
 
   // Ensure mediaItems is always an array before filtering
-  const safeMediaItems = Array.isArray(mediaItems) ? mediaItems : []
-  const filteredItems = safeMediaItems.filter((item: any) =>
+  const safeMediaItems: MediaItem[] = Array.isArray(mediaItems) ? mediaItems : []
+  const filteredItems = safeMediaItems.filter((item: MediaItem) =>
     item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.tags?.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
     item.artistName?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -135,7 +154,7 @@ export default function MediaManagementPage() {
                   ))}
                 </>
               ) : filteredItems?.length > 0 ? (
-                filteredItems.map((item: any) => (
+                filteredItems.map((item: MediaItem) => (
                   <MediaItemCard key={item.id} item={item} />
                 ))
               ) : (
@@ -170,7 +189,7 @@ export default function MediaManagementPage() {
   )
 }
 
-function MediaItemCard({ item }: { item: any }) {
+function MediaItemCard({ item }: { item: MediaItem }) {
   const isVideo = item.type === 'video' || item.mediaUrl?.includes('.mp4') || item.mediaUrl?.includes('.mov')
 
   return (
