@@ -116,19 +116,23 @@ try {
       errorMessage += `Invalid variables: ${invalidVars.join(', ')}\n`;
     }
     
-    // In production, this should crash the application
-    if (process.env.NODE_ENV === 'production') {
+    // Only crash in production on the server side
+    if (process.env.NODE_ENV === 'production' && typeof window === 'undefined') {
       console.error(errorMessage);
-      process.exit(1);
+      if (typeof process !== 'undefined' && process.exit) {
+        process.exit(1);
+      }
     } else {
       console.warn(errorMessage);
-      console.warn('Continuing with potentially invalid environment in development mode');
-      // Use partial validation for development
+      console.warn('Continuing with potentially invalid environment in development mode or client side');
+      // Use partial validation for development or client side
       validatedEnv = envSchema.partial().parse(process.env) as Env;
     }
   } else {
     console.error('Failed to parse environment variables:', error);
-    process.exit(1);
+    if (typeof window === 'undefined' && typeof process !== 'undefined' && process.exit) {
+      process.exit(1);
+    }
   }
 }
 
@@ -320,17 +324,18 @@ export function logEnvironmentStatus(): void {
     });
   }
   
-  if (!valid && isProduction) {
+  if (!valid && isProduction && typeof window === 'undefined') {
     logger.error('Critical environment issues detected in production');
     throw new Error('Environment validation failed for production deployment');
   }
 }
 
-// Automatically validate on import in production (but not during build)
+// Automatically validate on import in production (but not during build or on client side)
 const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || 
                    process.env.npm_lifecycle_event === 'build';
+const isClientSide = typeof window !== 'undefined';
 
-if (isProduction && !env.SKIP_ENV_VALIDATION && !isBuildTime) {
+if (isProduction && !env.SKIP_ENV_VALIDATION && !isBuildTime && !isClientSide) {
   logEnvironmentStatus();
 }
 
