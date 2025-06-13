@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/database";
-import { env, getAuthConfig } from "@/lib/env-validation";
+import { env } from "@/lib/env-validation";
 
 export const auth = betterAuth({
     database: prismaAdapter(prisma, { 
@@ -57,23 +57,28 @@ export const auth = betterAuth({
             sameSite: "strict", // More secure than lax for admin panel
             path: "/",
             maxAge: 60 * 60 * 24 * 7, // 7 days
-            domain: env.NODE_ENV === "production" ? ".ink37tattoos.com" : undefined
+            // Only set domain for production on the actual domain, not Vercel preview
+            domain: env.NODE_ENV === "production" && env.NEXT_PUBLIC_APP_URL?.includes("ink37tattoos.com") ? ".ink37tattoos.com" : undefined
         },
         // Additional CSRF token cookie
         csrfToken: {
             name: "__Host-csrf-token",
-            httpOnly: false, // Accessible to JavaScript for CSRF protection
+            httpOnly: false,
             secure: env.NODE_ENV === "production",
             sameSite: "strict",
             path: "/",
             maxAge: 60 * 60 * 24, // 24 hours
         }
     },
-    baseURL: getAuthConfig().baseUrl,
+    baseURL: env.NEXT_PUBLIC_APP_URL,
     trustedOrigins: [
+        "https://admin.ink37tattoos.com", // Always prioritize the custom domain
         env.NEXT_PUBLIC_APP_URL,
         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
-        "https://admin.ink37tattoos.com"
+        // Add current Vercel deployment URL if it exists
+        process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : undefined,
+        // Add localhost for development
+        env.NODE_ENV === "development" ? "http://localhost:3001" : undefined
     ].filter((origin): origin is string => Boolean(origin)),
     ratelimit: {
         enabled: true,

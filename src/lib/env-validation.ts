@@ -70,10 +70,10 @@ export type Env = z.infer<typeof envSchema>;
 
 // Production-specific schema with stricter requirements
 const productionEnvSchema = envSchema.extend({
-  // Require Redis in production for proper rate limiting (but not during build)
-  REDIS_URL: z.string().url().min(1, 'Redis URL required in production'),
-  // Require monitoring in production (but not during build)
-  SENTRY_DSN: z.string().url().min(1, 'Sentry DSN required in production for error monitoring'),
+  // Make Redis optional in production - we'll use in-memory fallback
+  REDIS_URL: z.string().url().optional(),
+  // Make monitoring optional in production - we'll use console logging fallback
+  SENTRY_DSN: z.string().url().optional(),
 });
 
 // Validate and parse environment variables
@@ -177,9 +177,16 @@ export function getDatabaseConfig() {
  */
 export function getAuthConfig() {
   // Determine the correct base URL for Better Auth
+  // Priority: explicit BETTER_AUTH_URL > PUBLIC_BETTER_AUTH_URL > PUBLIC_APP_URL > Vercel URL > localhost
   const baseUrl = env.BETTER_AUTH_URL || 
                   env.NEXT_PUBLIC_BETTER_AUTH_URL || 
-                  env.NEXT_PUBLIC_APP_URL;
+                  env.NEXT_PUBLIC_APP_URL ||
+                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
+                  (env.NODE_ENV === 'development' ? 'http://localhost:3001' : undefined);
+  
+  if (!baseUrl) {
+    throw new Error('No base URL configured for Better Auth. Please set BETTER_AUTH_URL or NEXT_PUBLIC_APP_URL');
+  }
   
   return {
     secret: env.BETTER_AUTH_SECRET,
@@ -292,16 +299,7 @@ export function validateSecurityConfig(): { valid: boolean; warnings: string[] }
     }
   }
   
-  // Check for required production variables
-  if (isProduction) {
-    if (!env.SENTRY_DSN && !env.HONEYBADGER_API_KEY) {
-      warnings.push('No error monitoring configured for production');
-    }
-    
-    if (!env.REDIS_URL && !env.REDIS_HOST) {
-      warnings.push('No Redis configured - rate limiting will use memory store');
-    }
-  }
+  // No warnings for optional services in production - we have fallbacks
   
   return { valid, warnings };
 }

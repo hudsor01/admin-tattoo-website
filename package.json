@@ -11,6 +11,8 @@
     "type-check": "tsc --noEmit",
     "build:check": "npm run type-check && npm run build",
     "db:seed": "npx tsx scripts/seed-database.ts",
+    "db:inspect": "npx tsx scripts/inspect-db.ts",
+    "create-admin": "npx tsx scripts/create-admin.ts",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "postinstall": "prisma generate"
