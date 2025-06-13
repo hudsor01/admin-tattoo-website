@@ -3,8 +3,6 @@
  * Implements comprehensive security headers following OWASP recommendations
  */
 
-import { isProduction } from './env-validation';
-
 export interface SecurityHeadersConfig {
   contentSecurityPolicy?: string;
   frameOptions?: 'DENY' | 'SAMEORIGIN' | string;

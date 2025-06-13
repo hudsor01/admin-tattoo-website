@@ -33,24 +33,6 @@ export function handleCallbackError(
   // Capture error source
   const errorSource = new Error().stack?.split('\n').slice(2).join('\n');
   
-  // Extract error details for better debugging
-  const errorInfo = {
-    message: normalizedError.message,
-    stack: normalizedError.stack,
-    
-    // Handle Error.cause safely (ES2022 feature)
-    cause: hasErrorCause(normalizedError) ? normalizedError.cause : undefined,
-    
-    componentStack: errorSource,
-    callbackName: typeof context.callback === 'function' 
-      ? context.callback.name ?? 'anonymous' 
-      : 'not-a-function',
-    timestamp: new Date().toISOString(),
-    context: context.context ?? 'unknown',
-    
-    // Safely stringify args with circular reference handling
-    args: safeStringify(context.args)
-  };
   
 }
 

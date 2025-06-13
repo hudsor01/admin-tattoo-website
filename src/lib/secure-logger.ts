@@ -219,7 +219,7 @@ export class SecureLogger {
     console.info(formatted);
   }
   
-  debug(message: string, data?: unknown): void {
+  debug(_message: string, _data?: unknown): void {
     // Debug logging disabled for security in production
   }
   

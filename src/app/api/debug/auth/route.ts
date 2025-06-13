@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     // Check environment variables
     const envCheck = {
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     // Try to import auth
     let authImportError = null;
     try {
-      const { auth } = await import("@/lib/auth");
+      await import("@/lib/auth");
       console.log("Auth imported successfully");
     } catch (error) {
       authImportError = error instanceof Error ? error.message : 'Unknown import error';
