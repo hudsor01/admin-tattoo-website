@@ -21,9 +21,7 @@ interface MediaMetadata {
   title: string
   description: string
   tags: string[]
-  artistName: string
   style: string
-  estimatedHours: number
   syncToWebsite: boolean
 }
 
@@ -34,9 +32,7 @@ export function MediaUploadDialog({ open, onOpenChange, uploadType }: MediaUploa
     title: '',
     description: '',
     tags: [],
-    artistName: '',
     style: '',
-    estimatedHours: 0,
     syncToWebsite: true
   })
   const [tagInput, setTagInput] = useState('')
@@ -78,9 +74,7 @@ export function MediaUploadDialog({ open, onOpenChange, uploadType }: MediaUploa
       title: '',
       description: '',
       tags: [],
-      artistName: '',
       style: '',
-      estimatedHours: 0,
       syncToWebsite: true
     })
     setTagInput('')
@@ -250,35 +244,12 @@ export function MediaUploadDialog({ open, onOpenChange, uploadType }: MediaUploa
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="artist">Artist Name</Label>
-              <Input
-                id="artist"
-                value={metadata.artistName}
-                onChange={(e) => setMetadata(prev => ({ ...prev, artistName: e.target.value }))}
-                placeholder="Artist name"
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="style">Style</Label>
               <Input
                 id="style"
                 value={metadata.style}
                 onChange={(e) => setMetadata(prev => ({ ...prev, style: e.target.value }))}
                 placeholder="e.g. Traditional, Realism, Blackwork"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hours">Estimated Hours</Label>
-              <Input
-                id="hours"
-                type="number"
-                value={metadata.estimatedHours}
-                onChange={(e) => setMetadata(prev => ({ ...prev, estimatedHours: Number(e.target.value) }))}
-                placeholder="0"
-                min="0"
-                step="0.5"
               />
             </div>
           </div>

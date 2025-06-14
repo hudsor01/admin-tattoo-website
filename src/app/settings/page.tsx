@@ -2,19 +2,10 @@
 
 import { AdminRoute } from "@/components/auth/admin-route"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
-} from '@/components/ui/breadcrumb';
-import { Separator } from '@/components/ui/separator';
+import { SiteHeader } from "@/components/layout/site-header"
 import { 
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger 
 } from '@/components/ui/sidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,43 +17,44 @@ import { Settings, Calendar, Palette, Bell } from 'lucide-react';
 export default function SettingsPage() {
   return (
     <AdminRoute>
-      <SidebarProvider>
-        <AppSidebar />
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--header-height": "5rem",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-        <div className="flex items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
-          />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/dashboard">
-                  Dashboard
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Settings</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-      </header>
-      
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
-          <p className="text-muted-foreground">
-            Manage your studio settings, Cal.com integration, and preferences.
-          </p>
-        </div>
-        
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Studio Information */}
-          <Card>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                {/* Page Header */}
+                <div className="px-6 lg:px-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-red-500">
+                          <Settings className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h1 className="text-3xl font-black text-foreground tracking-tight">Settings</h1>
+                          <p className="text-muted-foreground">
+                            Manage your studio settings, Cal.com integration, and preferences
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Settings Grid */}
+                <div className="px-6 lg:px-8">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Studio Information */}
+                    <Card className="bg-card border-border/30 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
@@ -93,12 +85,12 @@ export default function SettingsPage() {
                   defaultValue="+1 (555) 123-4567"
                 />
               </div>
-              <Button>Save Changes</Button>
+              <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">Save Changes</Button>
             </CardContent>
           </Card>
 
           {/* Cal.com Integration */}
-          <Card>
+          <Card className="bg-card border-border/30 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
@@ -116,7 +108,7 @@ export default function SettingsPage() {
                     Automatically sync new Cal.com bookings
                   </p>
                 </div>
-                <Switch defaultChecked />
+                <Switch defaultChecked className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500" />
               </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -125,7 +117,7 @@ export default function SettingsPage() {
                     Send email alerts for new bookings
                   </p>
                 </div>
-                <Switch defaultChecked />
+                <Switch defaultChecked className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cal-webhook">Webhook URL</Label>
@@ -135,12 +127,12 @@ export default function SettingsPage() {
                   defaultValue="https://ink37tattoos.com/api/webhooks/cal" 
                 />
               </div>
-              <Button variant="outline">Test Connection</Button>
+              <Button variant="outline" className="border-gradient hover:bg-gradient-to-r hover:from-orange-500/10 hover:to-red-500/10">Test Connection</Button>
             </CardContent>
           </Card>
 
           {/* Appearance */}
-          <Card>
+          <Card className="bg-card border-border/30 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="h-5 w-5" />
@@ -158,7 +150,7 @@ export default function SettingsPage() {
                     Toggle dark/light theme
                   </p>
                 </div>
-                <Switch />
+                <Switch className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500" />
               </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -167,13 +159,13 @@ export default function SettingsPage() {
                     Use a more compact sidebar layout
                   </p>
                 </div>
-                <Switch />
+                <Switch className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500" />
               </div>
             </CardContent>
           </Card>
 
           {/* Notifications */}
-          <Card>
+          <Card className="bg-card border-border/30 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5" />
@@ -191,7 +183,7 @@ export default function SettingsPage() {
                     Get notified when new bookings are made
                   </p>
                 </div>
-                <Switch defaultChecked />
+                <Switch defaultChecked className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500" />
               </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -200,7 +192,7 @@ export default function SettingsPage() {
                     Alerts for payment status changes
                   </p>
                 </div>
-                <Switch defaultChecked />
+                <Switch defaultChecked className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500" />
               </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -209,12 +201,15 @@ export default function SettingsPage() {
                     Daily email with booking and revenue summary
                   </p>
                 </div>
-                <Switch />
+                <Switch className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500" />
               </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </AdminRoute>

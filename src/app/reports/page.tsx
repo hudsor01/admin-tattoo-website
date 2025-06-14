@@ -260,10 +260,12 @@ export default function ReportsPage() {
                         <p className="text-sm text-muted-foreground">
                           Create custom reports with specific date ranges and data filters.
                         </p>
-                        <Button size="sm" className="w-full gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
-                          <PieChart className="h-4 w-4" />
-                          Build Custom Report
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button size="sm" className="flex-1 gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
+                            <PieChart className="h-4 w-4" />
+                            Build Custom Report
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   </div>

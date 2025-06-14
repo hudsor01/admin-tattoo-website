@@ -1,20 +1,11 @@
 "use client"
 
-import { AdminRoute } from "@/components/auth/admin-route"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
+import { SiteHeader } from "@/components/layout/site-header"
+import { AppointmentStatsCards } from "@/components/appointments/appointment-stats-cards"
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -38,41 +29,36 @@ export default function AppointmentsPage() {
   })
 
   return (
-    <AdminRoute>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="/dashboard">
-                      Dashboard
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Appointments</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-          </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
-                <p className="text-muted-foreground">
-                  Manage client appointments and bookings
-                </p>
-              </div>
-            </div>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "5rem",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant="inset" />
+      <SidebarInset>
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              {/* Stats Cards */}
+              <AppointmentStatsCards />
+              
+              {/* Page Header */}
+              <div className="px-6 lg:px-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
+                    <p className="text-muted-foreground">
+                      Manage client appointments and bookings
+                    </p>
+                  </div>
+                </div>
 
-            {/* Appointments Grid */}
-            <div className="grid gap-4">
+                {/* Appointments Grid */}
+                <div className="grid gap-4">
               {isLoading ? (
                 <>
                   {[...Array(5)].map((_, i) => (
@@ -108,12 +94,14 @@ export default function AppointmentsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              )}
+                )}
+                </div>
+              </div>
             </div>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </AdminRoute>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
 

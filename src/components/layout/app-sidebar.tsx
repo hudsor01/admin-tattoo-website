@@ -84,13 +84,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" className="bg-sidebar" {...props}>
       <SidebarHeader className="pb-6 pt-6 px-6">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="p-2 bg-brand-gradient rounded-xl shadow-lg">
-              <div className="w-6 h-6 bg-white/20 rounded-lg"></div>
+            <div className="p-3 bg-brand-gradient rounded-xl shadow-lg">
+              <div className="w-8 h-8 bg-white/20 rounded-lg"></div>
             </div>
           </div>
-          <div className="relative w-16 h-16">
+          <div className="relative w-24 h-24">
             <Image
               src="/logo.png"
               alt="Ink 37 Tattoos"

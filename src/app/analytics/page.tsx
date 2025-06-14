@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { DollarSign, Users, Calendar, TrendingUp, Download, Filter, Activity, BarChart3, PieChart, Target } from "lucide-react"
+import { DollarSign, Users, Calendar, TrendingUp, Download, Filter, Activity, BarChart3 } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Suspense } from "react"
@@ -134,57 +134,17 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
 
-                {/* Main Chart */}
+                {/* Charts Grid */}
                 <div className="px-6 lg:px-8">
-                  <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
-                    <ChartAreaInteractive />
-                  </Suspense>
-                </div>
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Main Revenue Chart */}
+                    <div className="lg:col-span-1">
+                      <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
+                        <ChartAreaInteractive />
+                      </Suspense>
+                    </div>
 
-                {/* Analytics Grid */}
-                <div className="px-6 lg:px-8">
-                  <div className="grid gap-6 lg:grid-cols-3">
-                    {/* Top Performing Artists */}
-                    <Card className="bg-card border-border/30 shadow-lg shadow-black/5">
-                      <CardHeader className="pb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-orange-500/10">
-                            <Target className="h-5 w-5 text-orange-600" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-xl font-bold">Top Artists</CardTitle>
-                            <CardDescription>
-                              Artists by revenue this month
-                            </CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <TopArtists artists={analytics?.topArtists} isLoading={isLoading} />
-                      </CardContent>
-                    </Card>
-
-                    {/* Session Types */}
-                    <Card className="bg-card border-border/30 shadow-lg shadow-black/5">
-                      <CardHeader className="pb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-green-500/10">
-                            <PieChart className="h-5 w-5 text-green-600" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-xl font-bold">Session Types</CardTitle>
-                            <CardDescription>
-                              Distribution of session types
-                            </CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <SessionTypesChart data={analytics?.sessionTypes} isLoading={isLoading} />
-                      </CardContent>
-                    </Card>
-
-                    {/* Client Acquisition */}
+                    {/* Client Growth Chart */}
                     <Card className="bg-card border-border/30 shadow-lg shadow-black/5">
                       <CardHeader className="pb-4">
                         <div className="flex items-center gap-3">
@@ -276,108 +236,6 @@ function MetricCard({ title, value, change, icon, format, isLoading, color }: {
   )
 }
 
-function TopArtists({ artists, isLoading }: { artists: Array<{ artistId: string; artistName: string; sessions: number; revenue: number; avgRating: number }>, isLoading: boolean }) {
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-8 w-8 rounded-full" />
-              <Skeleton className="h-4 w-24" />
-            </div>
-            <Skeleton className="h-4 w-16" />
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  if (!artists?.length) {
-    return (
-      <div className="text-center text-muted-foreground py-8">
-        <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        <p>No artist data available</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-3">
-      {artists.slice(0, 3).map((artist, index) => (
-        <div key={artist.artistId} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-          <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-              index === 0 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
-              index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
-              'bg-gradient-to-r from-orange-400 to-red-500'
-            }`}>
-              {index + 1}
-            </div>
-            <span className="font-medium text-foreground">{artist.artistName}</span>
-          </div>
-          <span className="font-bold text-foreground">${artist.revenue?.toLocaleString() || 0}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function SessionTypesChart({ data, isLoading }: { data: Array<{ type: string; count: number }>, isLoading: boolean }) {
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="space-y-2">
-            <div className="flex justify-between">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-4 w-8" />
-            </div>
-            <Skeleton className="h-2 w-full rounded-full" />
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  if (!data?.length) {
-    return (
-      <div className="text-center text-muted-foreground py-8">
-        <PieChart className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        <p>No session data available</p>
-      </div>
-    )
-  }
-
-  // Calculate total and percentages
-  const total = data.reduce((sum, type) => sum + type.count, 0);
-  const dataWithPercentages = data.map(type => ({
-    ...type,
-    percentage: total > 0 ? Math.round((type.count / total) * 100) : 0
-  }));
-
-  return (
-    <div className="space-y-4">
-      {dataWithPercentages.slice(0, 3).map((type, index) => (
-        <div key={index} className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-foreground">{type.type}</span>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-foreground">{type.count}</span>
-              <Badge variant="secondary" className="text-xs">{type.percentage}%</Badge>
-            </div>
-          </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-500"
-              style={{ width: `${type.percentage}%` }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 function ClientAcquisitionChart({ data, isLoading }: { data: Array<{ month: string; newClients: number; returningClients: number }>, isLoading: boolean }) {
   if (isLoading) {
