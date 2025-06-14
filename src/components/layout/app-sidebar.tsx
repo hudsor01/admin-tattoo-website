@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import {
   IconCamera,
   IconChartBar,
@@ -82,37 +83,53 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="offcanvas" className="bg-sidebar" {...props}>
-      <SidebarHeader className="pb-6">
+      <SidebarHeader className="pb-6 pt-6 px-6">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="p-2 bg-brand-gradient rounded-xl shadow-lg">
+              <div className="w-6 h-6 bg-white/20 rounded-lg"></div>
+            </div>
+          </div>
+          <div className="relative w-16 h-16">
+            <Image
+              src="/logo.png"
+              alt="Ink 37 Tattoos"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+        </div>
       </SidebarHeader>
-      <SidebarContent className="py-8">
-        <div className="space-y-12">
+      <SidebarContent className="py-6 px-4">
+        <div className="space-y-8">
           {/* Dashboard Section */}
-          <div className="space-y-4">
-            <div className="px-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+          <div className="space-y-3">
+            <div className="px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Dashboard
             </div>
             <NavMain items={data.dashboard} />
           </div>
 
           {/* Book of Business Section */}
-          <div className="space-y-4">
-            <div className="px-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+          <div className="space-y-3">
+            <div className="px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Book of Business
             </div>
             <NavMain items={data.bookOfBusiness} />
           </div>
 
           {/* Financials Section */}
-          <div className="space-y-4">
-            <div className="px-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+          <div className="space-y-3">
+            <div className="px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Financials
             </div>
             <NavMain items={data.financials} />
           </div>
         </div>
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavSecondary items={data.navSecondary} className="mt-auto px-4" />
       </SidebarContent>
-      <SidebarFooter className="pt-4">
+      <SidebarFooter className="pt-4 px-4">
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>

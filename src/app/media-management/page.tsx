@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { ImageIcon, Search, Filter, Eye, Edit, Trash2, Video, Sync, ExternalLink } from "lucide-react"
+import { ImageIcon, Search, Filter, Eye, Edit, Trash2, Video, RefreshCw, ExternalLink } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import Image from "next/image"
@@ -231,7 +231,7 @@ function MediaItemCard({ item }: { item: MediaItem }) {
       
       return response.json()
     },
-    onSuccess: (data, action) => {
+    onSuccess: (_, action) => {
       toast.success(action === 'sync' 
         ? 'Media synced to website successfully!' 
         : 'Media removed from website successfully!'
@@ -339,7 +339,7 @@ function MediaItemCard({ item }: { item: MediaItem }) {
               disabled={syncMutation.isPending}
               title={item.syncedToWebsite ? "Remove from website" : "Sync to website"}
             >
-              <Sync className={`h-3 w-3 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3 w-3 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
             </Button>
             <Button 
               size="sm" 

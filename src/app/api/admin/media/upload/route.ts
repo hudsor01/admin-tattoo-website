@@ -18,7 +18,7 @@ const uploadHandler = async (request: NextRequest) => {
   if (metadataString) {
     try {
       metadata = JSON.parse(metadataString)
-    } catch (error) {
+    } catch {
       return NextResponse.json(createErrorResponse('Invalid metadata format'), { status: 400 })
     }
   }

@@ -76,4 +76,4 @@ const syncHandler = async (request: NextRequest) => {
 }
 
 // Apply security validation
-export const POST = withSecurityValidation(SecurityPresets.ADMIN_ONLY)(syncHandler)
+export const POST = withSecurityValidation(SecurityPresets.SYSTEM_ADMIN)(syncHandler)
