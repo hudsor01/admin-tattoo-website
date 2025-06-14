@@ -151,7 +151,7 @@ export function ChartAreaInteractive() {
       <Card className="@container/card bg-card border-border/30 shadow-lg shadow-black/5">
         <CardHeader className="pb-6">
           <CardTitle className="text-red-600">Error loading chart data</CardTitle>
-          <CardDescription>Using fallback data for demonstration</CardDescription>
+          <CardDescription>Please refresh the page or contact support</CardDescription>
         </CardHeader>
       </Card>
     )

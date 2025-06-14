@@ -15,8 +15,8 @@ export function useChartData() {
       const response = await fetch('/api/admin/dashboard/chart-data')
       
       if (!response.ok) {
-        // Return mock data if API fails
-        return generateMockChartData()
+        // Return empty array if API fails
+        return []
       }
       
       const result = await response.json()
@@ -31,25 +31,10 @@ export function useChartData() {
         return result
       }
       
-      // Fallback to mock data if response format is unexpected
-      return generateMockChartData()
+      // Return empty array if response format is unexpected
+      return []
     },
     staleTime: 1000 * 60 * 10, // 10 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
   })
-}
-
-// Fallback mock data if API is not accessible
-function generateMockChartData(): ChartDataPoint[] {
-  const data = []
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    data.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      value1: Math.floor(Math.random() * 500) + 100, // Revenue 100-600
-      value2: Math.floor(Math.random() * 400) + 150, // Appointments scaled 150-550
-    })
-  }
-  return data
 }
