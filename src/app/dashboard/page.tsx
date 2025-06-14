@@ -25,7 +25,7 @@ export default function DashboardPage() {
           style={
             {
               "--sidebar-width": "calc(var(--spacing) * 72)",
-              "--header-height": "calc(var(--spacing) * 12)",
+              "--header-height": "5rem",
             } as React.CSSProperties
           }
         >

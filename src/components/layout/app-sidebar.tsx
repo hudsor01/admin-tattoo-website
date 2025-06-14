@@ -5,14 +5,10 @@ import {
   IconCamera,
   IconChartBar,
   IconDashboard,
-  IconInnerShadowTop,
   IconListDetails,
   IconReport,
   IconSettings,
   IconUsers,
-  IconPlus,
-  IconUser,
-  IconCalendar,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/layout/nav-main"
@@ -23,17 +19,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useRouter } from "next/navigation"
 
 const data = {
   user: {
@@ -66,6 +52,9 @@ const data = {
       title: "Customers",
       url: "/customers",
       icon: IconUsers,
+      hasQuickAction: true,
+      quickActionLabel: "New Customer",
+      quickActionUrl: "/customers?action=create",
     },
   ],
   financials: [
@@ -90,72 +79,32 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const router = useRouter()
-
-  const handleQuickCreate = (type: string) => {
-    switch (type) {
-      case 'customer':
-        router.push('/customers?action=create')
-        break
-      case 'appointment':
-        router.push('/appointments?action=create')
-        break
-      default:
-        router.push('/customers?action=create')
-    }
-  }
 
   return (
-    <Sidebar collapsible="offcanvas" className="bg-sidebar border-r border-sidebar-border" {...props}>
-      <SidebarHeader className="border-b border-border/30 pb-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  tooltip="Quick Create"
-                  className="bg-brand-gradient text-white hover:opacity-90 active:opacity-80 min-w-8 duration-200 ease-linear shadow-sm text-lg font-semibold py-4"
-                >
-                  <IconInnerShadowTop className="w-6 h-6" />
-                  <span>Quick Create</span>
-                  <IconPlus className="ml-auto w-4 h-4" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="right" align="start" className="w-48">
-                <DropdownMenuItem onClick={() => handleQuickCreate('customer')}>
-                  <IconUser className="w-4 h-4 mr-2" />
-                  New Customer
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleQuickCreate('appointment')}>
-                  <IconCalendar className="w-4 h-4 mr-2" />
-                  New Appointment
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
+    <Sidebar collapsible="offcanvas" className="bg-sidebar" {...props}>
+      <SidebarHeader className="pb-6">
       </SidebarHeader>
-      <SidebarContent className="py-4">
-        <div className="space-y-8">
+      <SidebarContent className="py-8">
+        <div className="space-y-12">
           {/* Dashboard Section */}
-          <div className="space-y-2">
-            <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="space-y-4">
+            <div className="px-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
               Dashboard
             </div>
             <NavMain items={data.dashboard} />
           </div>
 
           {/* Book of Business Section */}
-          <div className="space-y-2">
-            <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="space-y-4">
+            <div className="px-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
               Book of Business
             </div>
             <NavMain items={data.bookOfBusiness} />
           </div>
 
           {/* Financials Section */}
-          <div className="space-y-2">
-            <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="space-y-4">
+            <div className="px-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
               Financials
             </div>
             <NavMain items={data.financials} />
@@ -163,7 +112,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </div>
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter className="border-t border-border/30 pt-4">
+      <SidebarFooter className="pt-4">
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>

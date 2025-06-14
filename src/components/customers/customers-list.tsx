@@ -3,9 +3,8 @@
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Mail, Phone, Calendar, User, Plus, Search } from "lucide-react"
+import { Mail, Phone, Calendar, User, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import type { ClientResponse } from '@/types/database'
@@ -56,19 +55,13 @@ export function CustomersList() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Customers</CardTitle>
-            <CardDescription>Manage your client database</CardDescription>
-          </div>
-          <Button className="bg-orange-500 hover:bg-orange-600">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Customer
-          </Button>
+        <div>
+          <CardTitle>Customers</CardTitle>
+          <CardDescription>Manage your client database</CardDescription>
         </div>
         
         {/* Search Bar */}
-        <div className="relative">
+        <div className="relative mt-4">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search customers by name, email, or phone..."
@@ -80,33 +73,44 @@ export function CustomersList() {
       </CardHeader>
       
       <CardContent>
-        {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-4 w-[200px]" />
-                  <Skeleton className="h-3 w-[150px]" />
+        <div className="h-[600px] overflow-y-auto">
+          {isLoading ? (
+            <div className="space-y-4">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-[200px]" />
+                    <Skeleton className="h-3 w-[150px]" />
+                  </div>
+                  <Skeleton className="h-6 w-16" />
                 </div>
-                <Skeleton className="h-6 w-16" />
-              </div>
-            ))}
-          </div>
-        ) : filteredCustomers.length > 0 ? (
-          <div className="space-y-3">
-            {filteredCustomers.map((customer: ClientResponse) => (
-              <CustomerCard key={customer.id} customer={customer} />
-            ))}
-            
-            {/* Pagination info */}
-            <div className="text-center text-sm text-muted-foreground pt-4 border-t">
-              Showing {filteredCustomers.length} of {customers?.data?.length || 0} customers
+              ))}
             </div>
-          </div>
-        ) : (
-          <div className="text-center text-muted-foreground py-8">
-            {searchTerm ? "No customers found matching your search" : "No customers found"}
+          ) : filteredCustomers.length > 0 ? (
+            <div className="space-y-3">
+              {filteredCustomers.map((customer: ClientResponse) => (
+                <CustomerCard key={customer.id} customer={customer} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full text-center text-muted-foreground">
+              <div>
+                <div className="text-lg font-medium mb-2">
+                  {searchTerm ? "No customers found matching your search" : "No customers found"}
+                </div>
+                <div className="text-sm">
+                  {searchTerm ? "Try adjusting your search terms" : "Use the + button next to Customers in the sidebar to add your first customer"}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Footer with pagination info - outside scrollable area */}
+        {!isLoading && filteredCustomers.length > 0 && (
+          <div className="text-center text-sm text-muted-foreground pt-4 mt-4 border-t">
+            Showing {filteredCustomers.length} of {customers?.data?.length || 0} customers
           </div>
         )}
       </CardContent>
