@@ -158,7 +158,8 @@ export function ChartAreaInteractive() {
   }
 
   // Filter data based on time range
-  const filteredData = chartData.slice(timeRange === "7d" ? -7 : timeRange === "30d" ? -30 : -90)
+  const safeChartData = Array.isArray(chartData) ? chartData : []
+  const filteredData = safeChartData.slice(timeRange === "7d" ? -7 : timeRange === "30d" ? -30 : -90)
 
   return (
     <Card className="@container/card bg-card border-border/30 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-300">

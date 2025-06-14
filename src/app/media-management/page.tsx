@@ -192,11 +192,19 @@ export default function MediaManagementPage() {
 function MediaItemCard({ item }: { item: MediaItem }) {
   const isVideo = item.type === 'video' || item.mediaUrl?.includes('.mp4') || item.mediaUrl?.includes('.mov')
 
+  // Helper to check if URL is valid (not a relative path without host)
+  const isValidUrl = (url: string | null | undefined): boolean => {
+    if (!url) return false
+    return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')
+  }
+  
+  const hasValidUrl = isValidUrl(item.mediaUrl) || isValidUrl(item.imageUrl)
+
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
       <div className="relative">
         <div className="relative h-48 bg-gray-100 flex items-center justify-center">
-          {item.mediaUrl || item.imageUrl ? (
+          {hasValidUrl ? (
             isVideo ? (
               <video
                 src={item.mediaUrl || item.imageUrl}
@@ -212,6 +220,11 @@ function MediaItemCard({ item }: { item: MediaItem }) {
                 className="object-cover"
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                onError={(e) => {
+                  // Hide image on error and show placeholder
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                }}
               />
             )
           ) : (
