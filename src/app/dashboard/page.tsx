@@ -1,8 +1,7 @@
 'use client'
 
+import { Suspense, lazy } from 'react'
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive"
-import { RecentSessions } from "@/components/dashboard/recent-sessions"
 import { SectionCards } from "@/components/dashboard/section-cards"
 import { SiteHeader } from "@/components/layout/site-header"
 import {
@@ -12,6 +11,11 @@ import {
 import { AdminRoute } from "@/components/auth/admin-route"
 import { DashboardErrorBoundary } from "@/components/error/dashboard-error-boundary"
 import { ApiErrorBoundary } from "@/components/error/api-error-boundary"
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Lazy load heavy components
+const ChartAreaInteractive = lazy(() => import("@/components/dashboard/chart-area-interactive").then(mod => ({ default: mod.ChartAreaInteractive })))
+const RecentSessions = lazy(() => import("@/components/dashboard/recent-sessions").then(mod => ({ default: mod.RecentSessions })))
 
 export default function DashboardPage() {
   return (
@@ -36,12 +40,16 @@ export default function DashboardPage() {
                   </ApiErrorBoundary>
                   <div className="px-6 lg:px-8">
                     <ApiErrorBoundary>
-                      <ChartAreaInteractive />
+                      <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
+                        <ChartAreaInteractive />
+                      </Suspense>
                     </ApiErrorBoundary>
                   </div>
                   <div className="px-6 lg:px-8">
                     <ApiErrorBoundary>
-                      <RecentSessions />
+                      <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
+                        <RecentSessions />
+                      </Suspense>
                     </ApiErrorBoundary>
                   </div>
                 </div>

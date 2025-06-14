@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { put } from '@vercel/blob'
 import { withSecurityValidation, SecurityPresets, validateFileUpload, validateFileContent } from '@/lib/api-validation'
 import { sanitizeFilename } from '@/lib/sanitization'
 import { createErrorResponse, createSuccessResponse } from '@/lib/error-handling'
@@ -60,46 +58,41 @@ const uploadHandler = async (request: NextRequest) => {
     )
   }
 
-    // Create upload directory if it doesn't exist
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'media')
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true })
-    }
-
   // Generate secure filename
   const timestamp = Date.now()
   const sanitizedName = sanitizeFilename(file.name)
   const fileName = `${timestamp}_${sanitizedName}`
-    const filePath = join(uploadDir, fileName)
-    const publicUrl = `/uploads/media/${fileName}`
 
-    // Save file
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
+  try {
+    // Upload to Vercel Blob storage
+    const blob = await put(fileName, file, {
+      access: 'public',
+      handleUploadUrl: '/api/admin/media/upload'
+    })
 
     // Generate thumbnail for videos (placeholder for now)
     let thumbnailUrl = null
     if (isVideo) {
-      // Video thumbnail generation not implemented
-      thumbnailUrl = `/uploads/media/thumbnails/${timestamp}_thumbnail.jpg`
+      // Video thumbnail generation not implemented yet
+      thumbnailUrl = null
     }
 
-    // If this is production, we'd also upload to cloud storage (Vercel Blob, S3, etc.)
-    // For now, we'll use local storage
+    const result = {
+      fileName,
+      originalName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      mediaUrl: blob.url,
+      thumbnailUrl,
+      type: isVideo ? 'video' : 'photo',
+      uploadedAt: new Date().toISOString()
+    }
 
-  const result = {
-    fileName,
-    originalName: file.name,
-    fileSize: file.size,
-    fileType: file.type,
-    mediaUrl: publicUrl,
-    thumbnailUrl,
-    type: isVideo ? 'video' : 'photo',
-    uploadedAt: new Date().toISOString()
+    return NextResponse.json(createSuccessResponse(result, 'File uploaded successfully'))
+  } catch (error) {
+    console.error('Upload error:', error)
+    return NextResponse.json(createErrorResponse('Failed to upload file'), { status: 500 })
   }
-
-  return NextResponse.json(createSuccessResponse(result, 'File uploaded successfully'))
 }
 
 // Apply security validation with new media upload preset

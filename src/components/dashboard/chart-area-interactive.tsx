@@ -33,75 +33,17 @@ import {
 
 export const description = "An interactive area chart"
 
-// Lazy load the entire chart component to reduce initial bundle size
-const LazyAreaChart = dynamic(() => import("recharts").then(mod => ({ 
-  default: ({ data, className }: { data: Array<{date: string, value1: number, value2: number}>, className?: string }) => {
-    const { AreaChart, CartesianGrid, XAxis, Area } = mod
-    return (
-      <AreaChart data={data} className={className}>
-        <defs>
-          <linearGradient id="fillValue1" x1="0" y1="0" x2="0" y2="1">
-            <stop
-              offset="5%"
-              stopColor="var(--color-value1)"
-              stopOpacity={0.9}
-            />
-            <stop
-              offset="95%"
-              stopColor="var(--color-value1)"
-              stopOpacity={0.1}
-            />
-          </linearGradient>
-          <linearGradient id="fillValue2" x1="0" y1="0" x2="0" y2="1">
-            <stop
-              offset="5%"
-              stopColor="var(--color-value2)"
-              stopOpacity={0.7}
-            />
-            <stop
-              offset="95%"
-              stopColor="var(--color-value2)"
-              stopOpacity={0.05}
-            />
-          </linearGradient>
-        </defs>
-        <CartesianGrid 
-          vertical={false} 
-          strokeDasharray="3 3" 
-          stroke="var(--color-border)" 
-          opacity={0.5}
-        />
-        <XAxis
-          dataKey="date"
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          minTickGap={32}
-          tick={{ fontSize: 12, fill: 'var(--color-muted-foreground)' }}
-        />
-        <Area
-          dataKey="value2"
-          type="natural"
-          fill="url(#fillValue2)"
-          stroke="var(--color-value2)"
-          strokeWidth={2}
-          stackId="a"
-        />
-        <Area
-          dataKey="value1"
-          type="natural"
-          fill="url(#fillValue1)"
-          stroke="var(--color-value1)"
-          strokeWidth={2}
-          stackId="a"
-        />
-      </AreaChart>
-    )
-  }
+// Simple chart component for better performance
+const SimpleAreaChart = dynamic(() => import("recharts").then(mod => ({ 
+  default: mod.AreaChart
 })), { 
   ssr: false,
   loading: () => <div className="h-[320px] w-full flex items-center justify-center text-muted-foreground">Loading chart...</div>
 })
+
+const CartesianGrid = dynamic(() => import("recharts").then(mod => ({ default: mod.CartesianGrid })), { ssr: false })
+const XAxis = dynamic(() => import("recharts").then(mod => ({ default: mod.XAxis })), { ssr: false })
+const Area = dynamic(() => import("recharts").then(mod => ({ default: mod.Area })), { ssr: false })
 
 const chartConfig = {
   revenue: {
@@ -211,8 +153,42 @@ export function ChartAreaInteractive() {
           config={chartConfig}
           className="aspect-auto h-[320px] w-full rounded-xl shadow-inner bg-gradient-to-br from-muted/30 to-muted/10 border border-border/20"
         >
-          <>
-            <LazyAreaChart data={filteredData} className="w-full h-full" />
+          <SimpleAreaChart data={filteredData} className="w-full h-full">
+            <defs>
+              <linearGradient id="fillValue1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-value1)" stopOpacity={0.9} />
+                <stop offset="95%" stopColor="var(--color-value1)" stopOpacity={0.1} />
+              </linearGradient>
+              <linearGradient id="fillValue2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-value2)" stopOpacity={0.7} />
+                <stop offset="95%" stopColor="var(--color-value2)" stopOpacity={0.05} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.5} />
+            <XAxis
+              dataKey="date"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              minTickGap={32}
+              tick={{ fontSize: 12, fill: 'var(--color-muted-foreground)' }}
+            />
+            <Area
+              dataKey="value2"
+              type="natural"
+              fill="url(#fillValue2)"
+              stroke="var(--color-value2)"
+              strokeWidth={2}
+              stackId="a"
+            />
+            <Area
+              dataKey="value1"
+              type="natural"
+              fill="url(#fillValue1)"
+              stroke="var(--color-value1)"
+              strokeWidth={2}
+              stackId="a"
+            />
             <ChartTooltip
               cursor={{ stroke: 'var(--color-primary)', strokeWidth: 1, strokeDasharray: '3 3' }}
               content={
@@ -228,7 +204,7 @@ export function ChartAreaInteractive() {
               />
             }
           />
-          </>
+          </SimpleAreaChart>
         </ChartContainer>
       </CardContent>
     </Card>

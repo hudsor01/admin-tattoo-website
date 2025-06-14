@@ -34,7 +34,7 @@ export function useChartData() {
       // Return empty array if response format is unexpected
       return []
     },
-    staleTime: 1000 * 60 * 10, // 10 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 30, // 30 seconds
+    gcTime: 1000 * 60 * 5, // 5 minutes
   })
 }

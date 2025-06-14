@@ -41,6 +41,7 @@ const envSchema = z.object({
   // File upload
   MAX_FILE_SIZE: z.string().regex(/^\d+$/).transform(Number).default('104857600'), // 100MB
   UPLOAD_DIR: z.string().default('./public/uploads'),
+  BLOB_READ_WRITE_TOKEN: z.string().optional(),
   
   // Analytics
   GOOGLE_ANALYTICS_ID: z.string().optional(),
@@ -93,6 +94,7 @@ const productionEnvSchema = z.object({
   // File upload
   MAX_FILE_SIZE: z.string().regex(/^\d+$/).transform(Number).default('104857600'), // 100MB
   UPLOAD_DIR: z.string().default('./public/uploads'),
+  BLOB_READ_WRITE_TOKEN: z.string().optional(),
   
   // Analytics
   GOOGLE_ANALYTICS_ID: z.string().optional(),
