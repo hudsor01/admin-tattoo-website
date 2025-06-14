@@ -19,7 +19,20 @@ export function useChartData() {
         return generateMockChartData()
       }
       
-      return response.json()
+      const result = await response.json()
+      
+      // Handle API response wrapper format
+      if (result.success && Array.isArray(result.data)) {
+        return result.data
+      }
+      
+      // If direct array response
+      if (Array.isArray(result)) {
+        return result
+      }
+      
+      // Fallback to mock data if response format is unexpected
+      return generateMockChartData()
     },
     staleTime: 1000 * 60 * 10, // 10 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
