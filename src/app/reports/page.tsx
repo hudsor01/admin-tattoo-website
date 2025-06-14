@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Download, FileBarChart, Users, CreditCard, Calendar, TrendingUp, BarChart3, FileText, Target, PieChart } from "lucide-react"
 
 export default function ReportsPage() {

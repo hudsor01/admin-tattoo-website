@@ -242,7 +242,6 @@ function MetricCard({ title, value, change, icon, format, isLoading, color }: {
     orange: 'bg-orange-500/10 text-orange-600'
   }
 
-  const changeColor = change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-muted-foreground'
   const changePrefix = change > 0 ? '+' : ''
 
   return (
