@@ -58,6 +58,9 @@ const data = {
       title: "Appointments",
       url: "/appointments",
       icon: IconListDetails,
+      hasQuickAction: true,
+      quickActionLabel: "New Appointment",
+      quickActionUrl: "/appointments?action=create",
     },
     {
       title: "Customers",

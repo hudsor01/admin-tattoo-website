@@ -1,19 +1,10 @@
 "use client"
 
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
+import { SiteHeader } from "@/components/layout/site-header"
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -72,116 +63,123 @@ export default function MediaManagementPage() {
   )
 
   return (
-      <SidebarProvider>
-        <AppSidebar />
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="/dashboard">
-                      Dashboard
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Media Management</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-          </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Media Management</h1>
-                <p className="text-muted-foreground">
-                  Upload photos and videos that sync to ink37tattoos.com/gallery
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant={uploadType === 'photo' ? 'default' : 'outline'}
-                  onClick={() => setUploadType('photo')}
-                  className={uploadType === 'photo' ? 'bg-orange-500 hover:bg-orange-600' : ''}
-                >
-                  <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Upload Photo
-                </Button>
-                <Button
-                  variant={uploadType === 'video' ? 'default' : 'outline'}
-                  onClick={() => setUploadType('video')}
-                  className={uploadType === 'video' ? 'bg-orange-500 hover:bg-orange-600' : ''}
-                >
-                  <Video className="mr-2 h-4 w-4" />
-                  Upload Video
-                </Button>
-              </div>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search media..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-              <Button variant="outline" size="sm">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-              </Button>
-            </div>
-
-            {/* Media Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {isLoading ? (
-                <>
-                  {[...Array(8)].map((_, i) => (
-                    <Card key={i} className="overflow-hidden">
-                      <Skeleton className="h-48 w-full" />
-                      <CardHeader>
-                        <Skeleton className="h-5 w-32" />
-                        <Skeleton className="h-4 w-24" />
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </>
-              ) : filteredItems?.length > 0 ? (
-                filteredItems.map((item: MediaItem) => (
-                  <MediaItemCard key={item.id} item={item} />
-                ))
-              ) : (
-                <div className="col-span-full">
-                  <Card>
-                    <CardContent className="flex items-center justify-center h-48">
-                      <div className="text-center">
-                        <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
-                        <h3 className="text-lg font-semibold">No media items found</h3>
-                        <p className="text-muted-foreground mb-4">
-                          Start by uploading your first photo or video.
-                        </p>
-                        <div className="flex gap-2 justify-center">
-                          <Button className="bg-orange-500 hover:bg-orange-600">
-                            <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
-                            Upload Photo
-                          </Button>
-                          <Button variant="outline">
-                            <Video className="mr-2 h-4 w-4" />
-                            Upload Video
-                          </Button>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                {/* Page Header */}
+                <div className="px-6 lg:px-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-red-500">
+                          <ImageIcon className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h1 className="text-3xl font-black text-foreground tracking-tight">Media Management</h1>
+                          <p className="text-muted-foreground">
+                            Upload photos and videos that sync to ink37tattoos.com/gallery
+                          </p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant={uploadType === 'photo' ? 'default' : 'outline'}
+                        onClick={() => setUploadType('photo')}
+                        className={uploadType === 'photo' ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600' : ''}
+                      >
+                        <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Upload Photo
+                      </Button>
+                      <Button
+                        variant={uploadType === 'video' ? 'default' : 'outline'}
+                        onClick={() => setUploadType('video')}
+                        className={uploadType === 'video' ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600' : ''}
+                      >
+                        <Video className="mr-2 h-4 w-4" />
+                        Upload Video
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              )}
+
+                {/* Search and Filters */}
+                <div className="px-6 lg:px-8">
+                  <div className="flex items-center gap-4">
+                    <div className="relative flex-1 max-w-sm">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search media..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-8"
+                      />
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <Filter className="mr-2 h-4 w-4" />
+                      Filter
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Media Grid */}
+                <div className="px-6 lg:px-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {isLoading ? (
+                      <>
+                        {[...Array(8)].map((_, i) => (
+                          <Card key={i} className="overflow-hidden">
+                            <Skeleton className="h-48 w-full" />
+                            <CardHeader>
+                              <Skeleton className="h-5 w-32" />
+                              <Skeleton className="h-4 w-24" />
+                            </CardHeader>
+                          </Card>
+                        ))}
+                      </>
+                    ) : filteredItems?.length > 0 ? (
+                      filteredItems.map((item: MediaItem) => (
+                        <MediaItemCard key={item.id} item={item} />
+                      ))
+                    ) : (
+                      <div className="col-span-full">
+                        <Card>
+                          <CardContent className="flex items-center justify-center h-48">
+                            <div className="text-center">
+                              <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
+                              <h3 className="text-lg font-semibold">No media items found</h3>
+                              <p className="text-muted-foreground mb-4">
+                                Start by uploading your first photo or video.
+                              </p>
+                              <div className="flex gap-2 justify-center">
+                                <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
+                                  <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+                                  Upload Photo
+                                </Button>
+                                <Button variant="outline">
+                                  <Video className="mr-2 h-4 w-4" />
+                                  Upload Video
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </SidebarInset>

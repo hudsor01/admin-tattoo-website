@@ -45,7 +45,7 @@ export default function ReportsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Button variant="outline" className="gap-2">
+                      <Button className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
                         <Download className="h-4 w-4" />
                         Export All
                       </Button>
@@ -69,20 +69,20 @@ export default function ReportsPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="text-center p-3 rounded-lg bg-muted/30">
-                          <div className="text-2xl font-bold text-blue-600">0</div>
+                        <div className="text-center p-4 rounded-lg bg-muted/30 border border-border/30">
+                          <div className="text-2xl font-bold text-foreground">0</div>
                           <div className="text-sm text-muted-foreground">Total Customers</div>
                         </div>
-                        <div className="text-center p-3 rounded-lg bg-muted/30">
-                          <div className="text-2xl font-bold text-green-600">$0</div>
+                        <div className="text-center p-4 rounded-lg bg-muted/30 border border-border/30">
+                          <div className="text-2xl font-bold text-foreground">$0</div>
                           <div className="text-sm text-muted-foreground">Total Revenue</div>
                         </div>
-                        <div className="text-center p-3 rounded-lg bg-muted/30">
-                          <div className="text-2xl font-bold text-purple-600">0</div>
+                        <div className="text-center p-4 rounded-lg bg-muted/30 border border-border/30">
+                          <div className="text-2xl font-bold text-foreground">0</div>
                           <div className="text-sm text-muted-foreground">Appointments</div>
                         </div>
-                        <div className="text-center p-3 rounded-lg bg-muted/30">
-                          <div className="text-2xl font-bold text-orange-600">0.0</div>
+                        <div className="text-center p-4 rounded-lg bg-muted/30 border border-border/30">
+                          <div className="text-2xl font-bold text-foreground">0.0</div>
                           <div className="text-sm text-muted-foreground">Avg Rating</div>
                         </div>
                       </div>
@@ -92,7 +92,7 @@ export default function ReportsPage() {
 
                 {/* Reports Grid */}
                 <div className="px-6 lg:px-8">
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {/* Customer Report */}
                     <Card className="bg-card border-border/30 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-300">
                       <CardHeader className="pb-4">
@@ -111,7 +111,7 @@ export default function ReportsPage() {
                           Complete customer database with contact info, session history, and preferences.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-2">
-                          <Button size="sm" className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700">
+                          <Button size="sm" className="flex-1 gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
                             <FileBarChart className="h-4 w-4" />
                             View Report
                           </Button>
@@ -141,7 +141,7 @@ export default function ReportsPage() {
                           Detailed payment history, revenue trends, and outstanding balances.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-2">
-                          <Button size="sm" className="flex-1 gap-2 bg-green-600 hover:bg-green-700">
+                          <Button size="sm" className="flex-1 gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
                             <FileBarChart className="h-4 w-4" />
                             View Report
                           </Button>
@@ -171,7 +171,7 @@ export default function ReportsPage() {
                           Appointment history, booking trends, and scheduling analytics.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-2">
-                          <Button size="sm" className="flex-1 gap-2 bg-purple-600 hover:bg-purple-700">
+                          <Button size="sm" className="flex-1 gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
                             <FileBarChart className="h-4 w-4" />
                             View Report
                           </Button>
@@ -201,7 +201,7 @@ export default function ReportsPage() {
                           Monthly revenue trends, profit margins, and financial insights.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-2">
-                          <Button size="sm" className="flex-1 gap-2 bg-orange-600 hover:bg-orange-700">
+                          <Button size="sm" className="flex-1 gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
                             <FileBarChart className="h-4 w-4" />
                             View Analytics
                           </Button>
@@ -231,7 +231,7 @@ export default function ReportsPage() {
                           Artist productivity, client satisfaction, and revenue by artist.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-2">
-                          <Button size="sm" className="flex-1 gap-2 bg-pink-600 hover:bg-pink-700">
+                          <Button size="sm" className="flex-1 gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
                             <FileBarChart className="h-4 w-4" />
                             View Report
                           </Button>
