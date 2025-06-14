@@ -10,11 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { ImageIcon, Search, Filter, Eye, Edit, Trash2, Video } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
+import { ImageIcon, Search, Filter, Eye, Edit, Trash2, Video, Sync, ExternalLink } from "lucide-react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState } from "react"
+import { MediaUploadDialog } from "@/components/media/media-upload-dialog"
 
 // Media item type
 interface MediaItem {
@@ -48,6 +50,7 @@ const fetchMediaItems = async () => {
 export default function MediaManagementPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [uploadType, setUploadType] = useState<'photo' | 'video'>('photo')
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const { data: mediaItems, isLoading } = useQuery({
     queryKey: ['media'],
     queryFn: fetchMediaItems,
@@ -95,17 +98,21 @@ export default function MediaManagementPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <Button
-                        variant={uploadType === 'photo' ? 'default' : 'outline'}
-                        onClick={() => setUploadType('photo')}
-                        className={uploadType === 'photo' ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600' : ''}
+                        onClick={() => {
+                          setUploadType('photo')
+                          setUploadDialogOpen(true)
+                        }}
+                        className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
                       >
                         <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                         Upload Photo
                       </Button>
                       <Button
-                        variant={uploadType === 'video' ? 'default' : 'outline'}
-                        onClick={() => setUploadType('video')}
-                        className={uploadType === 'video' ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600' : ''}
+                        onClick={() => {
+                          setUploadType('video')
+                          setUploadDialogOpen(true)
+                        }}
+                        variant="outline"
                       >
                         <Video className="mr-2 h-4 w-4" />
                         Upload Video
@@ -163,11 +170,23 @@ export default function MediaManagementPage() {
                                 Start by uploading your first photo or video.
                               </p>
                               <div className="flex gap-2 justify-center">
-                                <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
+                                <Button 
+                                  onClick={() => {
+                                    setUploadType('photo')
+                                    setUploadDialogOpen(true)
+                                  }}
+                                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+                                >
                                   <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                                   Upload Photo
                                 </Button>
-                                <Button variant="outline">
+                                <Button 
+                                  onClick={() => {
+                                    setUploadType('video')
+                                    setUploadDialogOpen(true)
+                                  }}
+                                  variant="outline"
+                                >
                                   <Video className="mr-2 h-4 w-4" />
                                   Upload Video
                                 </Button>
@@ -183,12 +202,51 @@ export default function MediaManagementPage() {
             </div>
           </div>
         </SidebarInset>
+        
+        <MediaUploadDialog
+          open={uploadDialogOpen}
+          onOpenChange={setUploadDialogOpen}
+          uploadType={uploadType}
+        />
       </SidebarProvider>
   )
 }
 
 function MediaItemCard({ item }: { item: MediaItem }) {
+  const queryClient = useQueryClient()
   const isVideo = item.type === 'video' || item.mediaUrl?.includes('.mp4') || item.mediaUrl?.includes('.mov')
+
+  const syncMutation = useMutation({
+    mutationFn: async (action: 'sync' | 'unsync') => {
+      const response = await fetch('/api/admin/media/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mediaId: item.id, action })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error?.message || 'Sync failed')
+      }
+      
+      return response.json()
+    },
+    onSuccess: (data, action) => {
+      toast.success(action === 'sync' 
+        ? 'Media synced to website successfully!' 
+        : 'Media removed from website successfully!'
+      )
+      queryClient.invalidateQueries({ queryKey: ['media'] })
+    },
+    onError: (error: Error) => {
+      toast.error(`Sync failed: ${error.message}`)
+    }
+  })
+
+  const handleSync = () => {
+    const action = item.syncedToWebsite ? 'unsync' : 'sync'
+    syncMutation.mutate(action)
+  }
 
   // Helper to check if URL is valid (not a relative path without host)
   const isValidUrl = (url: string | null | undefined): boolean => {
@@ -245,15 +303,51 @@ function MediaItemCard({ item }: { item: MediaItem }) {
           </Badge>
         </div>
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="flex gap-2">
-            <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
-              <Eye className="h-4 w-4" />
+          <div className="flex gap-1">
+            {item.websiteUrl && (
+              <Button 
+                size="sm" 
+                variant="secondary" 
+                className="h-8 w-8 p-0"
+                onClick={() => window.open(item.websiteUrl, '_blank')}
+                title="View on website"
+              >
+                <ExternalLink className="h-3 w-3" />
+              </Button>
+            )}
+            <Button 
+              size="sm" 
+              variant="secondary" 
+              className="h-8 w-8 p-0"
+              title="View details"
+            >
+              <Eye className="h-3 w-3" />
             </Button>
-            <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
-              <Edit className="h-4 w-4" />
+            <Button 
+              size="sm" 
+              variant="secondary" 
+              className="h-8 w-8 p-0"
+              title="Edit metadata"
+            >
+              <Edit className="h-3 w-3" />
             </Button>
-            <Button size="sm" variant="destructive" className="h-8 w-8 p-0">
-              <Trash2 className="h-4 w-4" />
+            <Button 
+              size="sm" 
+              variant={item.syncedToWebsite ? "default" : "outline"}
+              className="h-8 w-8 p-0"
+              onClick={handleSync}
+              disabled={syncMutation.isPending}
+              title={item.syncedToWebsite ? "Remove from website" : "Sync to website"}
+            >
+              <Sync className={`h-3 w-3 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button 
+              size="sm" 
+              variant="destructive" 
+              className="h-8 w-8 p-0"
+              title="Delete"
+            >
+              <Trash2 className="h-3 w-3" />
             </Button>
           </div>
         </div>

@@ -7,9 +7,20 @@ import { createErrorResponse, createSuccessResponse } from '@/lib/error-handling
 const uploadHandler = async (request: NextRequest) => {
   const formData = await request.formData()
   const file = formData.get('file') as File
+  const metadataString = formData.get('metadata') as string
   
   if (!file) {
     return NextResponse.json(createErrorResponse('No file uploaded'), { status: 400 })
+  }
+
+  // Parse metadata if provided
+  let metadata = null
+  if (metadataString) {
+    try {
+      metadata = JSON.parse(metadataString)
+    } catch (error) {
+      return NextResponse.json(createErrorResponse('Invalid metadata format'), { status: 400 })
+    }
   }
 
   // Enhanced file validation with custom options
@@ -84,7 +95,9 @@ const uploadHandler = async (request: NextRequest) => {
       mediaUrl: blob.url,
       thumbnailUrl,
       type: isVideo ? 'video' : 'photo',
-      uploadedAt: new Date().toISOString()
+      uploadedAt: new Date().toISOString(),
+      metadata: metadata || null,
+      syncedToWebsite: metadata?.syncToWebsite || false
     }
 
     return NextResponse.json(createSuccessResponse(result, 'File uploaded successfully'))
