@@ -66,8 +66,7 @@ const uploadHandler = async (request: NextRequest) => {
   try {
     // Upload to Vercel Blob storage
     const blob = await put(fileName, file, {
-      access: 'public',
-      handleUploadUrl: '/api/admin/media/upload'
+      access: 'public'
     })
 
     // Generate thumbnail for videos (placeholder for now)
