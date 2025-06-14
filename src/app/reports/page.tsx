@@ -244,7 +244,7 @@ export default function ReportsPage() {
                     </Card>
 
                     {/* Custom Report Builder */}
-                    <Card className="bg-card border-2 border-dashed border-border/50 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-300">
+                    <Card className="bg-card border-border/30 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-300">
                       <CardHeader className="pb-4">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-muted/50 rounded-lg">
@@ -260,7 +260,7 @@ export default function ReportsPage() {
                         <p className="text-sm text-muted-foreground">
                           Create custom reports with specific date ranges and data filters.
                         </p>
-                        <Button size="sm" variant="outline" className="w-full gap-2">
+                        <Button size="sm" className="w-full gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
                           <PieChart className="h-4 w-4" />
                           Build Custom Report
                         </Button>
