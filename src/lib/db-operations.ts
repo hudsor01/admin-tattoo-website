@@ -1,5 +1,7 @@
-import { prisma } from './database'
+import { getPrismaClient } from './prisma'
 import type { Prisma } from '@prisma/client'
+
+const prisma = getPrismaClient()
 import {
   CreateClientData,
   CreateAppointmentData,
@@ -8,7 +10,7 @@ import {
   PaginatedResponse,
   ClientResponse
 } from '@/types/database'
-import { ApiError } from './error-handling'
+import { ApiError } from './api-core'
 import { withCache, CACHE_TTL } from './repository-utils'
 
 // Legacy type aliases for backward compatibility

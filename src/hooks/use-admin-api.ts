@@ -1,53 +1,20 @@
 import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query';
 import type { DashboardStats } from '@/types/database';
+import type { RecentSession } from '@/types/dashboard';
 import type { AppointmentResponse, ClientResponse } from '@/types/database';
 import type { FilterParams } from '@/types/filters';
-import { logger } from '@/lib/logger';
+import { apiFetch, queryKeys } from '@/lib/api/client';
+import { showSuccessToast, showErrorToast } from '@/lib/api/utils';
 
 const API_BASE_URL = '/api/admin';
 
-// Custom error type for API errors
-class ApiError extends Error {
-  status: number;
-  statusText: string;
-  constructor(message: string, status: number, statusText: string) {
-    super(message);
-    this.status = status;
-    this.statusText = statusText;
-  }
-}
-
-// Enhanced fetch function with proper error handling
-async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      ...options,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new ApiError(
-        errorData.message || `HTTP ${response.status}: ${response.statusText}`,
-        response.status,
-        response.statusText
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    void logger.error('API fetch error:', error);
-    throw error;
-  }
-}
+// Re-export the unified API client for consistency
+const fetchApi = apiFetch;
 
 // Query options factory for reusable query configurations
 export function dashboardStatsOptions() {
   return queryOptions({
-    queryKey: ['admin', 'dashboard', 'stats'],
+    queryKey: queryKeys.dashboard.stats(),
     queryFn: () => fetchApi<DashboardStats>(`${API_BASE_URL}/dashboard`),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
@@ -78,7 +45,7 @@ export function appointmentsOptions(filters?: FilterParams) {
   }
 
   return queryOptions({
-    queryKey: ['admin', 'appointments', filters],
+    queryKey: queryKeys.appointments.list(filters),
     queryFn: () => {
       const url = `${API_BASE_URL}/appointments${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       return fetchApi<AppointmentResponse[]>(url);
@@ -102,7 +69,7 @@ export function customersOptions(filters?: FilterParams) {
   }
 
   return queryOptions({
-    queryKey: ['admin', 'customers', filters],
+    queryKey: queryKeys.customers.list(filters),
     queryFn: () => {
       const url = `${API_BASE_URL}/customers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       return fetchApi<ClientResponse[]>(url);
@@ -119,13 +86,12 @@ export interface MessageResponse {
   conversationId: string;
   content: string;
   sender: string;
-  createdAt: string; // or Date if your API returns ISO strings
-  // Add other fields as needed
+  createdAt: string;
 }
 
 export function messagesOptions() {
   return queryOptions({
-    queryKey: ['admin', 'messages'],
+    queryKey: [...queryKeys.all, 'messages'],
     queryFn: () => fetchApi<MessageResponse[]>(`${API_BASE_URL}/messages`),
     staleTime: 1000 * 30, // 30 seconds for real-time feel
     gcTime: 1000 * 60 * 5, // 5 minutes
@@ -134,19 +100,8 @@ export function messagesOptions() {
 }
 
 export function recentSessionsOptions(limit = 10) {
-  // Define a type for recent session if available, otherwise use unknown[]
-  type RecentSession = {
-    id: string;
-    clientName: string;
-    artistName: string;
-    type: string;
-    duration: number;
-    amount: number;
-    date: string;
-    status: 'completed' | 'in-progress' | 'scheduled';
-  };
   return queryOptions({
-    queryKey: ['admin', 'dashboard', 'recent-sessions', limit],
+    queryKey: queryKeys.dashboard.recentSessions(),
     queryFn: () => fetchApi<RecentSession[]>(`${API_BASE_URL}/dashboard/recent-sessions?limit=${limit}`),
     staleTime: 1000 * 60 * 2, // 2 minutes
     gcTime: 1000 * 60 * 15, // 15 minutes
@@ -161,7 +116,7 @@ export function chartDataOptions() {
     sessions: number;
   }[];
   return queryOptions({
-    queryKey: ['admin', 'dashboard', 'chart-data'],
+    queryKey: queryKeys.dashboard.chartData(),
     queryFn: () => fetchApi<ChartData>(`${API_BASE_URL}/dashboard/chart-data`),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
@@ -207,13 +162,13 @@ export const useUpdateAppointmentStatus = () => {
     },
     onMutate: async ({ id, status }) => {
       // Cancel any outgoing refetches to avoid optimistic update conflicts
-      await queryClient.cancelQueries({ queryKey: ['admin', 'appointments'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.appointments.all });
 
       // Snapshot the previous value
-      const previousAppointments = queryClient.getQueriesData({ queryKey: ['admin', 'appointments'] });
+      const previousAppointments = queryClient.getQueriesData({ queryKey: queryKeys.appointments.all });
 
       // Optimistically update appointments
-      queryClient.setQueriesData({ queryKey: ['admin', 'appointments'] }, (old: AppointmentResponse[] | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.appointments.all }, (old: AppointmentResponse[] | undefined) => {
         return old?.map(appointment =>
           appointment.id === id ? { ...appointment, status } : appointment
         );
@@ -228,12 +183,13 @@ export const useUpdateAppointmentStatus = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
-      void logger.error('Failed to update appointment status:', error);
+      showErrorToast('Failed to update appointment status');
     },
     onSuccess: () => {
       // Invalidate and refetch related queries
-      queryClient.invalidateQueries({ queryKey: ['admin', 'appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.appointments.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      showSuccessToast('Appointment status updated successfully');
     },
   });
 };
@@ -249,13 +205,13 @@ export const useDeleteCustomer = () => {
     },
     onMutate: async (customerId) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['admin', 'customers'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.customers.all });
 
       // Snapshot the previous value
-      const previousCustomers = queryClient.getQueriesData({ queryKey: ['admin', 'customers'] });
+      const previousCustomers = queryClient.getQueriesData({ queryKey: queryKeys.customers.all });
 
       // Optimistically remove customer
-      queryClient.setQueriesData({ queryKey: ['admin', 'customers'] }, (old: ClientResponse[] | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.customers.all }, (old: ClientResponse[] | undefined) => {
         return old?.filter(customer => customer.id !== customerId);
       });
 
@@ -268,11 +224,12 @@ export const useDeleteCustomer = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
-      void logger.error('Failed to delete customer:', error);
+      showErrorToast('Failed to delete customer');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'customers'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      showSuccessToast('Customer deleted successfully');
     },
   });
 };
@@ -293,10 +250,11 @@ export const useSendMessage = () => {
     },
     onSuccess: () => {
       // Invalidate messages to show new message
-      queryClient.invalidateQueries({ queryKey: ['admin', 'messages'] });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.all, 'messages'] });
+      showSuccessToast('Message sent successfully');
     },
     onError: (error) => {
-      void logger.error('Failed to send message:', error);
+      showErrorToast('Failed to send message');
     },
   });
 };
@@ -316,16 +274,17 @@ export const useCreateCustomer = () => {
     },
     onSuccess: (newCustomer) => {
       // Add new customer to the cache optimistically
-      queryClient.setQueriesData({ queryKey: ['admin', 'customers'] }, (old: ClientResponse[] | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.customers.all }, (old: ClientResponse[] | undefined) => {
         return old ? [newCustomer, ...old] : [newCustomer];
       });
 
       // Invalidate to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['admin', 'customers'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      showSuccessToast('Customer created successfully');
     },
     onError: (error) => {
-      void logger.error('Failed to create customer:', error);
+      showErrorToast('Failed to create customer');
     },
   });
 };
@@ -341,12 +300,12 @@ export const useUpdateCustomer = () => {
       });
     },
     onMutate: async ({ id, ...updateData }) => {
-      await queryClient.cancelQueries({ queryKey: ['admin', 'customers'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.customers.all });
 
-      const previousCustomers = queryClient.getQueriesData({ queryKey: ['admin', 'customers'] });
+      const previousCustomers = queryClient.getQueriesData({ queryKey: queryKeys.customers.all });
 
       // Optimistically update customer
-      queryClient.setQueriesData({ queryKey: ['admin', 'customers'] }, (old: ClientResponse[] | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.customers.all }, (old: ClientResponse[] | undefined) => {
         return old?.map(customer =>
           customer.id === id ? { ...customer, ...updateData } : customer
         );
@@ -360,10 +319,11 @@ export const useUpdateCustomer = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
-      void logger.error('Failed to update customer:', error);
+      showErrorToast('Failed to update customer');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'customers'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
+      showSuccessToast('Customer updated successfully');
     },
   });
 };

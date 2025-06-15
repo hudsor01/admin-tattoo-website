@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Calendar, ChevronDown, Clock, Filter } from 'lucide-react';
 import { format, subDays, subMonths, subYears, startOfDay, endOfDay } from 'date-fns';
 import { motion } from 'framer-motion';
+import { useTimeRange as useStoreTimeRange, useDashboardStore, TIME_RANGE_PRESETS } from '@/stores/dashboard-store';
 
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -112,54 +113,64 @@ const getPresetRanges = (): TimeRangeOption[] => {
 };
 
 interface TimeRangeFilterProps {
-  value?: DateRange;
-  onChange: (range: DateRange) => void;
-  presets?: TimeRangeOption[];
   className?: string;
   placeholder?: string;
   showDescription?: boolean;
+  // Optional legacy props for backward compatibility
+  value?: DateRange;
+  onChange?: (range: DateRange) => void;
+  presets?: TimeRangeOption[];
 }
 
 export function TimeRangeFilter({
-  value,
-  presets = getPresetRanges(),
   className,
   placeholder = 'Select date range',
   showDescription = true,
+  // Legacy props - will be ignored in favor of store
+  value: _legacyValue,
+  onChange: _legacyOnChange,
+  presets: _legacyPresets,
 }: TimeRangeFilterProps) {
+  // Use dashboard store for state management
+  const timeRange = useStoreTimeRange();
+  const { setTimeRange, setTimeRangePreset } = useDashboardStore();
+  
   const [isOpen, setIsOpen] = React.useState(false);
-  const [selectedPreset, setSelectedPreset] = React.useState<string | null>(null);
-  const [customRange, setCustomRange] = React.useState<DateRange | undefined>(value);
+  const presets = getPresetRanges();
 
-  // Find matching preset for current value
-  React.useEffect(() => {
-    if (value) {
-      const matchingPreset = presets.find(
-        (preset) =>
-          preset.range.from.getTime() === value.from.getTime() &&
-          preset.range.to.getTime() === value.to.getTime()
-      );
-      setSelectedPreset(matchingPreset?.value ?? null);
+  // Convert store timeRange to component DateRange format
+  const currentRange: DateRange | undefined = React.useMemo(() => {
+    if (timeRange?.start && timeRange?.end) {
+      return {
+        from: timeRange.start,
+        to: timeRange.end,
+      };
     }
-  }, [value, presets]);
+    return undefined;
+  }, [timeRange?.start, timeRange?.end]);
 
   const handlePresetSelect = (preset: TimeRangeOption) => {
-    setSelectedPreset(preset.value);
-    setCustomRange(undefined);
+    // Map preset label to store preset constants
+    const presetMap: Record<string, string> = {
+      'Today': TIME_RANGE_PRESETS.TODAY,
+      'Yesterday': TIME_RANGE_PRESETS.YESTERDAY,
+      'Last 7 days': TIME_RANGE_PRESETS.LAST_7_DAYS,
+      'Last 30 days': TIME_RANGE_PRESETS.LAST_30_DAYS,
+      'Last 3 months': TIME_RANGE_PRESETS.LAST_3_MONTHS,
+      'Last 6 months': TIME_RANGE_PRESETS.LAST_6_MONTHS,
+      'Last year': TIME_RANGE_PRESETS.LAST_YEAR,
+      'This month': TIME_RANGE_PRESETS.THIS_MONTH,
+    };
+    
+    const storePreset = presetMap[preset.label] || TIME_RANGE_PRESETS.CUSTOM;
+    setTimeRangePreset(storePreset);
     setIsOpen(false);
   };
 
   const handleCustomRangeSelect = (range: ReactDayPickerDateRange | undefined) => {
     if (range?.from && range?.to) {
-      const validRange: DateRange = {
-        from: range.from,
-        to: range.to,
-      };
-      setCustomRange(validRange);
-      setSelectedPreset(null);
+      setTimeRange(range.from, range.to, TIME_RANGE_PRESETS.CUSTOM);
       setIsOpen(false);
-    } else {
-      setCustomRange(undefined);
     }
   };
 
@@ -179,15 +190,15 @@ export function TimeRangeFilter({
   };
 
   const getDisplayText = () => {
-    if (!value) return placeholder;
+    if (!currentRange) return placeholder;
 
     const matchingPreset = presets.find(
       (preset) =>
-        preset.range.from.getTime() === value.from.getTime() &&
-        preset.range.to.getTime() === value.to.getTime()
+        preset.range.from.getTime() === currentRange.from.getTime() &&
+        preset.range.to.getTime() === currentRange.to.getTime()
     );
 
-    return matchingPreset?.label ?? formatDateRange(value);
+    return matchingPreset?.label ?? formatDateRange(currentRange);
   };
 
   return (
@@ -210,31 +221,37 @@ export function TimeRangeFilter({
                 Quick Select
               </h4>
               <div className="space-y-1">
-                {presets.map((preset) => (
-                  <motion.button
-                    key={preset.value}
-                    onClick={() => handlePresetSelect(preset)}
-                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors hover:bg-accent ${
-                      selectedPreset === preset.value
-                        ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{preset.label}</span>
-                      {selectedPreset === preset.value && (
-                        <Badge variant="secondary" className="ml-2 text-xs">
-                          Active
-                        </Badge>
+                {presets.map((preset) => {
+                  const isSelected = currentRange && 
+                    preset.range.from.getTime() === currentRange.from.getTime() &&
+                    preset.range.to.getTime() === currentRange.to.getTime();
+                  
+                  return (
+                    <motion.button
+                      key={preset.value}
+                      onClick={() => handlePresetSelect(preset)}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors hover:bg-accent ${
+                        isSelected
+                          ? 'bg-accent text-accent-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{preset.label}</span>
+                        {isSelected && (
+                          <Badge variant="secondary" className="ml-2 text-xs">
+                            Active
+                          </Badge>
+                        )}
+                      </div>
+                      {showDescription && preset.description && (
+                        <div className="text-xs text-muted-foreground mt-1">{preset.description}</div>
                       )}
-                    </div>
-                    {showDescription && preset.description && (
-                      <div className="text-xs text-muted-foreground mt-1">{preset.description}</div>
-                    )}
-                  </motion.button>
-                ))}
+                    </motion.button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -248,17 +265,17 @@ export function TimeRangeFilter({
             <CalendarComponent
               initialFocus
               mode="range"
-              {...(value?.from && { defaultMonth: value.from })}
-              selected={customRange as ReactDayPickerDateRange | undefined}
+              {...(currentRange?.from && { defaultMonth: currentRange.from })}
+              selected={currentRange as ReactDayPickerDateRange | undefined}
               onSelect={handleCustomRangeSelect}
               numberOfMonths={2}
               disabled={(date) => date > new Date()}
             />
 
-            {customRange?.from && customRange?.to && (
+            {currentRange?.from && currentRange?.to && timeRange?.preset === TIME_RANGE_PRESETS.CUSTOM && (
               <div className="mt-3 p-2 bg-muted rounded-md">
-                <div className="text-sm font-medium">Selected Range:</div>
-                <div className="text-sm text-muted-foreground">{formatDateRange(customRange)}</div>
+                <div className="text-sm font-medium">Custom Range:</div>
+                <div className="text-sm text-muted-foreground">{formatDateRange(currentRange)}</div>
               </div>
             )}
           </div>

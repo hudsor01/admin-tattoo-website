@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/database'
+import { prisma } from '@/lib/prisma'
 import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation'
-import { createSuccessResponse, createErrorResponse } from '@/lib/error-handling'
+import { createSuccessResponse, createErrorResponse } from '@/lib/api-core'
 import { sanitizeString, sanitizeArrayOfStrings } from '@/lib/sanitization'
+import { logger } from '@/lib/logger'
 
 const getMediaHandler = async (_request: NextRequest) => {
   try {
@@ -42,13 +43,11 @@ const getMediaHandler = async (_request: NextRequest) => {
 
     return NextResponse.json(createSuccessResponse(transformedItems))
   } catch (error) {
-    console.error('Media API error:', error)
+    logger.error('Media API error', error)
     return NextResponse.json(
       createErrorResponse('Failed to fetch media items'),
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -117,7 +116,7 @@ const createMediaHandler = async (request: NextRequest) => {
           estimatedHours: Number(mediaItem.estimatedHours)
         }, type)
       } catch (syncError) {
-        console.error('Failed to sync to main website:', syncError)
+        logger.error('Failed to sync to main website', syncError)
         // Don't fail the request if sync fails, just log it
       }
     }
@@ -144,13 +143,11 @@ const createMediaHandler = async (request: NextRequest) => {
 
     return NextResponse.json(createSuccessResponse(transformedItem), { status: 201 })
   } catch (error) {
-    console.error('Create media error:', error)
+    logger.error('Create media error', error)
     return NextResponse.json(
       createErrorResponse('Failed to create media item'),
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 

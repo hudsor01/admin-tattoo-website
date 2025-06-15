@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation'
-import { createErrorResponse, createSuccessResponse } from '@/lib/error-handling'
+import { createErrorResponse, createSuccessResponse } from '@/lib/api-core'
 
 interface SyncRequest {
   mediaId: string

@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, ReactNode } from 'react'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AuthProvider } from '@/components/providers/AuthProvider'
+import { AuthUIProvider } from '@daveyplate/better-auth-ui'
+import { authClient } from '@/lib/auth-client'
 
 interface ProvidersProps {
   children: ReactNode
@@ -53,9 +55,13 @@ export function Providers({ children }: ProvidersProps) {
             disableTransitionOnChange
           >
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <AuthUIProvider 
+          authClient={authClient}
+        >
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </AuthUIProvider>
       </QueryClientProvider>
     </ThemeProvider>
   )

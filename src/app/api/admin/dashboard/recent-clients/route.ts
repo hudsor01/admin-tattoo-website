@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/database'
+import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
@@ -54,12 +55,10 @@ export async function GET() {
     return NextResponse.json(formattedClients)
 
   } catch (error) {
-    console.error('Recent clients error:', error)
+    logger.error('Recent clients error', error)
     return NextResponse.json(
       { error: 'Failed to fetch recent clients' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

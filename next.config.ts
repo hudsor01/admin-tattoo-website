@@ -122,7 +122,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Access-Control-Allow-Origin',
-            value: 'https://admin.ink37tattoos.com'
+            value: isProd ? 'https://admin.ink37tattoos.com' : 'http://localhost:3001'
           },
           {
             key: 'Access-Control-Allow-Methods',
@@ -135,10 +135,6 @@ const nextConfig: NextConfig = {
           {
             key: 'Access-Control-Allow-Credentials',
             value: 'true'
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; connect-src 'self' https://admin.ink37tattoos.com; form-action 'self'"
           }
         ]
       },
@@ -173,8 +169,52 @@ const nextConfig: NextConfig = {
         hostname: 'github.com',
         pathname: '/**',
       },
-      // Production images will use HTTPS only
+      // Local development patterns
+      {
+        protocol: 'http' as const,
+        hostname: 'localhost',
+        port: '3000',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http' as const,
+        hostname: 'localhost',
+        port: '3001',
+        pathname: '/**',
+      },
+      // Vercel Blob storage patterns
+      {
+        protocol: 'https' as const,
+        hostname: '*.vercel-storage.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https' as const,
+        hostname: '*.public.blob.vercel-storage.com',
+        pathname: '/**',
+      },
+      // General blob storage patterns
+      {
+        protocol: 'https' as const,
+        hostname: '*.blob.core.windows.net',
+        pathname: '/**',
+      },
+      // CDN patterns for tattoo images
+      {
+        protocol: 'https' as const,
+        hostname: 'ink37tattoos.com',
+        pathname: '/uploads/**',
+      },
+      {
+        protocol: 'https' as const,
+        hostname: 'admin.ink37tattoos.com',
+        pathname: '/uploads/**',
+      },
     ],
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: false,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 }
 

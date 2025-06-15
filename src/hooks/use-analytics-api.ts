@@ -1,430 +1,300 @@
-import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query';
-import { logger } from '@/lib/logger';
+import { useQuery } from '@tanstack/react-query';
+import { apiFetch, queryKeys } from '@/lib/api/client';
+import { buildQueryString } from '@/lib/api/utils';
 
-// Enhanced fetch function with proper error handling
-async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      ...options,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-      const error = new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-      (error as Error & { status?: number; statusText?: string }).status = response.status;
-      (error as Error & { status?: number; statusText?: string }).statusText = response.statusText;
-      throw error;
-    }
-
-    return await response.json();
-  } catch (error) {
-    void logger.error('Analytics API fetch error:', error);
-    throw error;
-  }
+// Enhanced analytics types
+export interface AnalyticsFilters {
+  startDate?: Date;
+  endDate?: Date;
+  period?: 'day' | 'week' | 'month' | 'quarter' | 'year';
+  compareWith?: 'previous_period' | 'previous_year';
+  breakdown?: 'artist' | 'style' | 'location' | 'service_type';
 }
 
-// Analytics interfaces
-interface AnalyticsMetrics {
+export interface AnalyticsData {
   totalRevenue: number;
-  revenueChange: string;
-  totalSessions: number;
-  sessionsChange: string;
-  totalClients: number;
-  clientsChange: string;
-  averageSessionValue: number;
-  sessionValueChange: string;
-  popularStyles: Array<{ style: string; count: number; revenue: number }>;
-  artistPerformance: Array<{ 
-    artistId: string; 
-    artistName: string; 
-    sessions: number; 
-    revenue: number; 
-    avgRating: number;
+  revenueChange: number;
+  activeClients: number;
+  clientsChange: number;
+  monthlySessions: number;
+  sessionsChange: number;
+  avgSessionValue: number;
+  avgValueChange: number;
+  topArtists: Array<{
+    id: string;
+    name: string;
+    revenue: number;
+    sessions: number;
+    change: number;
   }>;
-  clientRetention: {
-    newClients: number;
-    returningClients: number;
-    retentionRate: number;
-  };
-  monthlyTrends: Array<{
+  sessionTypes: Array<{
+    name: string;
+    count: number;
+    percentage: number;
+    revenue: number;
+  }>;
+  clientAcquisition: Array<{
     month: string;
+    newClients: number;
+    returning: number;
+    total: number;
+  }>;
+  revenueBreakdown: Array<{
+    category: string;
+    value: number;
+    percentage: number;
+    change: number;
+  }>;
+  dailyMetrics: Array<{
+    date: string;
     revenue: number;
     sessions: number;
     clients: number;
   }>;
 }
 
-interface RevenueAnalytics {
-  dailyRevenue: Array<{ date: string; revenue: number; sessions: number }>;
-  monthlyRevenue: Array<{ month: string; revenue: number; growth: number }>;
-  revenueByStyle: Array<{ style: string; revenue: number; percentage: number }>;
-  revenueByArtist: Array<{ artistId: string; artistName: string; revenue: number; percentage: number }>;
-  averageTicketSize: number;
-  peakHours: Array<{ hour: number; revenue: number; sessions: number }>;
-  seasonalTrends: Array<{ quarter: string; revenue: number; growth: number }>;
+export interface RevenueMetrics {
+  total: number;
+  change: number;
+  byPeriod: Array<{
+    period: string;
+    revenue: number;
+    sessions: number;
+  }>;
+  byArtist: Array<{
+    artistId: string;
+    artistName: string;
+    revenue: number;
+    percentage: number;
+  }>;
+  byService: Array<{
+    serviceType: string;
+    revenue: number;
+    sessions: number;
+    avgValue: number;
+  }>;
 }
 
-interface ClientAnalytics {
+export interface ClientMetrics {
+  total: number;
+  active: number;
+  new: number;
+  returning: number;
+  retention: number;
+  lifetimeValue: number;
+  acquisitionTrends: Array<{
+    month: string;
+    new: number;
+    returning: number;
+    retention: number;
+  }>;
   demographics: {
-    ageGroups: Array<{ range: string; count: number; percentage: number }>;
-    genderDistribution: Array<{ gender: string; count: number; percentage: number }>;
-    locationData: Array<{ city: string; count: number; percentage: number }>;
-  };
-  behavior: {
-    averageSessionsPerClient: number;
-    clientLifetimeValue: number;
-    mostPopularStyles: Array<{ style: string; clientCount: number }>;
-    referralSources: Array<{ source: string; count: number; percentage: number }>;
-  };
-  retention: {
-    returnRate: number;
-    averageTimeBetweenSessions: number;
-    churnRate: number;
-    loyaltyTiers: Array<{ tier: string; clientCount: number; avgSpend: number }>;
+    ageGroups: Array<{ range: string; count: number }>;
+    genderDistribution: Array<{ gender: string; count: number }>;
+    locationBreakdown: Array<{ location: string; count: number }>;
   };
 }
 
-interface BookingAnalytics {
-  conversionRates: {
-    consultationToBooking: number;
-    inquiryToConsultation: number;
-    overallConversion: number;
+export interface SessionMetrics {
+  total: number;
+  completed: number;
+  cancelled: number;
+  noShow: number;
+  completionRate: number;
+  avgDuration: number;
+  avgValue: number;
+  popularTimes: Array<{
+    hour: number;
+    day: string;
+    count: number;
+  }>;
+  stylePopularity: Array<{
+    style: string;
+    count: number;
+    revenue: number;
+  }>;
+}
+
+export interface PerformanceMetrics {
+  efficiency: {
+    bookingRate: number;
+    utilizationRate: number;
+    reschedulingRate: number;
   };
-  bookingPatterns: {
-    popularDays: Array<{ day: string; count: number }>;
-    popularTimes: Array<{ hour: number; count: number }>;
-    seasonalDemand: Array<{ month: string; bookings: number }>;
+  quality: {
+    averageRating: number;
+    repeatClientRate: number;
+    referralRate: number;
   };
-  cancellationAnalysis: {
-    cancellationRate: number;
-    reasonBreakdown: Array<{ reason: string; count: number; percentage: number }>;
-    noShowRate: number;
-  };
-  leadTimes: {
-    averageLeadTime: number;
-    leadTimeDistribution: Array<{ range: string; count: number }>;
+  growth: {
+    monthOverMonth: number;
+    yearOverYear: number;
+    projectedGrowth: number;
   };
 }
 
-interface AnalyticsFilters {
-  startDate?: string;
-  endDate?: string;
-  artistId?: string;
-  clientId?: string;
-  style?: string;
-  granularity?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
-}
-
-// Query options factories
-export function analyticsOverviewOptions(filters: AnalyticsFilters = {}) {
-  const params = new URLSearchParams();
+// Main analytics hook
+export function useAnalytics(filters: AnalyticsFilters = {}) {
+  const queryString = buildQueryString({
+    ...filters,
+    startDate: filters.startDate?.toISOString(),
+    endDate: filters.endDate?.toISOString(),
+  });
   
-  if (filters.startDate) params.append('startDate', filters.startDate);
-  if (filters.endDate) params.append('endDate', filters.endDate);
-  if (filters.artistId) params.append('artistId', filters.artistId);
-  if (filters.granularity) params.append('granularity', filters.granularity);
-
-  return queryOptions({
-    queryKey: ['analytics', 'overview', filters],
-    queryFn: () => {
-      const url = `/api/admin/analytics/overview${params.toString() ? `?${params}` : ''}`;
-      return fetchApi<AnalyticsMetrics>(url);
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 20, // 20 minutes
-    refetchInterval: 1000 * 60 * 5, // Auto-refresh every 5 minutes
-  });
-}
-
-export function revenueAnalyticsOptions(filters: AnalyticsFilters = {}) {
-  const params = new URLSearchParams();
-  
-  if (filters.startDate) params.append('startDate', filters.startDate);
-  if (filters.endDate) params.append('endDate', filters.endDate);
-  if (filters.artistId) params.append('artistId', filters.artistId);
-  if (filters.granularity) params.append('granularity', filters.granularity);
-
-  return queryOptions({
-    queryKey: ['analytics', 'revenue', filters],
-    queryFn: () => {
-      const url = `/api/admin/analytics/revenue${params.toString() ? `?${params}` : ''}`;
-      return fetchApi<RevenueAnalytics>(url);
-    },
-    staleTime: 1000 * 60 * 10, // 10 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
-  });
-}
-
-export function clientAnalyticsOptions(filters: AnalyticsFilters = {}) {
-  const params = new URLSearchParams();
-  
-  if (filters.startDate) params.append('startDate', filters.startDate);
-  if (filters.endDate) params.append('endDate', filters.endDate);
-  if (filters.clientId) params.append('clientId', filters.clientId);
-
-  return queryOptions({
-    queryKey: ['analytics', 'clients', filters],
-    queryFn: () => {
-      const url = `/api/admin/analytics/clients${params.toString() ? `?${params}` : ''}`;
-      return fetchApi<ClientAnalytics>(url);
-    },
-    staleTime: 1000 * 60 * 15, // 15 minutes (client data changes less frequently)
-    gcTime: 1000 * 60 * 45, // 45 minutes
-  });
-}
-
-export function bookingAnalyticsOptions(filters: AnalyticsFilters = {}) {
-  const params = new URLSearchParams();
-  
-  if (filters.startDate) params.append('startDate', filters.startDate);
-  if (filters.endDate) params.append('endDate', filters.endDate);
-  if (filters.artistId) params.append('artistId', filters.artistId);
-
-  return queryOptions({
-    queryKey: ['analytics', 'bookings', filters],
-    queryFn: () => {
-      const url = `/api/admin/analytics/bookings${params.toString() ? `?${params}` : ''}`;
-      return fetchApi<BookingAnalytics>(url);
-    },
-    staleTime: 1000 * 60 * 10, // 10 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
-  });
-}
-
-export function artistPerformanceOptions(artistId: string, filters: AnalyticsFilters = {}) {
-  const params = new URLSearchParams();
-  
-  if (filters.startDate) params.append('startDate', filters.startDate);
-  if (filters.endDate) params.append('endDate', filters.endDate);
-  if (filters.granularity) params.append('granularity', filters.granularity);
-
-  return queryOptions({
-    queryKey: ['analytics', 'artists', artistId, 'performance', filters],
-    queryFn: () => {
-      const url = `/api/admin/analytics/artists/${artistId}/performance${params.toString() ? `?${params}` : ''}`;
-      return fetchApi<{
-        sessions: number;
-        revenue: number;
-        avgSessionValue: number;
-        clientSatisfaction: number;
-        popularStyles: Array<{ style: string; count: number }>;
-        monthlyTrends: Array<{ month: string; sessions: number; revenue: number }>;
-      }>(url);
-    },
-    staleTime: 1000 * 60 * 10, // 10 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
-  });
-}
-
-export function realTimeAnalyticsOptions() {
-  return queryOptions({
-    queryKey: ['analytics', 'realtime'],
-    queryFn: () => fetchApi<{
-      activeUsers: number;
-      pendingBookings: number;
-      todayRevenue: number;
-      sessionsInProgress: number;
-      recentActivity: Array<{ type: string; timestamp: string; details: string }>;
-    }>('/api/admin/analytics/realtime'),
-    staleTime: 1000 * 30, // 30 seconds for real-time data
-    gcTime: 1000 * 60 * 2, // 2 minutes
-    refetchInterval: 1000 * 30, // Auto-refresh every 30 seconds
-  });
-}
-
-export function customReportOptions(reportConfig: {
-  type: string;
-  metrics: string[];
-  filters: AnalyticsFilters;
-  groupBy?: string;
-  sortBy?: string;
-}) {
-  return queryOptions({
-    queryKey: ['analytics', 'custom-report', reportConfig],
-    queryFn: () => fetchApi('/api/admin/analytics/custom-report', {
-      method: 'POST',
-      body: JSON.stringify(reportConfig),
-    }),
-    staleTime: 1000 * 60 * 10, // 10 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
-  });
-}
-
-// Hooks
-export const useAnalyticsOverview = (filters: AnalyticsFilters = {}) => {
-  return useQuery(analyticsOverviewOptions(filters));
-};
-
-export const useRevenueAnalytics = (filters: AnalyticsFilters = {}) => {
-  return useQuery(revenueAnalyticsOptions(filters));
-};
-
-export const useClientAnalytics = (filters: AnalyticsFilters = {}) => {
-  return useQuery(clientAnalyticsOptions(filters));
-};
-
-export const useBookingAnalytics = (filters: AnalyticsFilters = {}) => {
-  return useQuery(bookingAnalyticsOptions(filters));
-};
-
-export const useArtistPerformance = (artistId: string, filters: AnalyticsFilters = {}) => {
-  return useQuery(artistPerformanceOptions(artistId, filters));
-};
-
-export const useRealTimeAnalytics = () => {
-  return useQuery(realTimeAnalyticsOptions());
-};
-
-export const useCustomReport = (reportConfig: {
-  type: string;
-  metrics: string[];
-  filters: AnalyticsFilters;
-  groupBy?: string;
-  sortBy?: string;
-}, enabled = true) => {
   return useQuery({
-    ...customReportOptions(reportConfig),
-    enabled,
+    queryKey: queryKeys.analytics.data(filters),
+    queryFn: () => 
+      apiFetch<AnalyticsData>(`/api/admin/analytics?${queryString}`),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
-};
+}
 
-// Mutation hooks for analytics configuration
-export const useSaveCustomReport = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (reportData: {
-      name: string;
-      description?: string;
-      config: Record<string, unknown>;
-      schedule?: string;
-    }) =>
-      fetchApi('/api/admin/analytics/reports', {
-        method: 'POST',
-        body: JSON.stringify(reportData),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['analytics', 'reports'] });
-    },
-    onError: (error) => {
-      void logger.error('Failed to save custom report:', error);
-    },
+// Revenue-specific analytics
+export function useRevenueAnalytics(filters: AnalyticsFilters = {}) {
+  const queryString = buildQueryString({
+    ...filters,
+    startDate: filters.startDate?.toISOString(),
+    endDate: filters.endDate?.toISOString(),
   });
-};
-
-export const useExportAnalytics = () => {
-  return useMutation({
-    mutationFn: ({ type, filters, format }: { 
-      type: string; 
-      filters: AnalyticsFilters; 
-      format: 'csv' | 'xlsx' | 'pdf';
-    }) =>
-      fetchApi('/api/admin/analytics/export', {
-        method: 'POST',
-        body: JSON.stringify({ type, filters, format }),
-      }),
-    onError: (error) => {
-      void logger.error('Failed to export analytics:', error);
-    },
+  
+  return useQuery({
+    queryKey: [...queryKeys.analytics.all, 'revenue', filters],
+    queryFn: () => 
+      apiFetch<RevenueMetrics>(`/api/admin/analytics/revenue?${queryString}`),
+    staleTime: 5 * 60 * 1000,
   });
-};
+}
 
-export const useSetAnalyticsAlert = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (alertConfig: {
-      name: string;
-      metric: string;
-      condition: 'greater_than' | 'less_than' | 'equals';
-      threshold: number;
-      frequency: 'realtime' | 'hourly' | 'daily' | 'weekly';
-      recipients: string[];
-    }) =>
-      fetchApi('/api/admin/analytics/alerts', {
-        method: 'POST',
-        body: JSON.stringify(alertConfig),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['analytics', 'alerts'] });
-    },
-    onError: (error) => {
-      void logger.error('Failed to set analytics alert:', error);
-    },
+// Client-specific analytics
+export function useClientAnalytics(filters: AnalyticsFilters = {}) {
+  const queryString = buildQueryString({
+    ...filters,
+    startDate: filters.startDate?.toISOString(),
+    endDate: filters.endDate?.toISOString(),
   });
-};
+  
+  return useQuery({
+    queryKey: [...queryKeys.analytics.all, 'clients', filters],
+    queryFn: () => 
+      apiFetch<ClientMetrics>(`/api/admin/analytics/clients?${queryString}`),
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
-// Utility hooks for analytics insights
-export const useAnalyticsInsights = (filters: AnalyticsFilters = {}) => {
-  const overview = useAnalyticsOverview(filters);
+// Session-specific analytics
+export function useSessionAnalytics(filters: AnalyticsFilters = {}) {
+  const queryString = buildQueryString({
+    ...filters,
+    startDate: filters.startDate?.toISOString(),
+    endDate: filters.endDate?.toISOString(),
+  });
+  
+  return useQuery({
+    queryKey: [...queryKeys.analytics.all, 'sessions', filters],
+    queryFn: () => 
+      apiFetch<SessionMetrics>(`/api/admin/analytics/sessions?${queryString}`),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// Performance metrics
+export function usePerformanceAnalytics(filters: AnalyticsFilters = {}) {
+  const queryString = buildQueryString({
+    ...filters,
+    startDate: filters.startDate?.toISOString(),
+    endDate: filters.endDate?.toISOString(),
+  });
+  
+  return useQuery({
+    queryKey: [...queryKeys.analytics.all, 'performance', filters],
+    queryFn: () => 
+      apiFetch<PerformanceMetrics>(`/api/admin/analytics/performance?${queryString}`),
+    staleTime: 10 * 60 * 1000, // 10 minutes for performance data
+  });
+}
+
+// Combined analytics hook for dashboard overview
+export function useDashboardAnalytics(filters: AnalyticsFilters = {}) {
+  const analytics = useAnalytics(filters);
   const revenue = useRevenueAnalytics(filters);
   const clients = useClientAnalytics(filters);
-  const bookings = useBookingAnalytics(filters);
-
+  const sessions = useSessionAnalytics(filters);
+  
   return {
-    overview,
+    analytics,
     revenue,
     clients,
-    bookings,
-    isLoading: overview.isLoading || revenue.isLoading || clients.isLoading || bookings.isLoading,
-    hasError: overview.error || revenue.error || clients.error || bookings.error,
-    refetchAll: () => {
-      overview.refetch();
-      revenue.refetch();
-      clients.refetch();
-      bookings.refetch();
-    },
+    sessions,
+    isLoading: analytics.isLoading || revenue.isLoading || clients.isLoading || sessions.isLoading,
+    isError: analytics.isError || revenue.isError || clients.isError || sessions.isError,
+    error: analytics.error || revenue.error || clients.error || sessions.error,
   };
-};
+}
+
+// Real-time analytics (shorter stale time)
+export function useRealTimeAnalytics() {
+  return useQuery({
+    queryKey: [...queryKeys.analytics.all, 'realtime'],
+    queryFn: () => apiFetch('/api/admin/analytics/realtime'),
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds
+  });
+}
+
+// Export utilities
+export function useAnalyticsExport() {
+  return {
+    exportToPDF: (filters: AnalyticsFilters) =>
+      apiFetch('/api/admin/analytics/export/pdf', {
+        method: 'POST',
+        body: JSON.stringify(filters),
+      }),
+    exportToCSV: (filters: AnalyticsFilters) =>
+      apiFetch('/api/admin/analytics/export/csv', {
+        method: 'POST',
+        body: JSON.stringify(filters),
+      }),
+    exportToExcel: (filters: AnalyticsFilters) =>
+      apiFetch('/api/admin/analytics/export/excel', {
+        method: 'POST',
+        body: JSON.stringify(filters),
+      }),
+  };
+}
+
+// Comparison utilities
+export function useAnalyticsComparison(
+  currentFilters: AnalyticsFilters,
+  comparisonFilters: AnalyticsFilters
+) {
+  const current = useAnalytics(currentFilters);
+  const comparison = useAnalytics(comparisonFilters);
+  
+  return {
+    current,
+    comparison,
+    isLoading: current.isLoading || comparison.isLoading,
+    isError: current.isError || comparison.isError,
+    error: current.error || comparison.error,
+  };
+}
 
 // Prefetch utilities
-export const usePrefetchAnalytics = () => {
-  const queryClient = useQueryClient();
-
-  return {
-    prefetchOverview: (filters?: AnalyticsFilters) => 
-      queryClient.prefetchQuery(analyticsOverviewOptions(filters)),
-    prefetchRevenue: (filters?: AnalyticsFilters) => 
-      queryClient.prefetchQuery(revenueAnalyticsOptions(filters)),
-    prefetchClients: (filters?: AnalyticsFilters) => 
-      queryClient.prefetchQuery(clientAnalyticsOptions(filters)),
-    prefetchBookings: (filters?: AnalyticsFilters) => 
-      queryClient.prefetchQuery(bookingAnalyticsOptions(filters)),
-    prefetchArtistPerformance: (artistId: string, filters?: AnalyticsFilters) => 
-      queryClient.prefetchQuery(artistPerformanceOptions(artistId, filters)),
-    prefetchRealTime: () => 
-      queryClient.prefetchQuery(realTimeAnalyticsOptions()),
-  };
-};
-
-// Date range helpers for analytics
-export const useAnalyticsDateRanges = () => {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
+export function prefetchAnalytics(filters?: AnalyticsFilters) {
+  const queryClient = require('@/lib/api/client').queryClient;
   
-  const lastWeek = new Date(today);
-  lastWeek.setDate(lastWeek.getDate() - 7);
-  
-  const lastMonth = new Date(today);
-  lastMonth.setMonth(lastMonth.getMonth() - 1);
-  
-  const lastQuarter = new Date(today);
-  lastQuarter.setMonth(lastQuarter.getMonth() - 3);
-  
-  const lastYear = new Date(today);
-  lastYear.setFullYear(lastYear.getFullYear() - 1);
-
-  return {
-    today: { startDate: today.toISOString().split('T')[0], endDate: today.toISOString().split('T')[0] },
-    yesterday: { startDate: yesterday.toISOString().split('T')[0], endDate: yesterday.toISOString().split('T')[0] },
-    lastWeek: { startDate: lastWeek.toISOString().split('T')[0], endDate: today.toISOString().split('T')[0] },
-    lastMonth: { startDate: lastMonth.toISOString().split('T')[0], endDate: today.toISOString().split('T')[0] },
-    lastQuarter: { startDate: lastQuarter.toISOString().split('T')[0], endDate: today.toISOString().split('T')[0] },
-    lastYear: { startDate: lastYear.toISOString().split('T')[0], endDate: today.toISOString().split('T')[0] },
-  };
-};
+  return Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.analytics.data(filters),
+      queryFn: () => {
+        const queryString = buildQueryString({
+          ...filters,
+          startDate: filters?.startDate?.toISOString(),
+          endDate: filters?.endDate?.toISOString(),
+        });
+        return apiFetch<AnalyticsData>(`/api/admin/analytics?${queryString}`);
+      },
+      staleTime: 5 * 60 * 1000,
+    }),
+  ]);
+}

@@ -1,4 +1,4 @@
-import { createResourceHandlers } from '@/lib/api-helpers';
+import { createResourceHandlers } from '@/lib/api-core';
 import { getCustomerById, updateCustomer, deleteCustomer } from '@/lib/db-operations';
 import { updateCustomerSchema } from '@/lib/validations';
 

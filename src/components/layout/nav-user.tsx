@@ -28,7 +28,14 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { LogoutMenuItem } from "@/components/auth/logout-button"
-import { useUser } from "@/lib/auth-client"
+import { useUser } from "@/stores/auth-store"
+
+// Helper functions
+function getImageSrc(user: any): string | undefined {
+  if (typeof user?.image === 'string') return user.image;
+  if (typeof user?.avatar === 'string') return user.avatar;
+  return undefined;
+}
 
 interface NavUserProps {
   user?: {
@@ -40,7 +47,7 @@ interface NavUserProps {
 
 export function NavUser({ user: propUser }: NavUserProps) {
   const { isMobile } = useSidebar()
-  const { user: authUser } = useUser()
+  const authUser = useUser()
 
   // Use auth user if available, fallback to prop user, then default
   const user = authUser || propUser || {
@@ -69,9 +76,9 @@ export function NavUser({ user: propUser }: NavUserProps) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 transition-colors"
             >
               <Avatar className="h-8 w-8 rounded-lg ring-2 ring-border">
-                <AvatarImage src={'image' in user ? user.image || undefined : 'avatar' in user ? user.avatar || undefined : undefined} alt={user.name} />
+                <AvatarImage src={getImageSrc(user)} alt={user.name || ''} />
                 <AvatarFallback className="rounded-lg bg-brand-gradient text-white font-semibold">
-                  {getInitials(user.name)}
+                  {getInitials(user.name || 'U')}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left leading-tight">
@@ -94,9 +101,9 @@ export function NavUser({ user: propUser }: NavUserProps) {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-3 px-2 py-2 text-left">
                 <Avatar className="h-10 w-10 rounded-lg ring-2 ring-border">
-                  <AvatarImage src={'image' in user ? user.image || undefined : 'avatar' in user ? user.avatar || undefined : undefined} alt={user.name} />
+                  <AvatarImage src={getImageSrc(user)} alt={user.name || ''} />
                   <AvatarFallback className="rounded-lg bg-brand-gradient text-white font-semibold">
-                    {getInitials(user.name)}
+                    {getInitials(user.name || 'U')}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left leading-tight">

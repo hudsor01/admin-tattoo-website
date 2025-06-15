@@ -5,12 +5,12 @@ export const sanitizeString = (str: string): string => {
   if (typeof str !== 'string') return '';
   return str
     .trim()
-    .replace(/[<>"'`]/g, '') // Remove HTML/script injection chars
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/data:/gi, '') // Remove data: protocol
-    .replace(/vbscript:/gi, '') // Remove vbscript: protocol
-    .replace(/on\w+\s*=/gi, '') // Remove event handlers
-    .slice(0, 10000); // Limit length to prevent DoS
+    .replace(/[<>"'`]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .replace(/vbscript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
+    .slice(0, 10000);
 };
 
 export const sanitizeHtml = (html: string): string => {
@@ -122,11 +122,25 @@ export const sanitizeIP = (ip: string): string => {
   // Remove any non-IP characters
   const cleanIP = ip.replace(/[^0-9a-f:.]/gi, '');
   
-  // Basic IPv4/IPv6 validation
-  const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-  const ipv6Regex = /^(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}$/i;
+  // Basic IPv4/IPv6 validation (simple and safe)
+  const isValidIPv4 = (ip: string) => {
+    const parts = ip.split('.');
+    return parts.length === 4 && parts.every(part => {
+      const num = parseInt(part, 10);
+      return !isNaN(num) && num >= 0 && num <= 255;
+    });
+  };
   
-  if (ipv4Regex.test(cleanIP) || ipv6Regex.test(cleanIP)) {
+  const isValidIPv6 = (ip: string) => {
+    const parts = ip.split(':');
+    return parts.length === 8 && parts.every(part => {
+      if (part.length === 0 || part.length > 4) return false;
+      // Use simple char checking instead of regex
+      return [...part].every(char => '0123456789abcdefABCDEF'.includes(char));
+    });
+  };
+  
+  if (isValidIPv4(cleanIP) || isValidIPv6(cleanIP)) {
     return cleanIP;
   }
   

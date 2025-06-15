@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '@/lib/prisma';
 import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation';
-import { createSuccessResponse, createErrorResponse } from '@/lib/error-handling';
-
-const prisma = new PrismaClient();
+import { createSuccessResponse, createErrorResponse } from '@/lib/api-core';
+import { logger } from '@/lib/logger';
 
 const getAnalyticsHandler = async (_request: NextRequest) => {
   try {
@@ -159,13 +158,11 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
     return NextResponse.json(createSuccessResponse(analyticsData));
 
   } catch (error) {
-    console.error('Analytics API error:', error);
+    logger.error('Analytics API error', error);
     return NextResponse.json(
       createErrorResponse('Failed to fetch analytics data'),
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

@@ -1,7 +1,10 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/database'
+import { NextRequest } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { createSuccessResponse as successResponse, createErrorResponse as errorResponse, getRequestId } from '@/lib/api-core'
+import { logger } from '@/lib/logger'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const requestId = getRequestId(request)
   try {
     // Get current month and last month dates
     const now = new Date()
@@ -99,15 +102,15 @@ export async function GET() {
       ratingChange: satisfactionRate > 0.8 ? '+0.1' : satisfactionRate < 0.6 ? '-0.2' : '0.0'
     }
 
-    return NextResponse.json(stats)
+    return successResponse(stats, undefined, requestId)
 
   } catch (error) {
-    console.error('Dashboard stats error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch dashboard statistics' },
-      { status: 500 }
+    logger.error('Dashboard stats error', error, { requestId })
+    return errorResponse(
+      'Failed to fetch dashboard statistics',
+      500,
+      undefined,
+      requestId
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

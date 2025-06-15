@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/database'
+import { prisma } from '@/lib/prisma'
 import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation'
-import { createSuccessResponse, createErrorResponse } from '@/lib/error-handling'
+import { createSuccessResponse, createErrorResponse } from '@/lib/api-core'
+import { logger } from '@/lib/logger'
 
 const getChartDataHandler = async () => {
   try {
@@ -86,13 +87,11 @@ const getChartDataHandler = async () => {
 
     return NextResponse.json(createSuccessResponse(chartData))
   } catch (error) {
-    console.error('Chart data error:', error)
+    logger.error('Chart data error', error)
     return NextResponse.json(
       createErrorResponse('Failed to fetch chart data'),
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 

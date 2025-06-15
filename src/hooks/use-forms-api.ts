@@ -1,31 +1,9 @@
 import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query';
-import { logger } from '@/lib/logger';
+import { apiFetch, queryKeys } from '@/lib/api/client';
+import { showSuccessToast, showErrorToast } from '@/lib/api/utils';
 
-// Enhanced fetch function with proper error handling
-async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      ...options,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-      const error = new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-      (error as Error & { status?: number; statusText?: string }).status = response.status;
-      (error as Error & { status?: number; statusText?: string }).statusText = response.statusText;
-      throw error;
-    }
-
-    return await response.json();
-  } catch (error) {
-    void logger.error('Forms API fetch error:', error);
-    throw error;
-  }
-}
+// Use the unified API client
+const fetchApi = apiFetch;
 
 // Form interfaces
 interface FormSubmission {
@@ -93,7 +71,7 @@ export function formSubmissionsOptions(filters: FormFilters = {}) {
   if (filters.search) params.append('search', filters.search);
 
   return queryOptions({
-    queryKey: ['forms', 'submissions', filters],
+    queryKey: [...queryKeys.all, 'forms', 'submissions', filters],
     queryFn: () => {
       const url = `/api/admin/forms/submissions${params.toString() ? `?${params}` : ''}`;
       return fetchApi<FormSubmission[]>(url);
@@ -105,7 +83,7 @@ export function formSubmissionsOptions(filters: FormFilters = {}) {
 
 export function formSubmissionOptions(id: string) {
   return queryOptions({
-    queryKey: ['forms', 'submissions', id],
+    queryKey: [...queryKeys.all, 'forms', 'submissions', id],
     queryFn: () => fetchApi<FormSubmission>(`/api/admin/forms/submissions/${id}`),
     staleTime: 1000 * 60 * 5, // 5 minutes for individual submissions
     gcTime: 1000 * 60 * 15, // 15 minutes
@@ -114,7 +92,7 @@ export function formSubmissionOptions(id: string) {
 
 export function formTemplatesOptions() {
   return queryOptions({
-    queryKey: ['forms', 'templates'],
+    queryKey: [...queryKeys.all, 'forms', 'templates'],
     queryFn: () => fetchApi<FormTemplate[]>('/api/admin/forms/templates'),
     staleTime: 1000 * 60 * 30, // 30 minutes for templates (rarely change)
     gcTime: 1000 * 60 * 60, // 1 hour
@@ -123,7 +101,7 @@ export function formTemplatesOptions() {
 
 export function formTemplateOptions(id: string) {
   return queryOptions({
-    queryKey: ['forms', 'templates', id],
+    queryKey: [...queryKeys.all, 'forms', 'templates', id],
     queryFn: () => fetchApi<FormTemplate>(`/api/admin/forms/templates/${id}`),
     staleTime: 1000 * 60 * 30, // 30 minutes
     gcTime: 1000 * 60 * 60, // 1 hour
@@ -132,7 +110,7 @@ export function formTemplateOptions(id: string) {
 
 export function formStatsOptions() {
   return queryOptions({
-    queryKey: ['forms', 'stats'],
+    queryKey: [...queryKeys.all, 'forms', 'stats'],
     queryFn: () => fetchApi<{ totalSubmissions: number; pendingReview: number; recentSubmissions: FormSubmission[] }>('/api/admin/forms/stats'),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 20, // 20 minutes
@@ -141,7 +119,7 @@ export function formStatsOptions() {
 
 export function formSubmissionsByClientOptions(clientId: string) {
   return queryOptions({
-    queryKey: ['forms', 'submissions', 'client', clientId],
+    queryKey: [...queryKeys.all, 'forms', 'submissions', 'client', clientId],
     queryFn: () => fetchApi<FormSubmission[]>(`/api/admin/forms/submissions/client/${clientId}`),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 20, // 20 minutes
@@ -218,11 +196,12 @@ export const useUpdateSubmissionStatus = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
-      void logger.error('Failed to update submission status:', error);
+      showErrorToast('Failed to update submission status');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['forms', 'submissions'] });
-      queryClient.invalidateQueries({ queryKey: ['forms', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.all, 'forms', 'submissions'] });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.all, 'forms', 'stats'] });
+      showSuccessToast('Form submission status updated successfully');
     },
   });
 };
@@ -238,14 +217,15 @@ export const useCreateFormTemplate = () => {
       }),
     onSuccess: (newTemplate) => {
       // Add to templates cache
-      queryClient.setQueryData(['forms', 'templates'], (old: FormTemplate[] | undefined) => {
+      queryClient.setQueryData([...queryKeys.all, 'forms', 'templates'], (old: FormTemplate[] | undefined) => {
         return old ? [newTemplate, ...old] : [newTemplate];
       });
       
-      queryClient.invalidateQueries({ queryKey: ['forms', 'templates'] });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.all, 'forms', 'templates'] });
+      showSuccessToast('Form template created successfully');
     },
     onError: (error) => {
-      void logger.error('Failed to create form template:', error);
+      showErrorToast('Failed to create form template');
     },
   });
 };
@@ -283,11 +263,12 @@ export const useUpdateFormTemplate = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
-      void logger.error('Failed to update form template:', error);
+      showErrorToast('Failed to update form template');
     },
     onSuccess: (updatedTemplate, { id }) => {
-      queryClient.setQueryData(['forms', 'templates', id], updatedTemplate);
-      queryClient.invalidateQueries({ queryKey: ['forms', 'templates'] });
+      queryClient.setQueryData([...queryKeys.all, 'forms', 'templates', id], updatedTemplate);
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.all, 'forms', 'templates'] });
+      showSuccessToast('Form template updated successfully');
     },
   });
 };

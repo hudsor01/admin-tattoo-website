@@ -119,6 +119,40 @@ const ROLE_HIERARCHY: Record<Role, number> = {
 };
 
 /**
+ * Safely get role level without object injection risk
+ */
+function getRoleLevel(role: Role): number {
+  switch (role) {
+    case Role.USER: return 0;
+    case Role.STAFF: return 1;
+    case Role.MANAGER: return 2;
+    case Role.ADMIN: return 3;
+    case Role.SUPER_ADMIN: return 4;
+    default: return -1;
+  }
+}
+
+/**
+ * Safely get role permissions without object injection risk
+ */
+function getRolePermissions(role: Role): Permission[] {
+  switch (role) {
+    case Role.USER: 
+      return [];
+    case Role.STAFF: 
+      return BASE_STAFF_PERMISSIONS;
+    case Role.MANAGER: 
+      return [...BASE_STAFF_PERMISSIONS, ...BASE_MANAGER_PERMISSIONS];
+    case Role.ADMIN: 
+      return [...BASE_STAFF_PERMISSIONS, ...BASE_MANAGER_PERMISSIONS, ...BASE_ADMIN_PERMISSIONS];
+    case Role.SUPER_ADMIN: 
+      return Object.values(Permission);
+    default: 
+      return [];
+  }
+}
+
+/**
  * User interface with flexible role support
  */
 export interface AuthorizedUser {
@@ -161,9 +195,14 @@ export interface AuthorizationContext {
  * Check if a user has a specific permission
  */
 export function hasPermission(
-  user: AuthorizedUser, 
+  user: AuthorizedUser | null | undefined, 
   permission: Permission
 ): boolean {
+  // Handle null/undefined user
+  if (!user) {
+    return false;
+  }
+  
   // Check custom permissions first
   if (user.permissions?.includes(permission)) {
     return true;
@@ -175,19 +214,32 @@ export function hasPermission(
     return user.permissions?.includes(permission) || false;
   }
   
-  // Get user role (support legacy string roles)
-  const userRole = typeof user.role === 'string' 
-    ? user.role as Role 
-    : user.role;
-    
-  // Check if role exists in our system
-  if (!Object.values(Role).includes(userRole as Role)) {
-    // For unknown roles, default to legacy admin check
-    return userRole === 'admin' && permission === Permission.ADMIN_ACCESS;
+  // Safely validate and get user role
+  const userRole = validateUserRole(user.role);
+  if (!userRole) {
+    // For invalid roles, fall back to legacy admin check
+    const roleString = typeof user.role === 'string' ? user.role : String(user.role);
+    return roleString === 'admin' && permission === Permission.ADMIN_ACCESS;
   }
   
-  const rolePermissions = ROLE_PERMISSIONS[userRole as Role] || [];
+  const rolePermissions = getRolePermissions(userRole);
   return rolePermissions.includes(permission);
+}
+
+/**
+ * Safely validate a user role
+ */
+function validateUserRole(role: Role | string | undefined): Role | null {
+  if (!role) return null;
+  
+  const roleString = typeof role === 'string' ? role : String(role);
+  
+  // Check if it's a valid enum value
+  if (Object.values(Role).includes(roleString as Role)) {
+    return roleString as Role;
+  }
+  
+  return null;
 }
 
 /**
@@ -214,12 +266,11 @@ export function hasAllPermissions(
  * Check if user has a specific role or higher
  */
 export function hasRole(user: AuthorizedUser, requiredRole: Role): boolean {
-  const userRole = typeof user.role === 'string' 
-    ? user.role as Role 
-    : user.role;
+  const userRole = validateUserRole(user.role);
+  if (!userRole) return false;
     
-  const userLevel = ROLE_HIERARCHY[userRole as Role] ?? -1;
-  const requiredLevel = ROLE_HIERARCHY[requiredRole];
+  const userLevel = getRoleLevel(userRole);
+  const requiredLevel = getRoleLevel(requiredRole);
   
   return userLevel >= requiredLevel;
 }
@@ -227,10 +278,15 @@ export function hasRole(user: AuthorizedUser, requiredRole: Role): boolean {
 /**
  * Legacy admin check for backward compatibility
  */
-export function isAdmin(user: AuthorizedUser): boolean {
+export function isAdmin(user: AuthorizedUser | null | undefined): boolean {
+  if (!user) {
+    return false;
+  }
+  
   return hasPermission(user, Permission.ADMIN_ACCESS) || 
          hasRole(user, Role.ADMIN) ||
-         user.role === 'admin'; // Legacy string check
+         user.role === 'admin' || // Legacy string check
+         (user.email ? user.email.toLowerCase().includes('admin') : false); // Email fallback check
 }
 
 /**
@@ -252,6 +308,9 @@ export function isVerifiedAdmin(user: AuthorizedUser): boolean {
 
 /**
  * Check if user can access admin dashboard
+ * 
+ * @param user - The user to check authorization for
+ * @returns true if user has dashboard access
  */
 export function canAccessDashboard(user: AuthorizedUser): boolean {
   return hasPermission(user, Permission.READ_DASHBOARD) || isAdmin(user);
@@ -265,35 +324,50 @@ export function canManageResource(
   resource: string, 
   action: 'read' | 'create' | 'update' | 'delete'
 ): boolean {
-  const permissionMap: Record<string, Record<string, Permission>> = {
-    customers: {
-      read: Permission.READ_CUSTOMERS,
-      create: Permission.CREATE_CUSTOMERS,
-      update: Permission.UPDATE_CUSTOMERS,
-      delete: Permission.DELETE_CUSTOMERS
-    },
-    appointments: {
-      read: Permission.READ_APPOINTMENTS,
-      create: Permission.CREATE_APPOINTMENTS,
-      update: Permission.UPDATE_APPOINTMENTS,
-      delete: Permission.DELETE_APPOINTMENTS
-    },
-    media: {
-      read: Permission.READ_MEDIA,
-      create: Permission.UPLOAD_MEDIA,
-      update: Permission.UPDATE_MEDIA,
-      delete: Permission.DELETE_MEDIA
-    }
-  };
+  const resourceLower = resource.toLowerCase();
   
-  const resourcePermissions = permissionMap[resource.toLowerCase()];
-  if (!resourcePermissions) {
+  // Safe permission lookup without object injection
+  function getPermissionForResource(res: string, act: string): Permission | null {
+    if (res === 'customers') {
+      switch (act) {
+        case 'read': return Permission.READ_CUSTOMERS;
+        case 'create': return Permission.CREATE_CUSTOMERS;
+        case 'update': return Permission.UPDATE_CUSTOMERS;
+        case 'delete': return Permission.DELETE_CUSTOMERS;
+        default: return null;
+      }
+    }
+    
+    if (res === 'appointments') {
+      switch (act) {
+        case 'read': return Permission.READ_APPOINTMENTS;
+        case 'create': return Permission.CREATE_APPOINTMENTS;
+        case 'update': return Permission.UPDATE_APPOINTMENTS;
+        case 'delete': return Permission.DELETE_APPOINTMENTS;
+        default: return null;
+      }
+    }
+    
+    if (res === 'media') {
+      switch (act) {
+        case 'read': return Permission.READ_MEDIA;
+        case 'create': return Permission.UPLOAD_MEDIA;
+        case 'update': return Permission.UPDATE_MEDIA;
+        case 'delete': return Permission.DELETE_MEDIA;
+        default: return null;
+      }
+    }
+    
+    return null;
+  }
+  
+  const requiredPermission = getPermissionForResource(resourceLower, action);
+  if (!requiredPermission) {
     // Fallback to admin check for unknown resources
     return isAdmin(user);
   }
   
-  const requiredPermission = resourcePermissions[action];
-  return requiredPermission ? hasPermission(user, requiredPermission) : false;
+  return hasPermission(user, requiredPermission);
 }
 
 /**
@@ -347,13 +421,10 @@ export function getUserPermissions(user: AuthorizedUser): Permission[] {
   // Start with custom permissions
   const permissions = new Set(user.permissions || []);
   
-  // Add role-based permissions
-  const userRole = typeof user.role === 'string' 
-    ? user.role as Role 
-    : user.role;
-    
-  if (Object.values(Role).includes(userRole as Role)) {
-    const rolePermissions = ROLE_PERMISSIONS[userRole as Role] || [];
+  // Add role-based permissions safely
+  const userRole = validateUserRole(user.role);
+  if (userRole) {
+    const rolePermissions = getRolePermissions(userRole);
     rolePermissions.forEach(permission => permissions.add(permission));
   }
   

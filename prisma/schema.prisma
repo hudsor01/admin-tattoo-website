@@ -8,61 +8,24 @@ datasource db {
 }
 
 model User {
-  id            String    @id
+  id            String     @id
   name          String?
-  email         String    @unique
-  emailVerified Boolean?  @default(false)
+  email         String     @unique
+  emailVerified Boolean?   @default(false)
   image         String?
-  role          String    @default("user")
+  role          String     @default("user")
   lastLoginAt   DateTime?
-  loginAttempts Int       @default(0)
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-  sessions      Session[]
+  loginAttempts Int        @default(0)
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  banned        Boolean?
+  banReason     String?
+  banExpires    DateTime?
+  accounts      accounts[]
+  sessions      sessions[]
 
   @@map("users")
-}
-
-model Session {
-  id            String   @id @default(uuid())
-  userId        String
-  expiresAt     DateTime
-  token         String   @unique
-  ipAddress     String?
-  userAgent     String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([token])
-  @@index([expiresAt])
-  @@map("sessions")
-}
-
-model Account {
-  id                        String    @id @default(uuid())
-  userId                    String
-  accountId                 String
-  providerId                String
-  type                      String    @default("credential")
-  accessToken               String?   @db.Text
-  refreshToken              String?   @db.Text
-  accessTokenExpiresAt      DateTime?
-  refreshTokenExpiresAt     DateTime?
-  scope                     String?
-  idToken                   String?   @db.Text
-  password                  String?
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
-  user                      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([providerId])
-  @@unique([providerId, accountId])
-  @@map("accounts")
 }
 
 model VerificationToken {
@@ -178,23 +141,72 @@ model TattooDesign {
   @@map("tattoo_designs")
 }
 
-
 model AuditLog {
-  id         String    @id @default(cuid())
-  userId     String?   // Nullable for anonymous actions
-  action     String    // CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT, FAILED_LOGIN
-  resource   String    // Table/resource name
-  resourceId String?   // ID of the affected resource
-  ip         String    @db.VarChar(45) // IPv6 compatible
-  userAgent  String    @db.VarChar(500)
-  timestamp  DateTime  @default(now())
-  metadata   Json?     // Additional context data
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  ip         String   @db.VarChar(45)
+  userAgent  String   @db.VarChar(500)
+  timestamp  DateTime @default(now())
+  metadata   Json?
 
   @@index([userId])
   @@index([resource])
   @@index([timestamp])
   @@index([action])
   @@map("audit_logs")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model accounts {
+  id                    String    @id
+  userId                String
+  accountId             String
+  providerId            String
+  type                  String    @default("credential")
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime
+  users                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([providerId])
+  @@index([userId])
+}
+
+model sessions {
+  id             String   @id
+  userId         String
+  expiresAt      DateTime
+  token          String   @unique
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime
+  impersonatedBy String?
+  users          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([token])
+  @@index([userId])
 }
 
 enum SessionStatus {

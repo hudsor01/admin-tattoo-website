@@ -23,7 +23,7 @@ export async function GET(_req: NextRequest) {
     // Try to connect to database
     let dbConnectionError = null;
     try {
-      const { prisma } = await import("@/lib/database");
+      const { prisma } = await import("@/lib/prisma");
       await prisma.$connect();
       await prisma.$disconnect();
       console.log("Database connection successful");

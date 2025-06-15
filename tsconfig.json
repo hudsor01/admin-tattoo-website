@@ -58,6 +58,9 @@
       ],
       "@/styles/*": [
         "./src/styles/*"
+      ],
+      "@/server/*": [
+        "./src/server/*"
       ]
     }
   },

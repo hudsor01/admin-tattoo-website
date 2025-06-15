@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/database';
+import { prisma } from '@/lib/prisma';
 
 interface HealthCheck {
   status: 'healthy' | 'degraded' | 'unhealthy';

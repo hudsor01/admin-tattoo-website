@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { ErrorBoundary } from "@/components/error/error-boundary";
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -26,6 +27,7 @@ export default function RootLayout({
           <Providers>
             {children}
           </Providers>
+          <Toaster richColors />
         </ErrorBoundary>
       </body>
     </html>

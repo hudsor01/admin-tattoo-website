@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { customerFilterSchema, createCustomerSchema, CreateCustomer } from '@/lib/validations';
-import { createSuccessResponse, createErrorResponse, handleZodError } from '@/lib/error-handling';
+import { createSuccessResponse, createErrorResponse, handleZodError } from '@/lib/api-core';
 import { getCustomers, createCustomer } from '@/lib/db-operations';
 import { ZodError } from 'zod';
 import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation';

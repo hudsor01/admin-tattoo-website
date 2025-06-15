@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,11 +10,14 @@ import { Badge } from "@/components/ui/badge"
 import { ImageIcon, Video, Upload, X } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import type { PutBlobResult } from '@vercel/blob'
+import { useUIStore } from "@/stores/ui-store"
 
 interface MediaUploadDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  uploadType: 'photo' | 'video'
+  // Legacy props for backward compatibility - now optional
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  uploadType?: 'photo' | 'video'
 }
 
 interface MediaMetadata {
@@ -25,8 +28,32 @@ interface MediaMetadata {
   syncToWebsite: boolean
 }
 
-export function MediaUploadDialog({ open, onOpenChange, uploadType }: MediaUploadDialogProps) {
-  const [file, setFile] = useState<File | null>(null)
+export function MediaUploadDialog({ 
+  open: legacyOpen, 
+  onOpenChange: legacyOnOpenChange, 
+  uploadType: legacyUploadType 
+}: MediaUploadDialogProps = {}) {
+  // Use UI store for modal state
+  const { modals, closeModal, setComponentLoading, loading } = useUIStore();
+  
+  // Get loading state from store
+  const isUploading = loading.component['media-upload'] || false;
+  
+  // Use store state or fallback to legacy props
+  const isOpen = modals.mediaUpload.open || legacyOpen || false;
+  const currentUploadType = modals.mediaUpload.type || legacyUploadType || 'photo';
+  
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      // Opening is handled by parent components via store
+    } else {
+      closeModal('mediaUpload');
+    }
+    // Also call legacy handler for backward compatibility
+    legacyOnOpenChange?.(open);
+  };
+
+  const [uploadedBlob, setUploadedBlob] = useState<PutBlobResult | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [metadata, setMetadata] = useState<MediaMetadata>({
     title: '',
@@ -36,40 +63,48 @@ export function MediaUploadDialog({ open, onOpenChange, uploadType }: MediaUploa
     syncToWebsite: true
   })
   const [tagInput, setTagInput] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const queryClient = useQueryClient()
 
-  const uploadMutation = useMutation({
-    mutationFn: async ({ file, metadata }: { file: File; metadata: MediaMetadata }) => {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('metadata', JSON.stringify(metadata))
-
-      const response = await fetch('/api/admin/media/upload', {
+  const saveMutation = useMutation({
+    mutationFn: async ({ blob, metadata }: { blob: PutBlobResult; metadata: MediaMetadata }) => {
+      const response = await fetch('/api/admin/media', {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: blob.url,
+          pathname: blob.pathname,
+          size: blob.size,
+          type: currentUploadType,
+          metadata
+        })
       })
       
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error?.message || 'Upload failed')
+        throw new Error(error.error?.message || 'Save failed')
       }
       
       return response.json()
     },
     onSuccess: () => {
-      toast.success(`${uploadType === 'photo' ? 'Photo' : 'Video'} uploaded successfully!`)
+      toast.success(`${currentUploadType === 'photo' ? 'Photo' : 'Video'} saved successfully!`)
       queryClient.invalidateQueries({ queryKey: ['media'] })
-      onOpenChange(false)
+      handleOpenChange(false)
       resetForm()
     },
     onError: (error: Error) => {
-      toast.error(`Upload failed: ${error.message}`)
+      toast.error(`Save failed: ${error.message}`)
     }
   })
 
   const resetForm = () => {
-    setFile(null)
+    setUploadedBlob(null)
+    setDragActive(false)
+    setComponentLoading('media-upload', false)
     setMetadata({
       title: '',
       description: '',
@@ -78,6 +113,17 @@ export function MediaUploadDialog({ open, onOpenChange, uploadType }: MediaUploa
       syncToWebsite: true
     })
     setTagInput('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const handleSave = () => {
+    if (!uploadedBlob) {
+      toast.error('Please upload a file first')
+      return
+    }
+    saveMutation.mutate({ blob: uploadedBlob, metadata })
   }
 
   const handleDrag = (e: React.DragEvent) => {
@@ -97,30 +143,71 @@ export function MediaUploadDialog({ open, onOpenChange, uploadType }: MediaUploa
     
     const files = e.dataTransfer.files
     if (files && files[0]) {
-      handleFileSelect(files[0])
+      uploadFile(files[0])
     }
   }
 
-  const handleFileSelect = (selectedFile: File) => {
-    const isPhoto = selectedFile.type.startsWith('image/')
-    const isVideo = selectedFile.type.startsWith('video/')
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      uploadFile(file)
+    }
+  }
+
+  const uploadFile = async (file: File) => {
+    // Validate file type
+    const isPhoto = file.type.startsWith('image/')
+    const isVideo = file.type.startsWith('video/')
     
-    if (uploadType === 'photo' && !isPhoto) {
+    if (currentUploadType === 'photo' && !isPhoto) {
       toast.error('Please select an image file')
       return
     }
     
-    if (uploadType === 'video' && !isVideo) {
+    if (currentUploadType === 'video' && !isVideo) {
       toast.error('Please select a video file')
       return
     }
-    
-    setFile(selectedFile)
-    
-    // Auto-fill title with filename (without extension)
-    if (!metadata.title) {
-      const titleFromFile = selectedFile.name.replace(/\.[^/.]+$/, "")
-      setMetadata(prev => ({ ...prev, title: titleFromFile }))
+
+    // Validate file size (4.5MB limit for server uploads)
+    const maxSize = 4.5 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast.error('File too large. Maximum size is 4.5MB.')
+      return
+    }
+
+    setComponentLoading('media-upload', true)
+
+    try {
+      const response = await fetch(
+        `/api/upload?filename=${encodeURIComponent(file.name)}&type=media`,
+        {
+          method: 'POST',
+          body: file,
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload failed')
+      }
+
+      const blob = await response.json() as PutBlobResult
+      setUploadedBlob(blob)
+      
+      // Auto-fill title with filename (without extension)
+      if (!metadata.title) {
+        const titleFromFile = file.name.replace(/\.[^/.]+$/, "")
+        setMetadata(prev => ({ ...prev, title: titleFromFile }))
+      }
+      
+      toast.success('File uploaded successfully!')
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+      toast.error(`Upload failed: ${errorMessage}`)
+    } finally {
+      setComponentLoading('media-upload', false)
     }
   }
 
@@ -141,67 +228,72 @@ export function MediaUploadDialog({ open, onOpenChange, uploadType }: MediaUploa
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!file) {
-      toast.error('Please select a file')
-      return
-    }
-    if (!metadata.title.trim()) {
-      toast.error('Please enter a title')
-      return
-    }
-    
-    uploadMutation.mutate({ file, metadata })
-  }
-
-  const acceptedTypes = uploadType === 'photo' 
+  const acceptedTypes = currentUploadType === 'photo' 
     ? 'image/jpeg,image/jpg,image/png,image/webp'
     : 'video/mp4,video/mov,video/webm,video/quicktime'
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {uploadType === 'photo' ? (
+            {currentUploadType === 'photo' ? (
               <ImageIcon className="h-5 w-5" />
             ) : (
               <Video className="h-5 w-5" />
             )}
-            Upload {uploadType === 'photo' ? 'Photo' : 'Video'}
+            Upload {currentUploadType === 'photo' ? 'Photo' : 'Video'}
           </DialogTitle>
           <DialogDescription>
-            Upload {uploadType === 'photo' ? 'photos' : 'videos'} that will sync to ink37tattoos.com/gallery
+            Upload {currentUploadType === 'photo' ? 'photos' : 'videos'} that will sync to ink37tattoos.com/gallery
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* File Upload Area */}
+        <div className="space-y-6">
+          {/* Custom Drag & Drop Upload Zone */}
           <div
             className={`
               border-2 border-dashed rounded-lg p-6 text-center transition-colors
               ${dragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
-              ${file ? 'border-green-500 bg-green-50' : ''}
+              ${uploadedBlob ? 'border-green-500 bg-green-50' : ''}
+              ${isUploading ? 'opacity-50' : 'hover:border-primary hover:bg-primary/5 cursor-pointer'}
             `}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
+            onClick={() => !isUploading && fileInputRef.current?.click()}
           >
-            {file ? (
+            {uploadedBlob ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-center gap-2">
-                  {uploadType === 'photo' ? (
+                  {currentUploadType === 'photo' ? (
                     <ImageIcon className="h-8 w-8 text-green-600" />
                   ) : (
                     <Video className="h-8 w-8 text-green-600" />
                   )}
-                  <span className="font-medium text-green-700">{file.name}</span>
+                  <span className="font-medium text-green-700">File uploaded successfully!</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                  {uploadedBlob.pathname}
                 </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUploadedBlob(null);
+                  }}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Remove
+                </Button>
+              </div>
+            ) : isUploading ? (
+              <div className="space-y-2">
+                <Upload className="mx-auto h-12 w-12 text-muted-foreground animate-pulse" />
+                <p className="text-lg font-medium">Uploading...</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -209,26 +301,26 @@ export function MediaUploadDialog({ open, onOpenChange, uploadType }: MediaUploa
                 <div>
                   <p className="text-lg font-medium">
                     Drop your {uploadType} here, or{' '}
-                    <label className="text-primary cursor-pointer hover:underline">
-                      browse
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept={acceptedTypes}
-                        onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                      />
-                    </label>
+                    <span className="text-primary hover:underline">browse</span>
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {uploadType === 'photo' 
-                      ? 'JPEG, PNG, WebP up to 10MB'
-                      : 'MP4, MOV, WebM up to 100MB'
+                      ? 'JPEG, PNG, WebP up to 4.5MB'
+                      : 'MP4, MOV, WebM up to 4.5MB'
                     }
                   </p>
                 </div>
               </div>
             )}
           </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept={acceptedTypes}
+            onChange={handleFileUpload}
+          />
 
           {/* Metadata Form */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -316,29 +408,30 @@ export function MediaUploadDialog({ open, onOpenChange, uploadType }: MediaUploa
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={uploadMutation.isPending}
+              disabled={saveMutation.isPending}
             >
               Cancel
             </Button>
             <Button
-              type="submit"
-              disabled={!file || !metadata.title.trim() || uploadMutation.isPending}
+              type="button"
+              onClick={handleSave}
+              disabled={!uploadedBlob || !metadata.title.trim() || saveMutation.isPending}
               className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
             >
-              {uploadMutation.isPending ? (
+              {saveMutation.isPending ? (
                 <>
                   <Upload className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
+                  Saving...
                 </>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Upload {uploadType === 'photo' ? 'Photo' : 'Video'}
+                  Save {uploadType === 'photo' ? 'Photo' : 'Video'}
                 </>
               )}
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

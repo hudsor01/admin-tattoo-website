@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
 import { withSecurityValidation, SecurityPresets, validateFileUpload, validateFileContent } from '@/lib/api-validation'
 import { sanitizeFilename } from '@/lib/sanitization'
-import { createErrorResponse, createSuccessResponse } from '@/lib/error-handling'
+import { createErrorResponse, createSuccessResponse } from '@/lib/api-core'
 
 const uploadHandler = async (request: NextRequest) => {
   const formData = await request.formData()

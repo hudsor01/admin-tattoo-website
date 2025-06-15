@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation'
-import { createErrorResponse, createSuccessResponse } from '@/lib/error-handling'
-import { prisma } from '@/lib/database'
+import { createErrorResponse, createSuccessResponse } from '@/lib/api-core'
+import { prisma } from '@/lib/prisma'
 import { AppointmentStatus } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 interface AppointmentStats {
   totalAppointments: number
@@ -125,7 +126,7 @@ const statsHandler = async (_request: NextRequest) => {
 
     return NextResponse.json(createSuccessResponse(stats, 'Appointment stats retrieved successfully'))
   } catch (error) {
-    console.error('Error fetching appointment stats:', error)
+    logger.error('Error fetching appointment stats', error)
     return NextResponse.json(
       createErrorResponse('Failed to fetch appointment stats'),
       { status: 500 }

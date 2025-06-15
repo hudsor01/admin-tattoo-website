@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAppointments, createAppointment, updateAppointment } from '@/lib/db-operations';
 import { appointmentFilterSchema, createAppointmentSchema, updateAppointmentSchema } from '@/lib/validations';
-import { withApiHandler } from '@/lib/api-helpers';
+import { withApiHandler } from '@/lib/api-core';
 
 export const GET = withApiHandler(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);

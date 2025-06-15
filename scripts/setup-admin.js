@@ -1,12 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DIRECT_URL || process.env.DATABASE_URL
-    }
-  }
-});
+const prisma = new PrismaClient();
 
 async function setupAdmin() {
   try {
@@ -36,24 +30,35 @@ async function setupAdmin() {
         data: {
           role: 'admin',
           isActive: true,
-          emailVerified: new Date()
+          emailVerified: true
         }
       });
       console.log('✓ Admin user updated with correct permissions');
     } else {
-      // Create admin user
+      // Create admin user with Better Auth - password is stored in Account table
+      const admin = await prisma.user.create({
+        data: {
+          id: `usr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          email: 'admin@ink37tattoos.com',
+          name: 'Admin User',
+          role: 'admin',
+          isActive: true,
+          emailVerified: true,
+          loginAttempts: 0
+        }
+      });
+
+      // Create credential account with hashed password
       const bcrypt = require('bcrypt');
       const hashedPassword = await bcrypt.hash('admin123456', 12);
       
-      const admin = await prisma.user.create({
+      await prisma.account.create({
         data: {
-          email: 'admin@ink37tattoos.com',
-          name: 'Admin User',
-          password: hashedPassword,
-          role: 'admin',
-          isActive: true,
-          emailVerified: new Date(),
-          loginAttempts: 0
+          userId: admin.id,
+          accountId: admin.id,
+          providerId: 'credential',
+          type: 'credential',
+          password: hashedPassword
         }
       });
       
@@ -74,6 +79,7 @@ async function setupAdmin() {
           email: 'fernando@ink37tattoos.com',
           phone: '+1234567890',
           specialties: ['Traditional', 'Realism', 'Black and Grey'],
+          hourlyRate: 150.00,
           isActive: true
         }
       });

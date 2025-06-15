@@ -1,52 +1,50 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useSession, useUser, useIsAdmin } from '@/lib/auth-client';
-
-interface AuthContextValue {
-  session: ReturnType<typeof useSession>;
-  user: ReturnType<typeof useUser>;
-  isAdmin: boolean;
-  isLoading: boolean;
-  error: Error | null;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import React, { ReactNode, useEffect } from 'react';
+import { 
+  useUser, 
+  useAuthStatus,
+  initializeAuthStore 
+} from '@/stores/auth-store';
 
 /**
  * Auth Provider Component
  * 
- * Provides authentication state and helpers throughout the app
+ * Initializes and provides authentication state throughout the app using Zustand store
+ * This component replaces the old Context API approach with Zustand for better performance
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const session = useSession();
-  const user = useUser();
-  const isAdmin = useIsAdmin();
+  // Initialize auth store on mount
+  useEffect(() => {
+    initializeAuthStore().catch(console.error);
+  }, []);
 
-  const value: AuthContextValue = {
-    session,
-    user,
-    isAdmin,
-    isLoading: session.isPending || user.isLoading,
-    error: session.error || user.error || null,
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <>{children}</>;
 }
 
 /**
- * Hook to access auth context
+ * Hook to access auth state (migrated from Context to Zustand)
+ * 
+ * @deprecated Use specific auth hooks like useUser, useIsAdmin, etc. for better performance
+ * This hook is kept for backward compatibility during migration
  */
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+export function useAuth() {
+  const user = useUser();
+  const { isLoading, isAuthenticated, isAdmin } = useAuthStatus();
+  
+  return {
+    user,
+    isAdmin,
+    isLoading,
+    isAuthenticated,
+    // For compatibility with existing code that expects session object
+    session: {
+      data: user ? { user } : null,
+      isPending: isLoading,
+      error: null,
+    },
+    error: null,
+  };
 }
 
 /**
@@ -54,13 +52,14 @@ export function useAuth(): AuthContextValue {
  * Throws error if user is not authenticated
  */
 export function useRequireAuth() {
-  const { user, isLoading } = useAuth();
+  const user = useUser();
+  const { isLoading } = useAuthStatus();
   
-  if (!isLoading && !user.user) {
+  if (!isLoading && !user) {
     throw new Error('Authentication required');
   }
   
-  return { user: user.user, isLoading };
+  return { user, isLoading };
 }
 
 /**
@@ -68,11 +67,12 @@ export function useRequireAuth() {
  * Throws error if user is not an admin
  */
 export function useRequireAdmin() {
-  const { user, isAdmin, isLoading } = useAuth();
+  const user = useUser();
+  const { isLoading, isAdmin } = useAuthStatus();
   
   if (!isLoading && !isAdmin) {
     throw new Error('Admin access required');
   }
   
-  return { user: user.user, isLoading };
+  return { user, isLoading };
 }

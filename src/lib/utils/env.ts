@@ -3,15 +3,20 @@
  */
 
 export function getEnvSafe(key: string, defaultValue?: string): string {
-  const value = process.env[key];
-  
+  let value: string | undefined;
+  if (Object.prototype.hasOwnProperty.call(process.env, key)) {
+    value = process.env[key];
+  } else {
+    value = undefined;
+  }
+
   if (value === undefined) {
     if (defaultValue !== undefined) {
       return defaultValue;
     }
     throw new Error(`Environment variable ${key} is required but not set`);
   }
-  
+
   return value;
 }
 

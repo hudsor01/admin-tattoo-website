@@ -1,31 +1,9 @@
 import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query';
-import { logger } from '@/lib/logger';
+import { apiFetch, queryKeys } from '@/lib/api/client';
+import { showSuccessToast, showErrorToast } from '@/lib/api/utils';
 
-// Enhanced fetch function with proper error handling
-async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      ...options,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-      const error = new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-      (error as Error & { status?: number; statusText?: string }).status = response.status;
-      (error as Error & { status?: number; statusText?: string }).statusText = response.statusText;
-      throw error;
-    }
-
-    return await response.json();
-  } catch (error) {
-    void logger.error('Gallery API fetch error:', error);
-    throw error;
-  }
-}
+// Use the unified API client
+const fetchApi = apiFetch;
 
 // Gallery item interface
 interface GalleryItem {
@@ -67,7 +45,7 @@ export function galleryItemsOptions(filters: GalleryFilters = {}) {
   if (filters.search) params.append('search', filters.search);
 
   return queryOptions({
-    queryKey: ['gallery', 'items', filters],
+    queryKey: queryKeys.media.list(filters),
     queryFn: () => {
       const url = `/api/admin/gallery${params.toString() ? `?${params}` : ''}`;
       return fetchApi<GalleryItem[]>(url);
@@ -79,7 +57,7 @@ export function galleryItemsOptions(filters: GalleryFilters = {}) {
 
 export function galleryItemOptions(id: string) {
   return queryOptions({
-    queryKey: ['gallery', 'items', id],
+    queryKey: queryKeys.media.detail(id),
     queryFn: () => fetchApi<GalleryItem>(`/api/admin/gallery/${id}`),
     staleTime: 1000 * 60 * 15, // 15 minutes for individual items
     gcTime: 1000 * 60 * 45, // 45 minutes
@@ -88,7 +66,7 @@ export function galleryItemOptions(id: string) {
 
 export function galleryStatsOptions() {
   return queryOptions({
-    queryKey: ['gallery', 'stats'],
+    queryKey: [...queryKeys.media.all, 'stats'],
     queryFn: () => fetchApi<{ totalImages: number; totalVideos: number; recentUploads: number; popularTags: Array<{ tag: string; count: number }> }>('/api/admin/gallery/stats'),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 20, // 20 minutes
@@ -97,7 +75,7 @@ export function galleryStatsOptions() {
 
 export function artistPortfolioOptions(artistId: string) {
   return queryOptions({
-    queryKey: ['gallery', 'artists', artistId, 'portfolio'],
+    queryKey: [...queryKeys.media.all, 'artists', artistId, 'portfolio'],
     queryFn: () => fetchApi<GalleryItem[]>(`/api/admin/gallery/artists/${artistId}/portfolio`),
     staleTime: 1000 * 60 * 10, // 10 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
@@ -133,18 +111,19 @@ export const useCreateGalleryItem = () => {
       }),
     onSuccess: (newItem) => {
       // Add to cache optimistically
-      queryClient.setQueriesData({ queryKey: ['gallery', 'items'] }, (old: GalleryItem[] | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.media.all }, (old: GalleryItem[] | undefined) => {
         return old ? [newItem, ...old] : [newItem];
       });
 
       // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['gallery'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.media.all });
       if ((newItem as GalleryItem).artistId) {
-        queryClient.invalidateQueries({ queryKey: ['gallery', 'artists', (newItem as GalleryItem).artistId] });
+        queryClient.invalidateQueries({ queryKey: [...queryKeys.media.all, 'artists', (newItem as GalleryItem).artistId] });
       }
+      showSuccessToast('Gallery item created successfully');
     },
     onError: (error) => {
-      void logger.error('Failed to create gallery item:', error);
+      showErrorToast('Failed to create gallery item');
     },
   });
 };
@@ -159,19 +138,19 @@ export const useUpdateGalleryItem = () => {
         body: JSON.stringify(updateData),
       }),
     onMutate: async ({ id, ...updateData }) => {
-      await queryClient.cancelQueries({ queryKey: ['gallery'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.media.all });
 
-      const previousData = queryClient.getQueriesData({ queryKey: ['gallery'] });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.media.all });
 
       // Optimistically update item
-      queryClient.setQueriesData({ queryKey: ['gallery', 'items'] }, (old: GalleryItem[] | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.media.all }, (old: GalleryItem[] | undefined) => {
         return old?.map(item =>
           item.id === id ? { ...item, ...updateData } : item
         );
       });
 
       // Update individual item cache
-      queryClient.setQueryData(['gallery', 'items', id], (old: GalleryItem | undefined) =>
+      queryClient.setQueryData(queryKeys.media.detail(id), (old: GalleryItem | undefined) =>
         old ? { ...old, ...updateData } : undefined
       );
 
@@ -183,11 +162,12 @@ export const useUpdateGalleryItem = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
-      void logger.error('Failed to update gallery item:', error);
+      showErrorToast('Failed to update gallery item');
     },
     onSuccess: (updatedItem, { id }) => {
-      queryClient.setQueryData(['gallery', 'items', id], updatedItem);
-      queryClient.invalidateQueries({ queryKey: ['gallery'] });
+      queryClient.setQueryData(queryKeys.media.detail(id), updatedItem);
+      queryClient.invalidateQueries({ queryKey: queryKeys.media.all });
+      showSuccessToast('Gallery item updated successfully');
     },
   });
 };
@@ -198,16 +178,16 @@ export const useDeleteGalleryItem = () => {
   return useMutation({
     mutationFn: (id: string) => fetchApi(`/api/admin/gallery/${id}`, { method: 'DELETE' }),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['gallery'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.media.all });
 
-      const previousData = queryClient.getQueriesData({ queryKey: ['gallery'] });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.media.all });
 
       // Optimistically remove item
-      queryClient.setQueriesData({ queryKey: ['gallery', 'items'] }, (old: GalleryItem[] | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.media.all }, (old: GalleryItem[] | undefined) => {
         return old?.filter(item => item.id !== id);
       });
 
-      queryClient.removeQueries({ queryKey: ['gallery', 'items', id] });
+      queryClient.removeQueries({ queryKey: queryKeys.media.detail(id) });
 
       return { previousData };
     },
@@ -217,10 +197,11 @@ export const useDeleteGalleryItem = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
-      void logger.error('Failed to delete gallery item:', error);
+      showErrorToast('Failed to delete gallery item');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gallery'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.media.all });
+      showSuccessToast('Gallery item deleted successfully');
     },
   });
 };

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '@/lib/prisma';
 import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation';
-import { createSuccessResponse, createErrorResponse } from '@/lib/error-handling';
-
-const prisma = new PrismaClient();
+import { createSuccessResponse, createErrorResponse } from '@/lib/api-core';
+import { logger } from '@/lib/logger';
 
 const getRecentSessionsHandler = async (_request: NextRequest) => {
   try {
@@ -41,13 +40,11 @@ const getRecentSessionsHandler = async (_request: NextRequest) => {
     }));
 
   } catch (error) {
-    console.error('Recent sessions API error:', error);
+    logger.error('Recent sessions API error', error);
     return NextResponse.json(
       createErrorResponse('Failed to fetch recent sessions'),
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

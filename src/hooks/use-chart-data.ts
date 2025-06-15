@@ -1,38 +1,21 @@
 "use client"
 
 import { useQuery } from '@tanstack/react-query'
-
-interface ChartDataPoint {
-  date: string
-  value1: number  // Revenue
-  value2: number  // Appointments (scaled)
-}
+import { apiFetch, queryKeys } from '@/lib/api/client'
+import type { ChartDataPoint } from '@/types/dashboard'
 
 export function useChartData() {
   return useQuery<ChartDataPoint[]>({
-    queryKey: ['chart-data'],
+    queryKey: queryKeys.dashboard.chartData(),
     queryFn: async (): Promise<ChartDataPoint[]> => {
-      const response = await fetch('/api/admin/dashboard/chart-data')
-      
-      if (!response.ok) {
-        // Return empty array if API fails
+      try {
+        const result = await apiFetch<ChartDataPoint[]>('/api/admin/dashboard/chart-data')
+        return Array.isArray(result) ? result : []
+      } catch (error) {
+        // Return empty array if API fails - graceful fallback for chart display
+        console.warn('Chart data fetch failed, returning empty array:', error)
         return []
       }
-      
-      const result = await response.json()
-      
-      // Handle API response wrapper format
-      if (result.success && Array.isArray(result.data)) {
-        return result.data
-      }
-      
-      // If direct array response
-      if (Array.isArray(result)) {
-        return result
-      }
-      
-      // Return empty array if response format is unexpected
-      return []
     },
     staleTime: 1000 * 30, // 30 seconds
     gcTime: 1000 * 60 * 5, // 5 minutes

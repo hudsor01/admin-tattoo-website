@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { CreateCustomer, CustomerFilter } from '@/lib/validations'
-import { showErrorToast, showSuccessToast } from '@/lib/error-handling'
-import { logger } from '@/lib/logger'
+import { apiFetch, queryKeys } from '@/lib/api/client'
+import { showSuccessToast, showErrorToast, buildQueryString } from '@/lib/api/utils'
 import type { ClientResponse } from '@/types/database'
 
 interface UseCustomerOperationsOptions {
@@ -12,38 +12,8 @@ interface UseCustomerOperationsOptions {
   offset?: number
 }
 
-// Enhanced fetch function with proper error handling
-async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      ...options,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-      const error = new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`) as Error & { status?: number; statusText?: string };
-      error.status = response.status;
-      error.statusText = response.statusText;
-      throw error;
-    }
-
-    const result = await response.json();
-
-    // Handle API response format
-    if (result.success === false) {
-      throw new Error(result.error || 'API request failed');
-    }
-
-    return result.success !== undefined ? result.data : result;
-  } catch (error) {
-    void logger.error('Customer API fetch error:', error);
-    throw error;
-  }
-}
+// Use the unified API client
+const fetchApi = apiFetch;
 
 // Query options factory for customers
 export function customersQueryOptions(filters: CustomerFilter) {
@@ -54,7 +24,7 @@ export function customersQueryOptions(filters: CustomerFilter) {
   if (filters.offset) params.append('offset', filters.offset.toString());
 
   return queryOptions({
-    queryKey: ['customers', filters],
+    queryKey: queryKeys.customers.list(filters),
     queryFn: () => {
       const url = `/api/admin/customers${params.toString() ? `?${params}` : ''}`;
       return fetchApi<ClientResponse[]>(url).then(data => {
@@ -77,7 +47,7 @@ export function customersQueryOptions(filters: CustomerFilter) {
 // Individual customer query options
 export function customerQueryOptions(id: string) {
   return queryOptions({
-    queryKey: ['customers', id],
+    queryKey: queryKeys.customers.detail(id),
     queryFn: () => fetchApi<ClientResponse>(`/api/admin/customers/${id}`),
     staleTime: 1000 * 60 * 10, // 10 minutes for individual customer
     gcTime: 1000 * 60 * 30, // 30 minutes
@@ -118,7 +88,7 @@ export function useCustomerOperations(options: UseCustomerOperationsOptions = {}
       void logger.error('Failed to create customer:', error);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
       showSuccessToast('Customer created successfully');
     }
   });
@@ -135,8 +105,8 @@ export function useCustomerOperations(options: UseCustomerOperationsOptions = {}
       void logger.error('Failed to update customer:', error);
     },
     onSuccess: (updatedCustomer, { id }) => {
-      queryClient.setQueryData(['customers', id], updatedCustomer);
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.setQueryData(queryKeys.customers.detail(id), updatedCustomer);
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
       showSuccessToast('Customer updated successfully');
     }
   });
@@ -151,8 +121,8 @@ export function useCustomerOperations(options: UseCustomerOperationsOptions = {}
       void logger.error('Failed to delete customer:', error);
     },
     onSuccess: (_, customerId) => {
-      queryClient.removeQueries({ queryKey: ['customers', customerId] });
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.removeQueries({ queryKey: queryKeys.customers.detail(customerId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
       showSuccessToast('Customer deleted successfully');
     }
   });
@@ -263,8 +233,8 @@ export function useCustomerOperations(options: UseCustomerOperationsOptions = {}
     prefetchNextPage,
 
     // Query utilities
-    invalidateCustomers: () => queryClient.invalidateQueries({ queryKey: ['customers'] }),
-    removeCustomerFromCache: (id: string) => queryClient.removeQueries({ queryKey: ['customers', id] }),
+    invalidateCustomers: () => queryClient.invalidateQueries({ queryKey: queryKeys.customers.all }),
+    removeCustomerFromCache: (id: string) => queryClient.removeQueries({ queryKey: queryKeys.customers.detail(id) }),
   };
 }
 

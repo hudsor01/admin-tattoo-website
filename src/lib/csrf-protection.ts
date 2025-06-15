@@ -6,7 +6,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { NextRequest } from 'next/server';
 import { env } from './env-validation';
-import { logger } from './secure-logger';
+import { logger } from './logger';
 
 // CSRF token configuration
 const CSRF_CONFIG = {

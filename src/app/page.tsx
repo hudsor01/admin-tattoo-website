@@ -1,173 +1,155 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { signIn } from "@/lib/auth-client"
-import { useUser, useIsVerifiedAdmin } from "@/lib/auth-client"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { signIn } from "@/lib/auth-client";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
-function LoginForm() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { user, isLoading: userLoading } = useUser()
-  const isVerifiedAdmin = useIsVerifiedAdmin()
-
-  // Check if user is already authenticated and redirect to dashboard
-  useEffect(() => {
-    if (!userLoading && user && isVerifiedAdmin) {
-      router.push('/dashboard')
-    }
-  }, [user, userLoading, isVerifiedAdmin, router])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
-
-    try {
-      const result = await signIn.email({
-        email,
-        password,
-      })
-
-      if (result.error) {
-        setError(result.error.message || "Invalid email or password")
-      } else if (result.data?.user) {
-        // Successful sign in - redirect to dashboard
-        router.push('/dashboard')
-      }
-    } catch {
-      setError("An unexpected error occurred. Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Show loading while checking authentication
-  if (userLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Don't show login form if user is already authenticated
-  if (user && isVerifiedAdmin) {
-    return null
-  }
+export default function SignIn() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md space-y-6">
-        {/* Branding/Logo area */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-orange-600">Ink 37 Tattoos</h1>
-          <p className="text-muted-foreground">Admin Dashboard</p>
-        </div>
-
-        <Card>
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">
-              Login to your account
-            </CardTitle>
-            <CardDescription className="text-center">
-              Enter your email below to login to your admin dashboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {searchParams.get('error') === 'insufficient_permissions' && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertDescription>
-                  You need admin privileges to access the dashboard.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@ink37tattoos.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-orange-500 hover:bg-orange-600"
-                disabled={isLoading || !email || !password}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Login"
-                )}
-              </Button>
-            </form>
-
-            <div className="mt-4 text-center text-sm text-muted-foreground">
-              Need admin access?{" "}
-              <a href="mailto:admin@ink37tattoos.com" className="underline hover:text-orange-600">
-                Contact administrator
-              </a>
+    <Card className="max-w-md">
+      <CardHeader>
+        <CardTitle className="text-lg md:text-xl">Sign In</CardTitle>
+        <CardDescription className="text-xs md:text-sm">
+          Enter your email below to login to your account
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                }}
+                value={email}
+              />
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-}
 
-export default function HomePage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-          <p className="text-muted-foreground">Loading...</p>
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                    href="#"
+                    className="ml-auto inline-block text-sm underline"
+                  >
+                    Forgot your password?
+                  </Link>
+              </div>
+
+              <Input
+                id="password"
+                type="password"
+                placeholder="password"
+                autoComplete="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+                <Checkbox
+                  id="remember"
+                  onClick={() => {
+                    setRememberMe(!rememberMe);
+                  }}
+                />
+                <Label htmlFor="remember">Remember me</Label>
+              </div>
+
+          
+
+          <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+              onClick={async () => {
+                await signIn.email(
+                {
+                    email,
+                    password
+                },
+                {
+                  onRequest: (_ctx) => {
+                    setLoading(true);
+                  },
+                  onResponse: (_ctx) => {
+                    setLoading(false);
+                  },
+                },
+                );
+              }}
+            >
+              {loading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <p> Login </p>
+              )}
+              </Button>
+
+          
+
+          <div className={cn(
+              "w-full gap-2 flex items-center",
+              "justify-between flex-col"
+            )}>
+              
+				<Button
+                  variant="outline"
+                  className={cn(
+                    "w-full gap-2"
+                  )}
+                  disabled={loading}
+                  onClick={async () => {
+                    await signIn.social(
+                    {
+                      provider: "google",
+                      callbackURL: "/dashboard",
+                      errorCallbackURL: "/?error=oauth_failed",
+                      newUserCallbackURL: "/dashboard?welcome=true"
+                    },
+                    {
+                      onRequest: (_ctx) => {
+                         setLoading(true);
+                      },
+                      onResponse: (_ctx) => {
+                         setLoading(false);
+                      },
+                      onError: (ctx) => {
+                        setLoading(false);
+                        console.error("OAuth error:", ctx.error);
+                      },
+                     },
+                    );
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="0.98em" height="1em" viewBox="0 0 256 262">
+				<path fill="#4285F4" d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622l38.755 30.023l2.685.268c24.659-22.774 38.875-56.282 38.875-96.027"></path>
+				<path fill="#34A853" d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055c-34.523 0-63.824-22.773-74.269-54.25l-1.531.13l-40.298 31.187l-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1"></path>
+				<path fill="#FBBC05" d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82c0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602z"></path>
+				<path fill="#EB4335" d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0C79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"></path>
+			</svg>
+                  Sign in with Google
+                </Button>
+            </div>
         </div>
-      </div>
-    }>
-      <LoginForm />
-    </Suspense>
-  )
+      </CardContent>
+      
+    </Card>
+  );
 }

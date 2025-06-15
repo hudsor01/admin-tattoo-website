@@ -258,13 +258,7 @@ export interface ClientAnalytics {
   topClients: Array<{ client: Client; totalSpent: number; sessionCount: number }>;
 }
 
-// Chart data types
-export interface ChartDataPoint {
-  label: string;
-  value: number;
-  date?: string;
-  category?: string;
-}
+// Chart data types - use ChartDataPoint from @/types/dashboard instead
 
 export interface TimeSeriesDataPoint {
   date: string;
