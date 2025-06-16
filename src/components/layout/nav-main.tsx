@@ -35,41 +35,40 @@ export function NavMain({
             const isActive = pathname === item.url
             return (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton 
-                  asChild
-                  tooltip={item.title}
-                  className={`
-                    transition-all duration-200 font-semibold py-3 px-3 rounded-xl mx-1
-                    ${isActive 
-                      ? 'bg-brand-gradient text-white shadow-lg' 
-                      : 'hover:bg-brand-gradient-soft hover:text-orange-700 dark:hover:text-orange-300'
-                    }
-                  `}
-                >
-                  <Link href={item.url} className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between w-full">
+                  <SidebarMenuButton 
+                    asChild
+                    tooltip={item.title}
+                    className={`
+                      transition-all duration-200 font-semibold py-3 px-3 rounded-xl mx-1 flex-1
+                      ${isActive 
+                        ? 'bg-brand-gradient text-white shadow-lg' 
+                        : 'hover:bg-brand-gradient-soft hover:text-orange-700 dark:hover:text-orange-300'
+                      }
+                    `}
+                  >
+                    <Link href={item.url} className="flex items-center gap-3">
                       {item.icon && <item.icon className="w-6 h-6" />}
                       <span>{item.title}</span>
-                    </div>
-                    {item.hasQuickAction && item.quickActionUrl && (
-                      <Button
-                        asChild
-                        size="sm"
-                        variant="ghost"
-                        className={`h-6 w-6 p-0 ml-auto transition-colors ${
-                          isActive 
-                            ? 'hover:bg-white/20 text-white' 
-                            : 'hover:bg-brand-gradient hover:text-white'
-                        }`}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Link href={item.quickActionUrl}>
-                          <IconPlus className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    )}
-                  </Link>
-                </SidebarMenuButton>
+                    </Link>
+                  </SidebarMenuButton>
+                  {item.hasQuickAction && item.quickActionUrl && (
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="ghost"
+                      className={`h-6 w-6 p-0 ml-2 transition-colors ${
+                        isActive 
+                          ? 'hover:bg-white/20 text-white' 
+                          : 'hover:bg-brand-gradient hover:text-white'
+                      }`}
+                    >
+                      <Link href={item.quickActionUrl}>
+                        <IconPlus className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  )}
+                </div>
               </SidebarMenuItem>
             )
           })}

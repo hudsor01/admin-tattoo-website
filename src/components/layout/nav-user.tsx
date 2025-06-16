@@ -31,17 +31,23 @@ import { LogoutMenuItem } from "@/components/auth/logout-button"
 import { useUser } from "@/stores/auth-store"
 
 // Helper functions
-function getImageSrc(user: any): string | undefined {
-  if (typeof user?.image === 'string') return user.image;
-  if (typeof user?.avatar === 'string') return user.avatar;
-  return undefined;
+function getImageSrc(user: any): string | null {
+  // Only return a valid non-empty string, otherwise return null to prevent empty src
+  if (typeof user?.image === 'string' && user.image.trim().length > 0) {
+    return user.image;
+  }
+  if (typeof user?.avatar === 'string' && user.avatar.trim().length > 0) {
+    return user.avatar;
+  }
+  return null;
 }
 
 interface NavUserProps {
   user?: {
-    name: string
-    email: string
-    avatar: string
+    name?: string | null
+    email?: string | null
+    avatar?: string | null
+    image?: string | null
   }
 }
 
@@ -55,15 +61,28 @@ export function NavUser({ user: propUser }: NavUserProps) {
     email: "admin@ink37tattoos.com",
     avatar: "https://github.com/shadcn.png"
   }
+  
+  // Ensure we have safe fallbacks for display
+  const displayName = user?.name || 'Admin User'
+  const displayEmail = user?.email || 'admin@ink37tattoos.com'
 
   // Generate initials from name
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map(n => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
+  const getInitials = (name: string): string => {
+    if (!name || typeof name !== 'string') return 'U';
+    
+    const trimmedName = name.trim();
+    if (trimmedName.length === 0) return 'U';
+    
+    const parts = trimmedName
+      .split(/\s+/)
+      .filter(part => part.length > 0)
+      .map(part => part[0]?.toUpperCase())
+      .filter(initial => initial);
+    
+    if (parts.length === 0) return 'U';
+    if (parts.length === 1) return parts[0];
+    
+    return parts.slice(0, 2).join('');
   }
 
   return (
@@ -76,17 +95,19 @@ export function NavUser({ user: propUser }: NavUserProps) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 transition-colors"
             >
               <Avatar className="h-8 w-8 rounded-lg ring-2 ring-border">
-                <AvatarImage src={getImageSrc(user)} alt={user.name || ''} />
+                {getImageSrc(user) && (
+                  <AvatarImage src={getImageSrc(user)} alt={displayName} />
+                )}
                 <AvatarFallback className="rounded-lg bg-brand-gradient text-white font-semibold">
-                  {getInitials(user.name || 'U')}
+                  {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left leading-tight">
                 <span className="truncate font-semibold text-sidebar-foreground">
-                  {user.name}
+                  {displayName}
                 </span>
                 <span className="text-sidebar-foreground/70 truncate text-sm">
-                  {user.email}
+                  {displayEmail}
                 </span>
               </div>
               <IconDotsVertical className="ml-auto size-4 text-sidebar-foreground/70" />
@@ -101,17 +122,19 @@ export function NavUser({ user: propUser }: NavUserProps) {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-3 px-2 py-2 text-left">
                 <Avatar className="h-10 w-10 rounded-lg ring-2 ring-border">
-                  <AvatarImage src={getImageSrc(user)} alt={user.name || ''} />
+                  {getImageSrc(user) && (
+                    <AvatarImage src={getImageSrc(user)} alt={displayName} />
+                  )}
                   <AvatarFallback className="rounded-lg bg-brand-gradient text-white font-semibold">
-                    {getInitials(user.name || 'U')}
+                    {getInitials(displayName)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left leading-tight">
                   <span className="truncate font-semibold text-foreground">
-                    {user.name}
+                    {displayName}
                   </span>
                   <span className="text-muted-foreground truncate text-sm">
-                    {user.email}
+                    {displayEmail}
                   </span>
                   {authUser?.role && (
                     <span className="text-xs text-brand-gradient font-medium capitalize">

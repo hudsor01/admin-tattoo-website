@@ -9,7 +9,7 @@ export async function GET() {
     
     // Check critical environment variables
     const criticalVars = ['DATABASE_URL', 'BETTER_AUTH_SECRET'];
-    const missing = criticalVars.filter(v => !process.env[v]);
+    const missing = criticalVars.filter(v => !process.env[v as keyof typeof process.env]);
     
     if (missing.length > 0) {
       return NextResponse.json(

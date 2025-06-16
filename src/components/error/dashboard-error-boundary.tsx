@@ -44,14 +44,15 @@ export class DashboardErrorBoundary extends React.Component<DashboardErrorBounda
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('[Dashboard Error Boundary] Critical dashboard error:', {
-      error: error.message,
-      stack: error.stack,
+      error: error?.message || 'Unknown error',
+      errorName: error?.name || 'Error',
+      stack: error?.stack || 'No stack trace available',
       errorInfo,
       errorId: this.state.errorId,
       retryCount: this.state.retryCount,
       timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+      url: typeof window !== 'undefined' ? window.location.href : 'Unknown'
     });
 
     // Call custom error handler if provided
@@ -74,7 +75,10 @@ export class DashboardErrorBoundary extends React.Component<DashboardErrorBounda
       'ETIMEDOUT'
     ];
     
-    const errorMessage = error.message.toLowerCase();
+    // Safely handle null/undefined error messages
+    const errorMessage = (error?.message || error?.toString() || '').toLowerCase();
+    if (!errorMessage) return false;
+    
     return retryableErrors.some(keyword => errorMessage.includes(keyword));
   }
 
@@ -160,7 +164,15 @@ export class DashboardErrorBoundary extends React.Component<DashboardErrorBounda
                 
                 <div className="grid grid-cols-2 gap-2">
                   <Button 
-                    onClick={() => window.location.href = '/settings'}
+                    onClick={() => {
+                      try {
+                        if (typeof window !== 'undefined') {
+                          window.location.href = '/settings';
+                        }
+                      } catch (err) {
+                        console.error('Navigation error:', err);
+                      }
+                    }}
                     variant="outline"
                     size="sm"
                   >
@@ -168,7 +180,15 @@ export class DashboardErrorBoundary extends React.Component<DashboardErrorBounda
                     Settings
                   </Button>
                   <Button 
-                    onClick={() => window.location.href = 'mailto:support@ink37tattoos.com'}
+                    onClick={() => {
+                      try {
+                        if (typeof window !== 'undefined') {
+                          window.location.href = 'mailto:support@ink37tattoos.com';
+                        }
+                      } catch (err) {
+                        console.error('Email navigation error:', err);
+                      }
+                    }}
                     variant="outline"
                     size="sm"
                   >

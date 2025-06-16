@@ -1,0 +1,1283 @@
+import { describe, it, expect } from 'vitest'
+import type {
+  TattooArtist,
+  Client,
+  TattooSession,
+  Appointment,
+  TattooDesign,
+  User,
+  Account,
+  Session,
+  VerificationToken,
+  SessionStatus,
+  AppointmentStatus,
+  AppointmentType,
+  AppointmentWithClient,
+  TattooSessionWithClient,
+  ClientWithAppointments,
+  TattooDesignWithArtist,
+  UserWithAccounts,
+  GalleryItem,
+  DesignWithArtist,
+  ApiResponse,
+  PaginatedResponse,
+  AppointmentResponse,
+  ClientResponse,
+  TattooSessionResponse,
+  AppointmentFilters,
+  ClientFilters,
+  TattooSessionFilters,
+  CreateAppointmentData,
+  UpdateAppointmentData,
+  CreateClientData,
+  UpdateClientData,
+  CreateTattooSessionData,
+  UpdateTattooSessionData,
+  CreateContactData,
+  UpdateContactData,
+  AnalyticsTimeframe,
+  AppointmentAnalytics,
+  RevenueAnalytics,
+  ClientAnalytics,
+  TimeSeriesDataPoint
+} from '@/types/database'
+
+describe('Database Types', () => {
+  describe('Basic Database Model Types', () => {
+    it('should define TattooArtist interface properties', () => {
+      const artist: Partial<TattooArtist> = {
+        id: 'artist-123',
+        name: 'John Artist',
+        email: 'john@example.com',
+        specialties: ['Traditional', 'Realism'],
+        bio: 'Professional tattoo artist',
+        isActive: true
+      }
+
+      expect(typeof artist.id).toBe('string')
+      expect(typeof artist.name).toBe('string')
+      expect(typeof artist.email).toBe('string')
+      expect(Array.isArray(artist.specialties)).toBe(true)
+      expect(typeof artist.bio).toBe('string')
+      expect(typeof artist.isActive).toBe('boolean')
+    })
+
+    it('should define Client interface properties', () => {
+      const client: Partial<Client> = {
+        id: 'client-123',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        phone: '+1234567890',
+        dateOfBirth: new Date('1990-01-01'),
+        address: '123 Main St',
+        emergencyName: 'Jane Doe',
+        emergencyPhone: '+0987654321',
+        medicalConds: ['None'],
+        allergies: ['Peanuts'],
+        notes: 'VIP client'
+      }
+
+      expect(typeof client.id).toBe('string')
+      expect(typeof client.firstName).toBe('string')
+      expect(typeof client.lastName).toBe('string')
+      expect(typeof client.email).toBe('string')
+      expect(typeof client.phone).toBe('string')
+      expect(client.dateOfBirth instanceof Date).toBe(true)
+      expect(typeof client.address).toBe('string')
+      expect(Array.isArray(client.medicalConds)).toBe(true)
+      expect(Array.isArray(client.allergies)).toBe(true)
+      expect(typeof client.notes).toBe('string')
+    })
+
+    it('should define TattooSession interface properties', () => {
+      const session: Partial<TattooSession> = {
+        id: 'session-123',
+        clientId: 'client-123',
+        artistId: 'artist-123',
+        appointmentDate: new Date(),
+        duration: 180,
+        description: 'Dragon tattoo session',
+        bodyPart: 'Arm',
+        size: 'Medium',
+        style: 'Traditional',
+        totalCost: 500,
+        depositAmount: 100,
+        status: 'COMPLETED' as SessionStatus
+      }
+
+      expect(typeof session.id).toBe('string')
+      expect(typeof session.clientId).toBe('string')
+      expect(typeof session.artistId).toBe('string')
+      expect(session.appointmentDate instanceof Date).toBe(true)
+      expect(typeof session.duration).toBe('number')
+      expect(typeof session.description).toBe('string')
+      expect(typeof session.totalCost).toBe('number')
+      expect(typeof session.status).toBe('string')
+    })
+
+    it('should define Appointment interface properties', () => {
+      const appointment: Partial<Appointment> = {
+        id: 'appointment-123',
+        clientId: 'client-123',
+        type: 'CONSULTATION' as AppointmentType,
+        status: 'SCHEDULED' as AppointmentStatus,
+        appointmentDate: new Date(),
+        duration: 60,
+        description: 'Initial consultation',
+        notes: 'First appointment'
+      }
+
+      expect(typeof appointment.id).toBe('string')
+      expect(typeof appointment.clientId).toBe('string')
+      expect(typeof appointment.type).toBe('string')
+      expect(typeof appointment.status).toBe('string')
+      expect(appointment.appointmentDate instanceof Date).toBe(true)
+      expect(typeof appointment.duration).toBe('number')
+      expect(typeof appointment.description).toBe('string')
+    })
+
+    it('should define TattooDesign interface properties', () => {
+      const design: Partial<TattooDesign> = {
+        id: 'design-123',
+        title: 'Dragon Design',
+        description: 'Traditional dragon artwork',
+        imageUrl: 'https://example.com/dragon.jpg',
+        style: 'Traditional',
+        tags: ['dragon', 'traditional'],
+        artistId: 'artist-123',
+        isPublic: true,
+        estimatedHours: 8
+      }
+
+      expect(typeof design.id).toBe('string')
+      expect(typeof design.title).toBe('string')
+      expect(typeof design.description).toBe('string')
+      expect(typeof design.imageUrl).toBe('string')
+      expect(typeof design.style).toBe('string')
+      expect(Array.isArray(design.tags)).toBe(true)
+      expect(typeof design.artistId).toBe('string')
+      expect(typeof design.isPublic).toBe('boolean')
+      expect(typeof design.estimatedHours).toBe('number')
+    })
+
+    it('should define User interface properties', () => {
+      const user: Partial<User> = {
+        id: 'user-123',
+        email: 'user@example.com',
+        name: 'John User',
+        image: 'https://example.com/avatar.jpg',
+        emailVerified: new Date(),
+        role: 'USER'
+      }
+
+      expect(typeof user.id).toBe('string')
+      expect(typeof user.email).toBe('string')
+      expect(typeof user.name).toBe('string')
+      expect(typeof user.image).toBe('string')
+      expect(user.emailVerified instanceof Date).toBe(true)
+      expect(typeof user.role).toBe('string')
+    })
+
+    it('should define Account interface properties', () => {
+      const account: Partial<Account> = {
+        id: 'account-123',
+        userId: 'user-123',
+        type: 'oauth',
+        provider: 'google',
+        providerAccountId: 'provider-123',
+        refresh_token: 'refresh-token',
+        access_token: 'access-token',
+        expires_at: 1234567890,
+        token_type: 'Bearer',
+        scope: 'email profile'
+      }
+
+      expect(typeof account.id).toBe('string')
+      expect(typeof account.userId).toBe('string')
+      expect(typeof account.type).toBe('string')
+      expect(typeof account.provider).toBe('string')
+      expect(typeof account.providerAccountId).toBe('string')
+      expect(typeof account.refresh_token).toBe('string')
+      expect(typeof account.access_token).toBe('string')
+      expect(typeof account.expires_at).toBe('number')
+    })
+
+    it('should define Session interface properties', () => {
+      const session: Partial<Session> = {
+        id: 'session-123',
+        sessionToken: 'session-token-123',
+        userId: 'user-123',
+        expires: new Date(Date.now() + 86400000)
+      }
+
+      expect(typeof session.id).toBe('string')
+      expect(typeof session.sessionToken).toBe('string')
+      expect(typeof session.userId).toBe('string')
+      expect(session.expires instanceof Date).toBe(true)
+    })
+
+    it('should define VerificationToken interface properties', () => {
+      const token: Partial<VerificationToken> = {
+        identifier: 'email@example.com',
+        token: 'verification-token-123',
+        expires: new Date(Date.now() + 3600000)
+      }
+
+      expect(typeof token.identifier).toBe('string')
+      expect(typeof token.token).toBe('string')
+      expect(token.expires instanceof Date).toBe(true)
+    })
+  })
+
+  describe('Extended Prisma Payload Types', () => {
+    it('should define AppointmentWithClient structure', () => {
+      const appointmentWithClient: AppointmentWithClient = {
+        id: 'appointment-123',
+        clientId: 'client-123',
+        type: 'CONSULTATION',
+        status: 'SCHEDULED',
+        appointmentDate: new Date(),
+        duration: 60,
+        description: 'Initial consultation',
+        notes: 'First appointment',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        calBookingUid: null,
+        calEventTypeId: null,
+        calStatus: null,
+        calMeetingUrl: null,
+        client: {
+          id: 'client-123',
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          dateOfBirth: new Date('1990-01-01'),
+          address: '123 Main St',
+          emergencyName: 'Jane Doe',
+          emergencyPhone: '+0987654321',
+          emergencyRel: 'Spouse',
+          medicalConds: ['None'],
+          allergies: ['Peanuts'],
+          medications: 'None',
+          preferredArtist: 'artist-123',
+          notes: 'VIP client',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          city: null,
+          state: null,
+          postalCode: null,
+          country: null
+        }
+      }
+
+      expect(appointmentWithClient.client).toBeDefined()
+      expect(appointmentWithClient.client.firstName).toBe('John')
+      expect(appointmentWithClient.client.lastName).toBe('Doe')
+      expect(appointmentWithClient.type).toBe('CONSULTATION')
+      expect(appointmentWithClient.status).toBe('SCHEDULED')
+    })
+
+    it('should define TattooSessionWithClient structure', () => {
+      const sessionWithClient: TattooSessionWithClient = {
+        id: 'session-123',
+        clientId: 'client-123',
+        artistId: 'artist-123',
+        appointmentDate: new Date(),
+        duration: 180,
+        description: 'Dragon tattoo session',
+        bodyPart: 'Arm',
+        size: 'Medium',
+        style: 'Traditional',
+        totalCost: 500,
+        depositAmount: 100,
+        status: 'COMPLETED',
+        notes: 'Excellent session',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        client: {
+          id: 'client-123',
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          dateOfBirth: new Date('1990-01-01'),
+          address: '123 Main St',
+          emergencyName: 'Jane Doe',
+          emergencyPhone: '+0987654321',
+          emergencyRel: 'Spouse',
+          medicalConds: ['None'],
+          allergies: ['Peanuts'],
+          medications: 'None',
+          preferredArtist: 'artist-123',
+          notes: 'VIP client',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          city: null,
+          state: null,
+          postalCode: null,
+          country: null
+        },
+        artist: {
+          id: 'artist-123',
+          name: 'John Artist',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          specialties: ['Traditional', 'Realism'],
+          bio: 'Professional tattoo artist',
+          portfolioUrl: 'https://example.com/portfolio',
+          instagramHandle: '@johnartist',
+          hourlyRate: 150,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      }
+
+      expect(sessionWithClient.client).toBeDefined()
+      expect(sessionWithClient.artist).toBeDefined()
+      expect(sessionWithClient.client.firstName).toBe('John')
+      expect(sessionWithClient.artist.name).toBe('John Artist')
+      expect(sessionWithClient.status).toBe('COMPLETED')
+    })
+
+    it('should define ClientWithAppointments structure', () => {
+      const clientWithAppointments: ClientWithAppointments = {
+        id: 'client-123',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        phone: '+1234567890',
+        dateOfBirth: new Date('1990-01-01'),
+        address: '123 Main St',
+        emergencyName: 'Jane Doe',
+        emergencyPhone: '+0987654321',
+        emergencyRel: 'Spouse',
+        medicalConds: ['None'],
+        allergies: ['Peanuts'],
+        medications: 'None',
+        preferredArtist: 'artist-123',
+        notes: 'VIP client',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        city: null,
+        state: null,
+        postalCode: null,
+        country: null,
+        appointments: [
+          {
+            id: 'appointment-123',
+            clientId: 'client-123',
+            type: 'CONSULTATION',
+            status: 'SCHEDULED',
+            appointmentDate: new Date(),
+            duration: 60,
+            description: 'Initial consultation',
+            notes: 'First appointment',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            calBookingUid: null,
+            calEventTypeId: null,
+            calStatus: null,
+            calMeetingUrl: null
+          }
+        ],
+        sessions: [
+          {
+            id: 'session-123',
+            clientId: 'client-123',
+            artistId: 'artist-123',
+            appointmentDate: new Date(),
+            duration: 180,
+            description: 'Dragon tattoo session',
+            bodyPart: 'Arm',
+            size: 'Medium',
+            style: 'Traditional',
+            totalCost: 500,
+            depositAmount: 100,
+            status: 'COMPLETED',
+            notes: 'Excellent session',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        ]
+      }
+
+      expect(clientWithAppointments.appointments).toBeDefined()
+      expect(clientWithAppointments.sessions).toBeDefined()
+      expect(Array.isArray(clientWithAppointments.appointments)).toBe(true)
+      expect(Array.isArray(clientWithAppointments.sessions)).toBe(true)
+      expect(clientWithAppointments.appointments).toHaveLength(1)
+      expect(clientWithAppointments.sessions).toHaveLength(1)
+    })
+
+    it('should define TattooDesignWithArtist structure', () => {
+      const designWithArtist: TattooDesignWithArtist = {
+        id: 'design-123',
+        title: 'Dragon Design',
+        description: 'Traditional dragon artwork',
+        imageUrl: 'https://example.com/dragon.jpg',
+        style: 'Traditional',
+        tags: ['dragon', 'traditional'],
+        artistId: 'artist-123',
+        isPublic: true,
+        estimatedHours: 8,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        artist: {
+          id: 'artist-123',
+          name: 'John Artist',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          specialties: ['Traditional', 'Realism'],
+          bio: 'Professional tattoo artist',
+          portfolioUrl: 'https://example.com/portfolio',
+          instagramHandle: '@johnartist',
+          hourlyRate: 150,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      }
+
+      expect(designWithArtist.artist).toBeDefined()
+      expect(designWithArtist.artist.name).toBe('John Artist')
+      expect(designWithArtist.title).toBe('Dragon Design')
+      expect(designWithArtist.style).toBe('Traditional')
+    })
+
+    it('should define UserWithAccounts structure', () => {
+      const userWithAccounts: UserWithAccounts = {
+        id: 'user-123',
+        email: 'user@example.com',
+        emailVerified: new Date(),
+        name: 'John User',
+        image: 'https://example.com/avatar.jpg',
+        role: 'USER',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        accounts: [
+          {
+            id: 'account-123',
+            userId: 'user-123',
+            type: 'oauth',
+            provider: 'google',
+            providerAccountId: 'provider-123',
+            refresh_token: 'refresh-token',
+            access_token: 'access-token',
+            expires_at: 1234567890,
+            token_type: 'Bearer',
+            scope: 'email profile',
+            id_token: null,
+            session_state: null
+          }
+        ],
+        sessions: [
+          {
+            id: 'session-123',
+            sessionToken: 'session-token-123',
+            userId: 'user-123',
+            expires: new Date(Date.now() + 86400000)
+          }
+        ]
+      }
+
+      expect(userWithAccounts.accounts).toBeDefined()
+      expect(userWithAccounts.sessions).toBeDefined()
+      expect(Array.isArray(userWithAccounts.accounts)).toBe(true)
+      expect(Array.isArray(userWithAccounts.sessions)).toBe(true)
+      expect(userWithAccounts.accounts).toHaveLength(1)
+      expect(userWithAccounts.sessions).toHaveLength(1)
+    })
+  })
+
+  describe('Gallery and Design Types', () => {
+    it('should define GalleryItem as TattooDesign alias', () => {
+      const galleryItem: GalleryItem = {
+        id: 'design-123',
+        title: 'Dragon Design',
+        description: 'Traditional dragon artwork',
+        imageUrl: 'https://example.com/dragon.jpg',
+        style: 'Traditional',
+        tags: ['dragon', 'traditional'],
+        artistId: 'artist-123',
+        isPublic: true,
+        estimatedHours: 8,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+
+      expect(galleryItem.id).toBe('design-123')
+      expect(galleryItem.title).toBe('Dragon Design')
+      expect(galleryItem.style).toBe('Traditional')
+      expect(galleryItem.isPublic).toBe(true)
+    })
+
+    it('should define DesignWithArtist as Prisma payload', () => {
+      const designWithArtist: DesignWithArtist = {
+        id: 'design-123',
+        title: 'Dragon Design',
+        description: 'Traditional dragon artwork',
+        imageUrl: 'https://example.com/dragon.jpg',
+        style: 'Traditional',
+        tags: ['dragon', 'traditional'],
+        artistId: 'artist-123',
+        isPublic: true,
+        estimatedHours: 8,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        artist: {
+          id: 'artist-123',
+          name: 'John Artist',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          specialties: ['Traditional', 'Realism'],
+          bio: 'Professional tattoo artist',
+          portfolioUrl: 'https://example.com/portfolio',
+          instagramHandle: '@johnartist',
+          hourlyRate: 150,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      }
+
+      expect(designWithArtist.artist).toBeDefined()
+      expect(designWithArtist.artist.name).toBe('John Artist')
+      expect(designWithArtist.artist.specialties).toContain('Traditional')
+    })
+  })
+
+  describe('API Response Types', () => {
+    it('should define ApiResponse structure', () => {
+      const successResponse: ApiResponse<{ id: string; name: string }> = {
+        success: true,
+        data: { id: '123', name: 'Test' },
+        message: 'Operation successful'
+      }
+
+      const errorResponse: ApiResponse = {
+        success: false,
+        error: 'Something went wrong',
+        message: 'Operation failed'
+      }
+
+      expect(successResponse.success).toBe(true)
+      expect(successResponse.data).toBeDefined()
+      expect(successResponse.data?.id).toBe('123')
+      expect(successResponse.message).toBe('Operation successful')
+
+      expect(errorResponse.success).toBe(false)
+      expect(errorResponse.error).toBe('Something went wrong')
+      expect(errorResponse.data).toBeUndefined()
+    })
+
+    it('should define PaginatedResponse structure', () => {
+      const paginatedResponse: PaginatedResponse<{ id: string; name: string }> = {
+        success: true,
+        data: [
+          { id: '1', name: 'Item 1' },
+          { id: '2', name: 'Item 2' }
+        ],
+        pagination: {
+          total: 100,
+          page: 1,
+          limit: 10,
+          offset: 0,
+          hasMore: true
+        }
+      }
+
+      expect(paginatedResponse.success).toBe(true)
+      expect(Array.isArray(paginatedResponse.data)).toBe(true)
+      expect(paginatedResponse.data).toHaveLength(2)
+      expect(paginatedResponse.pagination.total).toBe(100)
+      expect(paginatedResponse.pagination.hasMore).toBe(true)
+    })
+
+    it('should define AppointmentResponse structure', () => {
+      const appointmentResponse: AppointmentResponse = {
+        id: 'appointment-123',
+        clientId: 'client-123',
+        type: 'CONSULTATION',
+        status: 'SCHEDULED',
+        appointmentDate: new Date(),
+        duration: 60,
+        description: 'Initial consultation',
+        notes: 'First appointment',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        calBookingUid: null,
+        calEventTypeId: null,
+        calStatus: null,
+        calMeetingUrl: null,
+        client: {
+          id: 'client-123',
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          dateOfBirth: new Date('1990-01-01'),
+          address: '123 Main St',
+          emergencyName: 'Jane Doe',
+          emergencyPhone: '+0987654321',
+          emergencyRel: 'Spouse',
+          medicalConds: ['None'],
+          allergies: ['Peanuts'],
+          medications: 'None',
+          preferredArtist: 'artist-123',
+          notes: 'VIP client',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          city: null,
+          state: null,
+          postalCode: null,
+          country: null
+        },
+        artist: {
+          id: 'artist-123',
+          name: 'John Artist',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          specialties: ['Traditional', 'Realism'],
+          bio: 'Professional tattoo artist',
+          portfolioUrl: 'https://example.com/portfolio',
+          instagramHandle: '@johnartist',
+          hourlyRate: 150,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      }
+
+      expect(appointmentResponse.client).toBeDefined()
+      expect(appointmentResponse.artist).toBeDefined()
+      expect(appointmentResponse.type).toBe('CONSULTATION')
+      expect(appointmentResponse.status).toBe('SCHEDULED')
+    })
+
+    it('should define ClientResponse structure', () => {
+      const clientResponse: ClientResponse = {
+        id: 'client-123',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        phone: '+1234567890',
+        dateOfBirth: new Date('1990-01-01'),
+        address: '123 Main St',
+        emergencyName: 'Jane Doe',
+        emergencyPhone: '+0987654321',
+        emergencyRel: 'Spouse',
+        medicalConds: ['None'],
+        allergies: ['Peanuts'],
+        medications: 'None',
+        preferredArtist: 'artist-123',
+        notes: 'VIP client',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        city: null,
+        state: null,
+        postalCode: null,
+        country: null,
+        appointments: [
+          {
+            id: 'appointment-123',
+            clientId: 'client-123',
+            type: 'CONSULTATION',
+            status: 'SCHEDULED',
+            appointmentDate: new Date(),
+            duration: 60,
+            description: 'Initial consultation',
+            notes: 'First appointment',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            calBookingUid: null,
+            calEventTypeId: null,
+            calStatus: null,
+            calMeetingUrl: null
+          }
+        ],
+        sessions: [
+          {
+            id: 'session-123',
+            clientId: 'client-123',
+            artistId: 'artist-123',
+            appointmentDate: new Date(),
+            duration: 180,
+            description: 'Dragon tattoo session',
+            bodyPart: 'Arm',
+            size: 'Medium',
+            style: 'Traditional',
+            totalCost: 500,
+            depositAmount: 100,
+            status: 'COMPLETED',
+            notes: 'Excellent session',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        ]
+      }
+
+      expect(clientResponse.appointments).toBeDefined()
+      expect(clientResponse.sessions).toBeDefined()
+      expect(Array.isArray(clientResponse.appointments)).toBe(true)
+      expect(Array.isArray(clientResponse.sessions)).toBe(true)
+    })
+
+    it('should define TattooSessionResponse structure', () => {
+      const sessionResponse: TattooSessionResponse = {
+        id: 'session-123',
+        clientId: 'client-123',
+        artistId: 'artist-123',
+        appointmentDate: new Date(),
+        duration: 180,
+        description: 'Dragon tattoo session',
+        bodyPart: 'Arm',
+        size: 'Medium',
+        style: 'Traditional',
+        totalCost: 500,
+        depositAmount: 100,
+        status: 'COMPLETED',
+        notes: 'Excellent session',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        client: {
+          id: 'client-123',
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          dateOfBirth: new Date('1990-01-01'),
+          address: '123 Main St',
+          emergencyName: 'Jane Doe',
+          emergencyPhone: '+0987654321',
+          emergencyRel: 'Spouse',
+          medicalConds: ['None'],
+          allergies: ['Peanuts'],
+          medications: 'None',
+          preferredArtist: 'artist-123',
+          notes: 'VIP client',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          city: null,
+          state: null,
+          postalCode: null,
+          country: null
+        },
+        artist: {
+          id: 'artist-123',
+          name: 'John Artist',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          specialties: ['Traditional', 'Realism'],
+          bio: 'Professional tattoo artist',
+          portfolioUrl: 'https://example.com/portfolio',
+          instagramHandle: '@johnartist',
+          hourlyRate: 150,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      }
+
+      expect(sessionResponse.client).toBeDefined()
+      expect(sessionResponse.artist).toBeDefined()
+      expect(sessionResponse.status).toBe('COMPLETED')
+      expect(sessionResponse.totalCost).toBe(500)
+    })
+  })
+
+  describe('Filter Types', () => {
+    it('should define AppointmentFilters structure', () => {
+      const filters: AppointmentFilters = {
+        status: ['SCHEDULED', 'CONFIRMED'],
+        type: ['CONSULTATION', 'TATTOO'],
+        dateFrom: new Date('2024-01-01'),
+        dateTo: new Date('2024-12-31'),
+        clientId: 'client-123',
+        search: 'john',
+        page: 1,
+        limit: 20
+      }
+
+      expect(Array.isArray(filters.status)).toBe(true)
+      expect(Array.isArray(filters.type)).toBe(true)
+      expect(filters.dateFrom instanceof Date).toBe(true)
+      expect(filters.dateTo instanceof Date).toBe(true)
+      expect(typeof filters.clientId).toBe('string')
+      expect(typeof filters.search).toBe('string')
+      expect(typeof filters.page).toBe('number')
+      expect(typeof filters.limit).toBe('number')
+    })
+
+    it('should define ClientFilters structure', () => {
+      const filters: ClientFilters = {
+        search: 'john',
+        hasAppointments: true,
+        createdFrom: new Date('2024-01-01'),
+        createdTo: new Date('2024-12-31'),
+        page: 1,
+        limit: 20,
+        offset: 0
+      }
+
+      expect(typeof filters.search).toBe('string')
+      expect(typeof filters.hasAppointments).toBe('boolean')
+      expect(filters.createdFrom instanceof Date).toBe(true)
+      expect(filters.createdTo instanceof Date).toBe(true)
+      expect(typeof filters.page).toBe('number')
+      expect(typeof filters.limit).toBe('number')
+      expect(typeof filters.offset).toBe('number')
+    })
+
+    it('should define TattooSessionFilters structure', () => {
+      const filters: TattooSessionFilters = {
+        status: ['COMPLETED', 'IN_PROGRESS'],
+        dateFrom: new Date('2024-01-01'),
+        dateTo: new Date('2024-12-31'),
+        clientId: 'client-123',
+        artistId: 'artist-123',
+        page: 1,
+        limit: 20
+      }
+
+      expect(Array.isArray(filters.status)).toBe(true)
+      expect(filters.dateFrom instanceof Date).toBe(true)
+      expect(filters.dateTo instanceof Date).toBe(true)
+      expect(typeof filters.clientId).toBe('string')
+      expect(typeof filters.artistId).toBe('string')
+      expect(typeof filters.page).toBe('number')
+      expect(typeof filters.limit).toBe('number')
+    })
+  })
+
+  describe('Create/Update Data Types', () => {
+    it('should define CreateAppointmentData structure', () => {
+      const createData: CreateAppointmentData = {
+        clientId: 'client-123',
+        customerId: 'client-123', // Legacy compatibility
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        phone: '+1234567890',
+        type: 'CONSULTATION',
+        description: 'Initial consultation',
+        appointmentDate: new Date(),
+        startDate: new Date(), // Legacy compatibility
+        notes: 'First appointment',
+        estimatedDuration: 60,
+        duration: 60, // Legacy compatibility
+        artistId: 'artist-123',
+        status: 'SCHEDULED'
+      }
+
+      expect(typeof createData.clientId).toBe('string')
+      expect(typeof createData.customerId).toBe('string')
+      expect(typeof createData.firstName).toBe('string')
+      expect(typeof createData.lastName).toBe('string')
+      expect(typeof createData.email).toBe('string')
+      expect(typeof createData.type).toBe('string')
+      expect(createData.appointmentDate instanceof Date).toBe(true)
+      expect(createData.startDate instanceof Date).toBe(true)
+    })
+
+    it('should define UpdateAppointmentData structure', () => {
+      const updateData: UpdateAppointmentData = {
+        id: 'appointment-123',
+        status: 'CONFIRMED',
+        calBookingUid: 'cal-booking-123',
+        calEventTypeId: 456,
+        calStatus: 'confirmed',
+        calMeetingUrl: 'https://cal.com/meeting/123',
+        notes: 'Updated notes'
+      }
+
+      expect(typeof updateData.id).toBe('string')
+      expect(typeof updateData.status).toBe('string')
+      expect(typeof updateData.calBookingUid).toBe('string')
+      expect(typeof updateData.calEventTypeId).toBe('number')
+      expect(typeof updateData.calStatus).toBe('string')
+      expect(typeof updateData.calMeetingUrl).toBe('string')
+    })
+
+    it('should define CreateClientData structure', () => {
+      const createData: CreateClientData = {
+        firstName: 'John',
+        lastName: 'Doe',
+        name: 'John Doe', // Legacy compatibility
+        email: 'john@example.com',
+        phone: '+1234567890',
+        address: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        postalCode: '10001',
+        country: 'USA',
+        dateOfBirth: new Date('1990-01-01'),
+        birthDate: '1990-01-01', // Legacy compatibility
+        emergencyName: 'Jane Doe',
+        emergencyPhone: '+0987654321',
+        emergencyRel: 'Spouse',
+        medicalConditions: 'None',
+        medicalConds: ['None'], // Schema field name
+        allergies: ['Peanuts'],
+        medications: 'None',
+        preferredArtist: 'artist-123',
+        notes: 'VIP client'
+      }
+
+      expect(typeof createData.firstName).toBe('string')
+      expect(typeof createData.lastName).toBe('string')
+      expect(typeof createData.name).toBe('string')
+      expect(typeof createData.email).toBe('string')
+      expect(typeof createData.phone).toBe('string')
+      expect(createData.dateOfBirth instanceof Date).toBe(true)
+      expect(typeof createData.birthDate).toBe('string')
+      expect(Array.isArray(createData.medicalConds)).toBe(true)
+      expect(Array.isArray(createData.allergies)).toBe(true)
+    })
+
+    it('should define UpdateClientData structure', () => {
+      const updateData: UpdateClientData = {
+        id: 'client-123',
+        firstName: 'John Updated',
+        notes: 'Updated notes'
+      }
+
+      expect(typeof updateData.id).toBe('string')
+      expect(typeof updateData.firstName).toBe('string')
+      expect(typeof updateData.notes).toBe('string')
+    })
+
+    it('should define CreateTattooSessionData structure', () => {
+      const createData: CreateTattooSessionData = {
+        clientId: 'client-123',
+        artistId: 'artist-123',
+        appointmentDate: new Date(),
+        duration: 180,
+        description: 'Dragon tattoo session',
+        bodyPart: 'Arm',
+        size: 'Medium',
+        style: 'Traditional',
+        totalCost: 500,
+        depositAmount: 100,
+        notes: 'Excellent session'
+      }
+
+      expect(typeof createData.clientId).toBe('string')
+      expect(typeof createData.artistId).toBe('string')
+      expect(createData.appointmentDate instanceof Date).toBe(true)
+      expect(typeof createData.duration).toBe('number')
+      expect(typeof createData.description).toBe('string')
+      expect(typeof createData.totalCost).toBe('number')
+      expect(typeof createData.depositAmount).toBe('number')
+    })
+
+    it('should define UpdateTattooSessionData structure', () => {
+      const updateData: UpdateTattooSessionData = {
+        id: 'session-123',
+        status: 'COMPLETED',
+        totalCost: 600,
+        notes: 'Updated session notes'
+      }
+
+      expect(typeof updateData.id).toBe('string')
+      expect(typeof updateData.status).toBe('string')
+      expect(typeof updateData.totalCost).toBe('number')
+      expect(typeof updateData.notes).toBe('string')
+    })
+
+    it('should define CreateContactData structure', () => {
+      const createData: CreateContactData = {
+        name: 'John Contact',
+        email: 'john@example.com',
+        phone: '+1234567890',
+        message: 'I would like to schedule a consultation.'
+      }
+
+      expect(typeof createData.name).toBe('string')
+      expect(typeof createData.email).toBe('string')
+      expect(typeof createData.phone).toBe('string')
+      expect(typeof createData.message).toBe('string')
+    })
+
+    it('should define UpdateContactData structure', () => {
+      const updateData: UpdateContactData = {
+        id: 'contact-123',
+        adminNotes: 'Follow up required'
+      }
+
+      expect(typeof updateData.id).toBe('string')
+      expect(typeof updateData.adminNotes).toBe('string')
+    })
+  })
+
+  describe('Analytics Types', () => {
+    it('should define AnalyticsTimeframe structure', () => {
+      const timeframe: AnalyticsTimeframe = {
+        start: new Date('2024-01-01'),
+        end: new Date('2024-12-31'),
+        period: 'month'
+      }
+
+      expect(timeframe.start instanceof Date).toBe(true)
+      expect(timeframe.end instanceof Date).toBe(true)
+      expect(['day', 'week', 'month', 'quarter', 'year']).toContain(timeframe.period)
+    })
+
+    it('should define AppointmentAnalytics structure', () => {
+      const analytics: AppointmentAnalytics = {
+        timeframe: {
+          start: new Date('2024-01-01'),
+          end: new Date('2024-12-31'),
+          period: 'month'
+        },
+        totalAppointments: 100,
+        confirmedAppointments: 80,
+        cancelledAppointments: 10,
+        pendingAppointments: 5,
+        completedAppointments: 75,
+        noShowAppointments: 5,
+        conversionRate: 0.8,
+        averageSessionValue: 300,
+        appointmentsByDay: [
+          { date: '2024-01-01', count: 5 },
+          { date: '2024-01-02', count: 8 }
+        ],
+        appointmentsByType: [
+          { type: 'CONSULTATION', count: 20 },
+          { type: 'TATTOO', count: 80 }
+        ]
+      }
+
+      expect(analytics.timeframe).toBeDefined()
+      expect(typeof analytics.totalAppointments).toBe('number')
+      expect(typeof analytics.conversionRate).toBe('number')
+      expect(Array.isArray(analytics.appointmentsByDay)).toBe(true)
+      expect(Array.isArray(analytics.appointmentsByType)).toBe(true)
+      expect(analytics.appointmentsByDay[0]).toHaveProperty('date')
+      expect(analytics.appointmentsByDay[0]).toHaveProperty('count')
+    })
+
+    it('should define RevenueAnalytics structure', () => {
+      const analytics: RevenueAnalytics = {
+        timeframe: {
+          start: new Date('2024-01-01'),
+          end: new Date('2024-12-31'),
+          period: 'month'
+        },
+        totalRevenue: 50000,
+        averageOrderValue: 300,
+        revenueByDay: [
+          { date: '2024-01-01', revenue: 1500 },
+          { date: '2024-01-02', revenue: 2000 }
+        ],
+        revenueByService: [
+          { service: 'Tattoo', revenue: 40000 },
+          { service: 'Consultation', revenue: 10000 }
+        ],
+        paymentMethodBreakdown: [
+          { method: 'Card', count: 80, revenue: 40000 },
+          { method: 'Cash', count: 20, revenue: 10000 }
+        ]
+      }
+
+      expect(analytics.timeframe).toBeDefined()
+      expect(typeof analytics.totalRevenue).toBe('number')
+      expect(typeof analytics.averageOrderValue).toBe('number')
+      expect(Array.isArray(analytics.revenueByDay)).toBe(true)
+      expect(Array.isArray(analytics.revenueByService)).toBe(true)
+      expect(Array.isArray(analytics.paymentMethodBreakdown)).toBe(true)
+    })
+
+    it('should define ClientAnalytics structure', () => {
+      const analytics: ClientAnalytics = {
+        timeframe: {
+          start: new Date('2024-01-01'),
+          end: new Date('2024-12-31'),
+          period: 'month'
+        },
+        totalClients: 200,
+        newClients: 50,
+        returningClients: 150,
+        clientsBySource: [
+          { source: 'Website', count: 100 },
+          { source: 'Referral', count: 100 }
+        ],
+        clientLifetimeValue: 1500,
+        topClients: [
+          {
+            client: {
+              id: 'client-123',
+              firstName: 'John',
+              lastName: 'Doe',
+              email: 'john@example.com',
+              phone: '+1234567890',
+              dateOfBirth: new Date('1990-01-01'),
+              address: '123 Main St',
+              emergencyName: 'Jane Doe',
+              emergencyPhone: '+0987654321',
+              emergencyRel: 'Spouse',
+              medicalConds: ['None'],
+              allergies: ['Peanuts'],
+              medications: 'None',
+              preferredArtist: 'artist-123',
+              notes: 'VIP client',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              city: null,
+              state: null,
+              postalCode: null,
+              country: null
+            },
+            totalSpent: 5000,
+            sessionCount: 10
+          }
+        ]
+      }
+
+      expect(analytics.timeframe).toBeDefined()
+      expect(typeof analytics.totalClients).toBe('number')
+      expect(typeof analytics.newClients).toBe('number')
+      expect(typeof analytics.clientLifetimeValue).toBe('number')
+      expect(Array.isArray(analytics.clientsBySource)).toBe(true)
+      expect(Array.isArray(analytics.topClients)).toBe(true)
+      expect(analytics.topClients[0]).toHaveProperty('client')
+      expect(analytics.topClients[0]).toHaveProperty('totalSpent')
+      expect(analytics.topClients[0]).toHaveProperty('sessionCount')
+    })
+
+    it('should define TimeSeriesDataPoint structure', () => {
+      const dataPoint: TimeSeriesDataPoint = {
+        date: '2024-01-01',
+        value: 1500,
+        category: 'Revenue'
+      }
+
+      expect(typeof dataPoint.date).toBe('string')
+      expect(typeof dataPoint.value).toBe('number')
+      expect(typeof dataPoint.category).toBe('string')
+    })
+  })
+
+  describe('Type Compatibility and Edge Cases', () => {
+    it('should handle optional fields in create data', () => {
+      const minimalAppointment: CreateAppointmentData = {
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        type: 'CONSULTATION',
+        appointmentDate: new Date()
+      }
+
+      expect(minimalAppointment.phone).toBeUndefined()
+      expect(minimalAppointment.description).toBeUndefined()
+      expect(minimalAppointment.notes).toBeUndefined()
+      expect(minimalAppointment.artistId).toBeUndefined()
+    })
+
+    it('should handle partial update data', () => {
+      const partialUpdate: UpdateClientData = {
+        id: 'client-123',
+        notes: 'Updated notes only'
+      }
+
+      expect(partialUpdate.id).toBe('client-123')
+      expect(partialUpdate.notes).toBe('Updated notes only')
+      expect(partialUpdate.firstName).toBeUndefined()
+      expect(partialUpdate.email).toBeUndefined()
+    })
+
+    it('should handle legacy field compatibility', () => {
+      const legacyAppointment: CreateAppointmentData = {
+        customerId: 'client-123', // Legacy field
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        type: 'CONSULTATION',
+        startDate: '2024-01-15T10:00:00Z', // Legacy field as string
+        appointmentDate: new Date(),
+        duration: 60 // Legacy field
+      }
+
+      expect(legacyAppointment.customerId).toBe('client-123')
+      expect(typeof legacyAppointment.startDate).toBe('string')
+      expect(legacyAppointment.duration).toBe(60)
+    })
+
+    it('should handle enum values correctly', () => {
+      const appointmentStatuses: AppointmentStatus[] = ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']
+      const sessionStatuses: SessionStatus[] = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW']
+      const appointmentTypes: AppointmentType[] = ['CONSULTATION', 'TATTOO', 'PIERCING', 'TOUCH_UP']
+
+      appointmentStatuses.forEach(status => {
+        expect(typeof status).toBe('string')
+        expect(['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).toContain(status)
+      })
+
+      sessionStatuses.forEach(status => {
+        expect(typeof status).toBe('string')
+        expect(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW']).toContain(status)
+      })
+
+      appointmentTypes.forEach(type => {
+        expect(typeof type).toBe('string')
+        expect(['CONSULTATION', 'TATTOO', 'PIERCING', 'TOUCH_UP']).toContain(type)
+      })
+    })
+
+    it('should handle null and undefined values in optional fields', () => {
+      const clientWithNulls: ClientResponse = {
+        id: 'client-123',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        phone: '+1234567890',
+        dateOfBirth: new Date('1990-01-01'),
+        address: '123 Main St',
+        emergencyName: 'Jane Doe',
+        emergencyPhone: '+0987654321',
+        emergencyRel: 'Spouse',
+        medicalConds: ['None'],
+        allergies: ['Peanuts'],
+        medications: 'None',
+        preferredArtist: 'artist-123',
+        notes: 'VIP client',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        city: null,
+        state: null,
+        postalCode: null,
+        country: null
+      }
+
+      expect(clientWithNulls.city).toBeNull()
+      expect(clientWithNulls.state).toBeNull()
+      expect(clientWithNulls.postalCode).toBeNull()
+      expect(clientWithNulls.country).toBeNull()
+    })
+
+    it('should handle array fields with different types', () => {
+      const clientWithArrays: CreateClientData = {
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        phone: '+1234567890',
+        medicalConds: ['Diabetes', 'Hypertension'],
+        allergies: ['Peanuts', 'Shellfish'] // Array of strings
+      }
+
+      const clientWithStringAllergies: CreateClientData = {
+        firstName: 'Jane',
+        lastName: 'Smith',
+        email: 'jane@example.com',
+        phone: '+0987654321',
+        allergies: 'Peanuts, Shellfish' // String format
+      }
+
+      expect(Array.isArray(clientWithArrays.medicalConds)).toBe(true)
+      expect(Array.isArray(clientWithArrays.allergies)).toBe(true)
+      expect(typeof clientWithStringAllergies.allergies).toBe('string')
+    })
+  })
+})

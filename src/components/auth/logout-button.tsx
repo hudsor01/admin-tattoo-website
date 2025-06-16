@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { IconLogout, IconLoader2 } from "@tabler/icons-react"
 
@@ -17,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { authClient } from "@/lib/auth-client"
+import { useAuthActions, useAuthStatus } from "@/stores/auth-store"
 
 interface LogoutButtonProps {
   variant?: "default" | "ghost" | "outline" | "secondary" | "destructive" | "link"
@@ -38,19 +37,16 @@ export function LogoutButton({
   children,
   redirectTo = "/login"
 }: LogoutButtonProps) {
-  const [isLoading, setIsLoading] = useState(false)
+  const { logout } = useAuthActions()
+  const { isLoading } = useAuthStatus()
   const router = useRouter()
 
   const handleLogout = async () => {
-    setIsLoading(true)
-
     try {
-      await authClient.signOut()
+      await logout()
       router.push(redirectTo)
     } catch (error) {
       console.error("Logout error:", error)
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -135,20 +131,17 @@ export function LogoutMenuItem({
   className?: string
   onLogout?: () => void
 }) {
-  const [isLoading, setIsLoading] = useState(false)
+  const { logout } = useAuthActions()
+  const { isLoading } = useAuthStatus()
   const router = useRouter()
 
   const handleLogout = async () => {
-    setIsLoading(true)
-
     try {
-      await authClient.signOut()
+      await logout()
       onLogout?.()
       router.push("/login")
     } catch (error) {
       console.error("Logout error:", error)
-    } finally {
-      setIsLoading(false)
     }
   }
 

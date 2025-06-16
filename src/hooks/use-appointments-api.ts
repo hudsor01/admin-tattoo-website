@@ -259,11 +259,11 @@ export function useBulkUpdateAppointmentStatus() {
   });
 }
 
-// Prefetch appointment for faster navigation
-export function prefetchAppointment(id: string) {
+// Hook to prefetch appointment for faster navigation
+export function usePrefetchAppointment() {
   const queryClient = useQueryClient();
   
-  return queryClient.prefetchQuery({
+  return (id: string) => queryClient.prefetchQuery({
     queryKey: queryKeys.appointments.detail(id),
     queryFn: () => apiFetch<AppointmentResponse>(`/api/admin/appointments/${id}`),
     staleTime: 3 * 60 * 1000,

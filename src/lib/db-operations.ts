@@ -1,7 +1,5 @@
-import { getPrismaClient } from './prisma'
+import { prisma } from './prisma'
 import type { Prisma } from '@prisma/client'
-
-const prisma = getPrismaClient()
 import {
   CreateClientData,
   CreateAppointmentData,

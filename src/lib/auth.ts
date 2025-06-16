@@ -22,6 +22,6 @@ export const auth = betterAuth({
     },
   },
   plugins: [nextCookies()],
-  trustedOrigins: ['http://localhost:5174'],
+  trustedOrigins: ['http://localhost:3001'],
   basePath: `/api/auth`
   });

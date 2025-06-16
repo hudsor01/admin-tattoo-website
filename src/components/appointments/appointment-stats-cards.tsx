@@ -72,7 +72,7 @@ export function AppointmentStatsCards() {
   }
 
   // Helper function to determine if change is positive
-  const isPositive = (change: string) => change.startsWith('+')
+  const isPositive = (change: string) => change?.startsWith('+') ?? false
 
   return (
     <div className="grid grid-cols-1 gap-8 px-6 lg:px-8 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">

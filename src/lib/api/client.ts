@@ -1,6 +1,17 @@
 import { QueryClient } from '@tanstack/react-query';
 import { authClient } from '@/lib/auth-client';
 import type { Session } from '@/types/auth';
+import { 
+  resilientFetch, 
+  FetchConfig, 
+  handleError, 
+  ApiErrorResponse,
+  ApiSuccessResponse,
+  ErrorCategory,
+  categorizeError,
+  getCircuitBreaker
+} from '@/lib/api/enhanced-error-handling';
+import { z } from 'zod';
 
 // Create a singleton query client instance
 export const queryClient = new QueryClient({
@@ -22,10 +33,12 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Custom fetch wrapper with Better Auth integration
-export interface FetchOptions extends RequestInit {
+// Enhanced fetch wrapper with Better Auth integration and resilience features
+export interface EnhancedFetchOptions extends RequestInit, FetchConfig {
   requireAuth?: boolean;
   parseResponse?: boolean;
+  serviceName?: string; // For circuit breaker tracking
+  validateSchema?: z.ZodSchema; // For response validation
 }
 
 export class ApiError extends Error {
@@ -33,20 +46,27 @@ export class ApiError extends Error {
     message: string,
     public status: number,
     public code?: string,
-    public details?: any
+    public details?: any,
+    public category?: ErrorCategory
   ) {
     super(message);
     this.name = 'ApiError';
+    this.category = category || categorizeError(this);
   }
 }
 
 export async function apiFetch<T = any>(
   endpoint: string,
-  options: FetchOptions = {}
+  options: EnhancedFetchOptions = {}
 ): Promise<T> {
   const {
     requireAuth = true,
     parseResponse = true,
+    serviceName,
+    validateSchema,
+    timeout = 30000,
+    retryConfig,
+    deduplicationKey,
     headers = {},
     ...fetchOptions
   } = options;
@@ -60,9 +80,15 @@ export async function apiFetch<T = any>(
         authHeaders = {
           Authorization: `Bearer ${session.token || ''}`,
         };
+      } else if (requireAuth) {
+        throw new ApiError('Authentication required', 401, 'AUTH_REQUIRED', null, ErrorCategory.AUTHENTICATION);
       }
     } catch (error) {
+      if (error instanceof ApiError) throw error;
       console.warn('Failed to get auth session:', error);
+      if (requireAuth) {
+        throw new ApiError('Authentication failed', 401, 'AUTH_FAILED', error, ErrorCategory.AUTHENTICATION);
+      }
     }
   }
 
@@ -78,45 +104,42 @@ export async function apiFetch<T = any>(
   };
 
   try {
-    const response = await fetch(url, {
+    // Use resilient fetch with all error handling features
+    const response = await resilientFetch<T>(url, {
       ...fetchOptions,
       headers: finalHeaders,
+      timeout,
+      retryConfig,
+      circuitBreakerService: serviceName || 'api',
+      deduplicationKey: deduplicationKey || (fetchOptions.method === 'GET' ? `${url}` : undefined),
+      validateResponse: validateSchema,
     });
 
-    // Handle non-2xx responses
-    if (!response.ok) {
-      let errorMessage = `Request failed with status ${response.status}`;
-      let errorDetails = null;
-
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.error || errorData.message || errorMessage;
-        errorDetails = errorData;
-      } catch {
-        // If response is not JSON, use status text
-        errorMessage = response.statusText || errorMessage;
-      }
-
-      throw new ApiError(errorMessage, response.status, undefined, errorDetails);
-    }
-
-    // Parse response
-    if (parseResponse) {
-      const data = await response.json();
+    // Handle standardized API response format if parsing is enabled
+    if (parseResponse && response && typeof response === 'object') {
+      const data = response as any;
       
       // Handle standardized API response format
       if (data.success === false && data.error) {
-        throw new ApiError(data.error, response.status, data.code);
+        const category = categorizeError(new ApiError(data.error, data.status || 500));
+        throw new ApiError(data.error, data.status || 500, data.code, data, category);
       }
       
       // Return data directly or from data property
-      return data.data || data;
+      return (data.data !== undefined ? data.data : data) as T;
     }
 
-    return response as any;
+    return response;
   } catch (error) {
-    // Re-throw ApiError instances
+    // Enhanced error handling with categorization and user notifications
+    const category = handleError(error, {
+      showToast: false, // Let the calling code decide whether to show toasts
+      logError: true,
+    });
+
+    // Re-throw enhanced ApiError
     if (error instanceof ApiError) {
+      error.category = category;
       throw error;
     }
 
@@ -125,11 +148,13 @@ export async function apiFetch<T = any>(
       throw new ApiError(
         error.message || 'Network error occurred',
         0,
-        'NETWORK_ERROR'
+        'NETWORK_ERROR',
+        error,
+        category
       );
     }
 
-    throw new ApiError('An unexpected error occurred', 0, 'UNKNOWN_ERROR');
+    throw new ApiError('An unexpected error occurred', 0, 'UNKNOWN_ERROR', error, category);
   }
 }
 
@@ -189,6 +214,95 @@ export function prefetchQuery<T = unknown>(
     queryFn: fetcher,
     staleTime: options?.staleTime,
   });
+}
+
+// Enhanced API utilities with error handling
+export function createApiCall<T = any>(
+  endpoint: string,
+  defaultOptions: Partial<EnhancedFetchOptions> = {}
+) {
+  return (options: Partial<EnhancedFetchOptions> = {}) => 
+    apiFetch<T>(endpoint, { ...defaultOptions, ...options });
+}
+
+// Typed API calls with response validation
+export function createTypedApiCall<TRequest, TResponse>(
+  endpoint: string,
+  requestSchema?: z.ZodSchema<TRequest>,
+  responseSchema?: z.ZodSchema<TResponse>,
+  defaultOptions: Partial<EnhancedFetchOptions> = {}
+) {
+  return async (data?: TRequest, options: Partial<EnhancedFetchOptions> = {}): Promise<TResponse> => {
+    // Validate request data if schema provided
+    if (requestSchema && data) {
+      try {
+        requestSchema.parse(data);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          throw new ApiError(
+            `Request validation failed: ${error.errors.map(e => e.message).join(', ')}`,
+            400,
+            'VALIDATION_ERROR',
+            error.errors,
+            ErrorCategory.VALIDATION
+          );
+        }
+        throw error;
+      }
+    }
+
+    return apiFetch<TResponse>(endpoint, {
+      ...defaultOptions,
+      ...options,
+      validateSchema: responseSchema,
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  };
+}
+
+// Circuit breaker monitoring utilities
+export function getApiHealthStatus() {
+  return {
+    circuitBreakers: Object.fromEntries(
+      Array.from(new Set(['api', 'auth', 'dashboard', 'customers', 'appointments']))
+        .map(service => [service, getCircuitBreaker(service).getStatus()])
+    ),
+    timestamp: new Date().toISOString(),
+  };
+}
+
+// Batch request utility for efficient API calls
+export async function batchApiCalls<T extends Record<string, () => Promise<any>>>(
+  calls: T,
+  options: { concurrency?: number; failFast?: boolean } = {}
+): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> {
+  const { concurrency = 3, failFast = false } = options;
+  const entries = Object.entries(calls);
+  const results: Record<string, any> = {};
+  const errors: Record<string, Error> = {};
+
+  // Process requests in batches
+  for (let i = 0; i < entries.length; i += concurrency) {
+    const batch = entries.slice(i, i + concurrency);
+    
+    const batchPromises = batch.map(async ([key, call]) => {
+      try {
+        results[key] = await call();
+      } catch (error) {
+        errors[key] = error instanceof Error ? error : new Error(String(error));
+        if (failFast) throw error;
+      }
+    });
+
+    await Promise.all(batchPromises);
+  }
+
+  // If there were errors and not in fail-fast mode, log them
+  if (Object.keys(errors).length > 0 && !failFast) {
+    console.warn('Batch API calls had errors:', errors);
+  }
+
+  return results as { [K in keyof T]: Awaited<ReturnType<T[K]>> };
 }
 
 // Export types

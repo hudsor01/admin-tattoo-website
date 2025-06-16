@@ -1,12 +1,12 @@
 'use client';
 
-import { useSession } from '@/lib/auth-client';
+import { useUser, useSession, useAuthStatus } from '@/stores/auth-store';
 
 export default function DebugAuthPage() {
+  const user = useUser();
   const session = useSession();
-  const user = session.data?.user;
-  const isLoading = session.isPending;
-  const error = session.error;
+  const { isLoading, isAuthenticated, isAdmin, canAccessDashboard } = useAuthStatus();
+  const error = null; // Auth errors are handled by the store
 
   return (
     <div className="p-8">
@@ -15,6 +15,10 @@ export default function DebugAuthPage() {
       <div className="space-y-4">
         <div>
           <strong>Loading:</strong> {isLoading ? 'Yes' : 'No'}
+        </div>
+        
+        <div>
+          <strong>Authenticated:</strong> {isAuthenticated ? 'Yes' : 'No'}
         </div>
         
         <div>
@@ -29,7 +33,18 @@ export default function DebugAuthPage() {
         </div>
         
         <div>
-          <strong>Is Admin Check:</strong> {user?.role === 'admin' ? 'Yes' : 'No'}
+          <strong>Session:</strong>
+          <pre className="bg-gray-100 p-4 mt-2 rounded">
+            {session ? JSON.stringify(session, null, 2) : 'No session'}
+          </pre>
+        </div>
+        
+        <div>
+          <strong>Is Admin Check:</strong> {isAdmin ? 'Yes' : 'No'}
+        </div>
+        
+        <div>
+          <strong>Can Access Dashboard:</strong> {canAccessDashboard ? 'Yes' : 'No'}
         </div>
         
         <div>

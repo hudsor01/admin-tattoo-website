@@ -2,19 +2,16 @@
 
 import { ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from '@/lib/auth-client';
+import { useUser, useAuthStatus } from '@/stores/auth-store';
 
 interface AdminRouteProps {
   children: ReactNode;
 }
 
 export function AdminRoute({ children }: AdminRouteProps) {
-  const session = useSession();
+  const user = useUser();
+  const { isLoading, isAdmin } = useAuthStatus();
   const router = useRouter();
-  
-  const user = session.data?.user;
-  const isLoading = session.isPending;
-  const isAdmin = user?.role === 'admin';
   
   // Handle redirects in useEffect to avoid React render errors
   useEffect(() => {

@@ -2,13 +2,28 @@
  * Environment utilities for secure environment variable access
  */
 
-export function getEnvSafe(key: string, defaultValue?: string): string {
-  let value: string | undefined;
-  if (Object.prototype.hasOwnProperty.call(process.env, key)) {
-    value = process.env[key];
-  } else {
-    value = undefined;
+// Define allowed environment keys to prevent object injection
+const ALLOWED_ENV_KEYS = [
+  'NODE_ENV',
+  'DATABASE_URL',
+  'BETTER_AUTH_SECRET',
+  'BETTER_AUTH_URL',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'NEXTAUTH_SECRET',
+  'NEXTAUTH_URL',
+  'BLOB_READ_WRITE_TOKEN'
+] as const;
+
+type AllowedEnvKey = typeof ALLOWED_ENV_KEYS[number];
+
+export function getEnvSafe(key: AllowedEnvKey, defaultValue?: string): string {
+  // Validate key is in allowed list
+  if (!ALLOWED_ENV_KEYS.includes(key)) {
+    throw new Error(`Environment variable '${key}' is not in the allowed list`);
   }
+  
+  const value = process.env[key];
 
   if (value === undefined) {
     if (defaultValue !== undefined) {
@@ -20,11 +35,19 @@ export function getEnvSafe(key: string, defaultValue?: string): string {
   return value;
 }
 
-export function getEnvOptional(key: string, defaultValue?: string): string | undefined {
+export function getEnvOptional(key: AllowedEnvKey, defaultValue?: string): string | undefined {
+  // Validate key is in allowed list
+  if (!ALLOWED_ENV_KEYS.includes(key)) {
+    throw new Error(`Environment variable '${key}' is not in the allowed list`);
+  }
   return process.env[key] || defaultValue;
 }
 
-export function getEnvBoolean(key: string, defaultValue = false): boolean {
+export function getEnvBoolean(key: AllowedEnvKey, defaultValue = false): boolean {
+  // Validate key is in allowed list
+  if (!ALLOWED_ENV_KEYS.includes(key)) {
+    throw new Error(`Environment variable '${key}' is not in the allowed list`);
+  }
   const value = process.env[key];
   
   if (value === undefined) {

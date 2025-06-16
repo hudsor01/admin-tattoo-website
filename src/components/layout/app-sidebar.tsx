@@ -94,9 +94,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <Image
               src="/logo.png"
               alt="Ink 37 Tattoos"
-              fill
+              fill={true}
               className="object-contain"
-              priority
+              priority={true}
             />
           </div>
         </div>

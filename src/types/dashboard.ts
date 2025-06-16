@@ -7,6 +7,15 @@ export interface DashboardStats {
   bookingGrowth: number
   completionRate: number
   completionGrowth: number
+  // Additional properties used by section-cards
+  revenue: number
+  revenueChange: string
+  totalClients: number
+  clientsChange: string
+  monthlyAppointments: number
+  appointmentsChange: string
+  averageRating: number
+  ratingChange: string
 }
 
 export interface ChartDataPoint {

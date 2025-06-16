@@ -182,11 +182,11 @@ export function useDeleteCustomer() {
   });
 }
 
-// Prefetch customer for faster navigation
-export function prefetchCustomer(id: string) {
+// Hook to prefetch customer for faster navigation
+export function usePrefetchCustomer() {
   const queryClient = useQueryClient();
   
-  return queryClient.prefetchQuery({
+  return (id: string) => queryClient.prefetchQuery({
     queryKey: queryKeys.customers.detail(id),
     queryFn: () => apiFetch<CustomerResponse>(`/api/admin/customers/${id}`),
     staleTime: 5 * 60 * 1000,

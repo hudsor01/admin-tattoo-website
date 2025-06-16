@@ -278,10 +278,13 @@ export function handleZodError(error: ZodError): ValidationError {
   
   error.errors.forEach((err) => {
     const path = err.path.join(".");
-    if (!fields[path]) {
+    if (!Object.prototype.hasOwnProperty.call(fields, path)) {
       fields[path] = [];
     }
-    fields[path].push(err.message);
+    const fieldErrors = fields[path];
+    if (fieldErrors) {
+      fieldErrors.push(err.message);
+    }
   });
 
   return new ValidationError("Validation failed", fields);

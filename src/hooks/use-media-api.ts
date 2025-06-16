@@ -324,11 +324,11 @@ export function useBulkSyncMedia() {
   });
 }
 
-// Prefetch utilities
-export function prefetchMedia(filters?: MediaFilters) {
+// Hook for prefetch utilities
+export function usePrefetchMedia() {
   const queryClient = useQueryClient();
   
-  return queryClient.prefetchQuery({
+  return (filters?: MediaFilters) => queryClient.prefetchQuery({
     queryKey: queryKeys.media.list(filters),
     queryFn: () => {
       const queryString = buildQueryString(filters || {});

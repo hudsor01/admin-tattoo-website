@@ -101,7 +101,7 @@ async function checkEnvironment(): Promise<HealthCheckResult> {
       'BETTER_AUTH_URL'
     ];
     
-    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName as keyof typeof process.env]);
     
     if (missingVars.length > 0) {
       return {
@@ -116,7 +116,7 @@ async function checkEnvironment(): Promise<HealthCheckResult> {
       'GOOGLE_CLIENT_SECRET'
     ];
     
-    const missingOptional = optionalVars.filter(varName => !process.env[varName]);
+    const missingOptional = optionalVars.filter(varName => !process.env[varName as keyof typeof process.env]);
     
     return {
       status: missingOptional.length === 0 ? 'pass' : 'warn',
