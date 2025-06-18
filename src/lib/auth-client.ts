@@ -3,7 +3,7 @@ import { adminClient } from "better-auth/client/plugins";
 
 // Create the auth client with admin plugin
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:3001/api/auth",
+  baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://admin.ink37tattoos.com/api/auth",
   plugins: [adminClient()],
 });
 

@@ -41,7 +41,7 @@ const getEnvVar = (name: (typeof allowedEnvKeys)[number], fallback?: string): st
 
 const env = {
   BETTER_AUTH_SECRET: getEnvVar("BETTER_AUTH_SECRET", "default_insecure_secret_for_development_only_change_this_in_production"),
-  BETTER_AUTH_URL: getEnvVar("BETTER_AUTH_URL", "http://localhost:3001/api/auth"),
+  BETTER_AUTH_URL: getEnvVar("BETTER_AUTH_URL", "https://admin.ink37tattoos.com/api/auth"),
   DATABASE_URL: getEnvVar("DATABASE_URL"),
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,

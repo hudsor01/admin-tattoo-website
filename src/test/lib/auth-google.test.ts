@@ -17,7 +17,7 @@ describe('Google OAuth Configuration Test', () => {
   });
 
   it('should have proper auth URL configuration', () => {
-    expect(process.env.BETTER_AUTH_URL).toBe('http://localhost:3001/api/auth');
+    expect(process.env.BETTER_AUTH_URL).toBe('https://admin.ink37tattoos.com/api/auth');
   });
 
   it('should have auth instance configured', () => {

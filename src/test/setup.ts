@@ -160,10 +160,10 @@ vi.mock('@tabler/icons-react', () => {
 // Mock environment variables
 beforeAll(() => {
   vi.stubEnv('NODE_ENV', 'test')
-  vi.stubEnv('NEXT_PUBLIC_APP_URL', 'http://localhost:3001')
+  vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://admin.ink37tattoos.com')
   vi.stubEnv('DATABASE_URL', 'postgresql://test:test@localhost:5432/test')
   vi.stubEnv('BETTER_AUTH_SECRET', 'test-secret')
-  vi.stubEnv('BETTER_AUTH_URL', 'http://localhost:3001')
+  vi.stubEnv('BETTER_AUTH_URL', 'https://admin.ink37tattoos.com')
 })
 
 // Reset mocks before each test
