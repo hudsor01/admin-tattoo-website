@@ -48,7 +48,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export const ChartAreaInteractive = memo(function ChartAreaInteractive() {
+const ChartAreaInteractiveComponent = () => {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("30d")
   const { data: chartData, isLoading, error } = useChartData()
@@ -203,4 +203,8 @@ export const ChartAreaInteractive = memo(function ChartAreaInteractive() {
       </CardContent>
     </Card>
   )
-})
+}
+
+ChartAreaInteractiveComponent.displayName = 'ChartAreaInteractive'
+
+export const ChartAreaInteractive = memo(ChartAreaInteractiveComponent)

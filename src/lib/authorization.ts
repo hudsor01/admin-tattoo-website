@@ -285,8 +285,7 @@ export function isAdmin(user: AuthorizedUser | null | undefined): boolean {
   
   return hasPermission(user, Permission.ADMIN_ACCESS) || 
          hasRole(user, Role.ADMIN) ||
-         user.role === 'admin' || // Legacy string check
-         (user.email ? user.email.toLowerCase().includes('admin') : false); // Email fallback check
+         user.role === 'admin'; // Legacy string check - email verification removed for security
 }
 
 /**

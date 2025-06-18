@@ -21,20 +21,18 @@ const nextConfig: NextConfig = {
       'date-fns',
       '@tanstack/react-query'
     ],
-    optimizeCss: isProd,
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  },
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },
   compiler: {
     removeConsole: isProd ? { exclude: ['error'] } : false,
   },
-  swcMinify: true,
   typescript: { ignoreBuildErrors: false },
   eslint: { ignoreDuringBuilds: false },
   async headers() {

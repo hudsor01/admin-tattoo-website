@@ -202,7 +202,7 @@ export const useAuthStore = create<AuthState>()(
                 const enhancedUser = {
                   ...user,
                   banned: null,
-                  role: 'admin' // Default role since user doesn't have role property in Better Auth response
+                  role: (user as any).role || 'user' // Use actual role from Better Auth, default to 'user'
                 };
                 get().setUser(enhancedUser);
                 // Session data is included with the user data in Better Auth
@@ -283,7 +283,7 @@ export const useAuthStore = create<AuthState>()(
                 const enhancedUser = {
                   ...session.data.user,
                   banned: null,
-                  role: 'admin'
+                  role: (session.data.user as any).role || 'user' // Use actual role from session
                 };
                 get().setUser(enhancedUser);
                 get().setSession(session.data);
@@ -376,26 +376,45 @@ export const useAuthStore = create<AuthState>()(
       },
       
       // Admin checks
-      checkAdminStatus: (): Promise<void> => {
+      checkAdminStatus: async (): Promise<void> => {
         const { user } = get();
-        if (!user) return Promise.resolve();
+        if (!user) return;
         
         try {
-          // In a real app, you might need to verify admin status with the server
-          // For now, we'll trust the user.role from the session
-          const isAdmin = user.role === 'admin';
+          // Verify admin status with server-side API call
+          const response = await fetch('/api/admin/verify-access', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include'
+          });
           
-          set({
-            isAdmin,
-            isVerifiedAdmin: isAdmin,
-            canAccessDashboard: isAdmin,
-            permissions: isAdmin ? ADMIN_PERMISSIONS : [],
-            adminPermissions: isAdmin ? ADMIN_PERMISSIONS : [],
-          }, false, 'checkAdminStatus');
+          if (response.ok) {
+            const result = await response.json();
+            const isVerifiedAdmin = result.success && result.data?.isAdmin === true;
+            
+            set({
+              isAdmin: isVerifiedAdmin,
+              isVerifiedAdmin,
+              canAccessDashboard: isVerifiedAdmin,
+              permissions: isVerifiedAdmin ? ADMIN_PERMISSIONS : [],
+              adminPermissions: isVerifiedAdmin ? ADMIN_PERMISSIONS : [],
+            }, false, 'checkAdminStatus:verified');
+          } else {
+            // Server verification failed, remove admin access
+            set({
+              isAdmin: false,
+              isVerifiedAdmin: false,
+              canAccessDashboard: false,
+              permissions: [],
+              adminPermissions: [],
+            }, false, 'checkAdminStatus:denied');
+          }
           
         } catch (error) {
           console.error('Admin status check failed:', error);
-          // On error, remove admin access
+          // On error, remove admin access for security
           set({
             isAdmin: false,
             isVerifiedAdmin: false,
@@ -404,23 +423,34 @@ export const useAuthStore = create<AuthState>()(
             adminPermissions: [],
           }, false, 'checkAdminStatus:error');
         }
-        return Promise.resolve();
       },
       
-      verifyAdminAccess: (): Promise<boolean> => {
-        const { isAdmin, user } = get();
+      verifyAdminAccess: async (): Promise<boolean> => {
+        const { user } = get();
         
-        if (!user || !isAdmin) {
-          return Promise.resolve(false);
+        if (!user) {
+          return false;
         }
         
         try {
-          // Additional verification logic could go here
-          // For example, checking if the admin account is still active
-          return Promise.resolve(true);
+          // Perform real-time server-side admin verification
+          const response = await fetch('/api/admin/verify-access', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            return result.success && result.data?.isAdmin === true;
+          }
+          
+          return false;
         } catch (error) {
           console.error('Admin access verification failed:', error);
-          return Promise.resolve(false);
+          return false;
         }
       },
       

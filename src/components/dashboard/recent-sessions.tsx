@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useMemo } from "react"
+import { memo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +15,11 @@ const fetchRecentSessions = async () => {
   return response.json()
 }
 
-export const RecentSessions = memo(function RecentSessions() {
+interface SessionsData {
+  data: TattooSessionWithClient[]
+}
+
+const RecentSessionsComponent = () => {
   const { data: sessions, isLoading, error } = useQuery({
     queryKey: ['recent-sessions'],
     queryFn: fetchRecentSessions,
@@ -62,9 +66,9 @@ export const RecentSessions = memo(function RecentSessions() {
               </div>
             ))}
           </div>
-        ) : (sessions as any)?.data?.length > 0 ? (
+        ) : (sessions as SessionsData)?.data?.length > 0 ? (
           <div className="space-y-4">
-            {(sessions as any).data.slice(0, 10).map((session: TattooSessionWithClient) => (
+            {(sessions as SessionsData).data.slice(0, 10).map((session: TattooSessionWithClient) => (
               <SessionCard key={session.id} session={session} />
             ))}
           </div>
@@ -76,9 +80,13 @@ export const RecentSessions = memo(function RecentSessions() {
       </CardContent>
     </Card>
   )
-})
+}
 
-const SessionCard = memo(function SessionCard({ session }: { session: TattooSessionWithClient }) {
+RecentSessionsComponent.displayName = 'RecentSessions'
+
+export const RecentSessions = memo(RecentSessionsComponent)
+
+const SessionCardComponent = ({ session }: { session: TattooSessionWithClient }) => {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'completed':
@@ -162,4 +170,8 @@ const SessionCard = memo(function SessionCard({ session }: { session: TattooSess
       </div>
     </div>
   )
-})
+}
+
+SessionCardComponent.displayName = 'SessionCard'
+
+const SessionCard = memo(SessionCardComponent)

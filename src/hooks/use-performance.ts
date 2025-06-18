@@ -1,31 +1,27 @@
 import { useEffect, useRef } from 'react';
-
-interface PerformanceMetrics {
-  pageLoadTime: number;
-  renderTime: number;
-  apiCallDuration: number;
-}
+import { logger } from '@/lib/logger';
 
 export function usePerformanceMonitor(pageName: string) {
-  const startTime = useRef<number>(Date.now());
   const renderStartTime = useRef<number>(Date.now());
 
   useEffect(() => {
     // Mark render complete
     const renderTime = Date.now() - renderStartTime.current;
     
-    // Log performance metrics in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Performance] ${pageName}:`, {
-        renderTime: `${renderTime}ms`,
-        timestamp: new Date().toISOString()
+    // Log performance metrics for monitoring
+    if (renderTime > 1000) {
+      logger.warn('Slow page render detected', {
+        pageName,
+        renderTime,
+        threshold: 1000,
+        category: 'performance'
       });
-    }
-
-    // Send to monitoring service in production
-    if (process.env.NODE_ENV === 'production' && renderTime > 1000) {
-      // You could send this to analytics/monitoring service
-      console.warn(`[Performance Warning] ${pageName} took ${renderTime}ms to render`);
+    } else if (process.env.NODE_ENV === 'development') {
+      logger.debug('Page render completed', {
+        pageName,
+        renderTime,
+        category: 'performance'
+      });
     }
   }, [pageName]);
 
@@ -38,18 +34,29 @@ export function usePerformanceMonitor(pageName: string) {
       const result = await apiCall();
       const duration = Date.now() - start;
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[API Performance] ${apiName}: ${duration}ms`);
-      }
-      
       if (duration > 2000) {
-        console.warn(`[Slow API] ${apiName} took ${duration}ms`);
+        logger.warn('Slow API call detected', {
+          apiName,
+          duration,
+          threshold: 2000,
+          category: 'api-performance'
+        });
+      } else if (process.env.NODE_ENV === 'development') {
+        logger.debug('API call completed', {
+          apiName,
+          duration,
+          category: 'api-performance'
+        });
       }
       
       return result;
     } catch (error) {
       const duration = Date.now() - start;
-      console.error(`[API Error] ${apiName} failed after ${duration}ms:`, error);
+      logger.error('API call failed', error, {
+        apiName,
+        duration,
+        category: 'api-error'
+      });
       throw error;
     }
   };
@@ -63,28 +70,54 @@ export function reportWebVitals() {
     // Core Web Vitals
     const observer = new PerformanceObserver((list) => {
       list.getEntries().forEach((entry) => {
-        const name = entry.name;
+        const {name} = entry;
         const value = Math.round(entry.startTime + entry.duration);
         
+        // Log web vitals metrics
+        const webVitalData = {
+          metric: name,
+          value,
+          category: 'web-vitals',
+          userAgent: navigator.userAgent,
+          url: window.location.pathname
+        };
+        
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[Web Vitals] ${name}: ${value}ms`);
+          logger.debug('Web Vitals metric recorded', webVitalData);
         }
         
-        // Send to analytics in production
-        if (process.env.NODE_ENV === 'production') {
-          // You could send to Google Analytics, DataDog, etc.
-          if (value > 2500) { // LCP threshold
-            console.warn(`[Web Vitals Warning] ${name}: ${value}ms`);
+        // Log performance warnings for metrics above thresholds
+        const getThreshold = (metricName: string): number | undefined => {
+          switch (metricName) {
+            case 'largest-contentful-paint': return 2500;
+            case 'first-input-delay': return 100;
+            case 'cumulative-layout-shift': return 0.1;
+            default: return undefined;
           }
+        };
+        
+        const threshold = getThreshold(name);
+        if (threshold && value > threshold) {
+          logger.warn('Web Vitals threshold exceeded', {
+            ...webVitalData,
+            threshold,
+            exceedsBy: value - threshold
+          });
         }
       });
     });
 
     try {
-      observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] });
-    } catch (e) {
+      observer.observe({ 
+        entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] 
+      });
+    } catch (error) {
       // Fallback for older browsers
-      console.log('Performance Observer not supported');
+      logger.warn('Performance Observer not supported', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userAgent: navigator.userAgent,
+        category: 'web-vitals-fallback'
+      });
     }
   }
 }

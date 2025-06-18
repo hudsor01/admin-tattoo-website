@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { AppointmentStatus, type SessionStatus as PrismaSessionStatus } from '@prisma/client'
+import { type SessionStatus as PrismaSessionStatus } from '@prisma/client'
 import { type BetterAuthUser, isVerifiedAdmin, toBetterAuthUser } from '@/lib/authorization'
 import type { ChartDataPoint, DashboardStats, RecentClient, RecentSession } from '@/types/dashboard'
 
@@ -37,7 +37,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       recentSessions
     })
   } catch (error) {
-    console.error('Dashboard API error:', error)
+    // Use proper logging instead of console.error
+    const logger = await import('@/lib/logger').then(m => m.logger);
+    logger.error('Dashboard API error', error, {
+      endpoint: '/api/admin/dashboard',
+      method: 'GET'
+    });
+    
     return NextResponse.json(
       { error: 'Failed to fetch dashboard data' },
       { status: 500 }
@@ -213,21 +219,53 @@ async function calculateSatisfactionRating(): Promise<number> {
   }
   const totalSessions = +(data.total_sessions || 0)
   
-  if (totalSessions === 0) return 5.0
+  if (totalSessions === 0) return 4.5 // Realistic default rating for new business
   
   const completionRate = (data.completed_sessions || 0) / totalSessions
-  const rating = Math.min(5.0, 3.0 + (completionRate * 2.0))
-  
-  // Store rating change data for later use - simplified approach
-  (globalThis as any).ratingChange = 0 // Simplified for now to avoid TypeScript issues
+  // Calculate rating based on completion rate and business metrics
+  const baseRating = 3.5 // Conservative baseline
+  const completionBonus = completionRate * 1.5 // Up to 1.5 points for completion
+  const rating = Math.min(5.0, Math.max(1.0, baseRating + completionBonus))
   
   return parseFloat(rating.toFixed(1))
 }
 
 async function calculateRatingChange(): Promise<string> {
-  // Use cached value from calculateSatisfactionRating to avoid duplicate query
-  const ratingChange = (globalThis as any).ratingChange || 0
-  return ratingChange >= 0 ? `+${ratingChange.toFixed(1)}` : ratingChange.toFixed(1)
+  // Calculate rating change based on this month vs last month completion rates
+  const ratingData = await prisma.$queryRaw<Array<{
+    this_month_completed: number
+    this_month_total: number
+    last_month_completed: number
+    last_month_total: number
+  }>>`
+    SELECT 
+      COUNT(CASE WHEN status = 'COMPLETED' AND updated_at >= date_trunc('month', now()) THEN 1 END) as this_month_completed,
+      COUNT(CASE WHEN updated_at >= date_trunc('month', now()) THEN 1 END) as this_month_total,
+      COUNT(CASE WHEN status = 'COMPLETED' AND updated_at >= date_trunc('month', now() - interval '1 month') AND updated_at < date_trunc('month', now()) THEN 1 END) as last_month_completed,
+      COUNT(CASE WHEN updated_at >= date_trunc('month', now() - interval '1 month') AND updated_at < date_trunc('month', now()) THEN 1 END) as last_month_total
+    FROM tattoo_sessions;
+  `
+  
+  const data = ratingData[0] || {
+    this_month_completed: 0,
+    this_month_total: 0,
+    last_month_completed: 0,
+    last_month_total: 0
+  }
+  
+  const thisMonthRate = data.this_month_total > 0 
+    ? (data.this_month_completed / data.this_month_total) 
+    : 0
+  const lastMonthRate = data.last_month_total > 0 
+    ? (data.last_month_completed / data.last_month_total) 
+    : 0
+  
+  if (lastMonthRate === 0) {
+    return thisMonthRate > 0 ? '+0.1' : '0.0'
+  }
+  
+  const ratingDifference = (thisMonthRate - lastMonthRate) * 1.5 // Scale to rating points
+  return ratingDifference >= 0 ? `+${ratingDifference.toFixed(1)}` : ratingDifference.toFixed(1)
 }
 
 async function getRecentClients(): Promise<RecentClient[]> {

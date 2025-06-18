@@ -111,11 +111,11 @@ export default function SettingsPage() {
     const localValue = localSettings[section];
     const settingsValue = settings?.[section];
     
-    if (localValue && Object.prototype.hasOwnProperty.call(localValue, key)) {
+    if (localValue && key in localValue) {
       return localValue[key as keyof typeof localValue];
     }
     
-    if (settingsValue && Object.prototype.hasOwnProperty.call(settingsValue, key)) {
+    if (settingsValue && key in settingsValue) {
       return settingsValue[key as keyof typeof settingsValue];
     }
     

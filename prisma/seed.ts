@@ -5,30 +5,43 @@ const prisma = new PrismaClient()
 async function main() {
   // Seeding database
 
-  // Create admin users
-  const _adminUser1 = await prisma.user.upsert({
-    where: { email: 'ink37tattoos@gmail.com' },
-    update: {},
-    create: {
-      email: 'ink37tattoos@gmail.com',
-      name: 'Ink37 Admin',
-      role: 'admin',
-      emailVerified: true,
+  // Create admin users from environment variables (production-safe)
+  const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || [];
+  const adminNames = process.env.ADMIN_NAMES?.split(',').map(name => name.trim()) || [];
+  
+  // Only create admin users if explicitly configured via environment
+  if (adminEmails.length > 0) {
+    console.warn(`Creating ${adminEmails.length} admin user(s) from environment configuration...`);
+    
+    for (let i = 0; i < adminEmails.length; i++) {
+      const email = adminEmails[i];
+      const name = adminNames[i] || email.split('@')[0]; // Use email prefix as fallback name
+      
+      if (email && email.includes('@')) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await prisma.user.upsert({
+            where: { email },
+            update: { role: 'admin' }, // Update existing users to admin role
+            create: {
+              email,
+              name,
+              role: 'admin',
+              emailVerified: true,
+            }
+          });
+          console.warn(`✓ Admin user created/updated: ${email}`);
+        } catch (error) {
+          console.error(`✗ Failed to create admin user ${email}:`, error);
+        }
+      } else {
+        console.warn(`⚠ Skipping invalid email: ${email}`);
+      }
     }
-  })
-
-  const _adminUser2 = await prisma.user.upsert({
-    where: { email: 'fennyg83@gmail.com' },
-    update: {},
-    create: {
-      email: 'fennyg83@gmail.com',
-      name: 'Fernando Govea',
-      role: 'admin',
-      emailVerified: true,
-    }
-  })
-
-  // Admin users created
+  } else {
+    console.warn('⚠ No admin users configured. Set ADMIN_EMAILS environment variable to create admin accounts.');
+    console.warn('Example: ADMIN_EMAILS="admin@example.com,admin2@example.com" ADMIN_NAMES="Admin One,Admin Two"');
+  }
 
   // Create tattoo artists
   const fernando = await prisma.tattoo_artists.create({
@@ -64,81 +77,8 @@ async function main() {
     }
   })
 
-  // Create clients
-  const clients = [
-    {
-      firstName: 'Sarah',
-      lastName: 'Martinez',
-      email: 'sarah.martinez@email.com',
-      phone: '+1-555-1001',
-      dateOfBirth: new Date('1992-05-15'),
-      emergencyName: 'Carlos Martinez',
-      emergencyPhone: '+1-555-1002',
-      emergencyRel: 'Husband',
-      allergies: [],
-      medicalConds: [],
-      preferredArtist: fernando.id
-    },
-    {
-      firstName: 'Mike',
-      lastName: 'Johnson',
-      email: 'mike.johnson@email.com',
-      phone: '+1-555-1003',
-      dateOfBirth: new Date('1988-11-22'),
-      emergencyName: 'Lisa Johnson',
-      emergencyPhone: '+1-555-1004',
-      emergencyRel: 'Wife',
-      allergies: [],
-      medicalConds: [],
-      preferredArtist: maya.id
-    },
-    {
-      firstName: 'Emma',
-      lastName: 'Davis',
-      email: 'emma.davis@email.com',
-      phone: '+1-555-1005',
-      dateOfBirth: new Date('1995-08-03'),
-      emergencyName: 'Robert Davis',
-      emergencyPhone: '+1-555-1006',
-      emergencyRel: 'Father',
-      allergies: ['Latex'],
-      medicalConds: [],
-      preferredArtist: fernando.id
-    },
-    {
-      firstName: 'Carlos',
-      lastName: 'Wilson',
-      email: 'carlos.wilson@email.com',
-      phone: '+1-555-1007',
-      dateOfBirth: new Date('1990-02-14'),
-      emergencyName: 'Ana Wilson',
-      emergencyPhone: '+1-555-1008',
-      emergencyRel: 'Sister',
-      allergies: [],
-      medicalConds: [],
-      preferredArtist: maya.id
-    },
-    {
-      firstName: 'Ana',
-      lastName: 'Lopez',
-      email: 'ana.lopez@email.com',
-      phone: '+1-555-1009',
-      dateOfBirth: new Date('1993-12-08'),
-      emergencyName: 'Miguel Lopez',
-      emergencyPhone: '+1-555-1010',
-      emergencyRel: 'Brother',
-      allergies: [],
-      medicalConds: [],
-      preferredArtist: fernando.id
-    }
-  ]
-
-  const createdClients = []
-  for (const clientData of clients) {
-    // eslint-disable-next-line no-await-in-loop
-    const client = await prisma.clients.create({ data: clientData })
-    createdClients.push(client)
-  }
+  // Skip creating sample clients for production - start with clean slate
+  console.warn('Skipping sample clients creation for production deployment');
 
   // Create tattoo sessions
   const sessions = [
