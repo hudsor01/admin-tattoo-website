@@ -79,9 +79,10 @@ async function main() {
 
   // Skip creating sample clients for production - start with clean slate
   console.warn('Skipping sample clients creation for production deployment');
+  const createdClients: any[] = []; // Empty array for production
 
-  // Create tattoo sessions
-  const sessions = [
+  // Create tattoo sessions only if we have clients
+  const sessions = createdClients.length > 0 ? [
     {
       clientId: createdClients[0].id,
       artistId: fernando.id,
@@ -182,15 +183,15 @@ async function main() {
       aftercareProvided: false,
       consentSigned: true
     }
-  ]
+  ] : []; // Close the conditional array
 
   for (const sessionData of sessions) {
     // eslint-disable-next-line no-await-in-loop
     await prisma.tattoo_sessions.create({ data: sessionData })
   }
 
-  // Create upcoming appointments
-  const appointments = [
+  // Create upcoming appointments only if we have clients
+  const appointments = createdClients.length > 0 ? [
     {
       clientId: createdClients[0].id,
       artistId: fernando.id,
@@ -209,7 +210,7 @@ async function main() {
       type: 'TATTOO_SESSION' as const,
       notes: 'First session for full sleeve - outline work.'
     }
-  ]
+  ] : []; // Close the conditional array
 
   for (const appointmentData of appointments) {
     // eslint-disable-next-line no-await-in-loop

@@ -202,7 +202,7 @@ export const useAuthStore = create<AuthState>()(
                 const enhancedUser = {
                   ...user,
                   banned: null,
-                  role: (user as any).role || 'user' // Use actual role from Better Auth, default to 'user'
+                  role: (user as { role?: string }).role || 'user' // Use actual role from Better Auth, default to 'user'
                 };
                 get().setUser(enhancedUser);
                 // Session data is included with the user data in Better Auth

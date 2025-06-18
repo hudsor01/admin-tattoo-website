@@ -107,19 +107,85 @@ export default function SettingsPage() {
     toast.success('Connection test successful!');
   };
 
-  const getCurrentValue = (section: keyof SettingsData, key: string) => {
-    const localValue = localSettings[section];
-    const settingsValue = settings?.[section];
-    
-    if (localValue && key in localValue) {
-      return localValue[key as keyof typeof localValue];
+  const getStringValue = (section: keyof SettingsData, key: string): string => {
+    // Use type-safe property access instead of dynamic access
+    switch (section) {
+      case 'studioInfo': {
+        const localValue = localSettings.studioInfo;
+        const settingsValue = settings?.studioInfo;
+        if (localValue && key in localValue) {
+          const value = localValue[key as keyof typeof localValue];
+          return typeof value === 'string' ? value : '';
+        }
+        if (settingsValue && key in settingsValue) {
+          const value = settingsValue[key as keyof typeof settingsValue];
+          return typeof value === 'string' ? value : '';
+        }
+        return '';
+      }
+      case 'calcom': {
+        const localValue = localSettings.calcom;
+        const settingsValue = settings?.calcom;
+        if (localValue && key in localValue) {
+          const value = localValue[key as keyof typeof localValue];
+          return typeof value === 'string' ? value : '';
+        }
+        if (settingsValue && key in settingsValue) {
+          const value = settingsValue[key as keyof typeof settingsValue];
+          return typeof value === 'string' ? value : '';
+        }
+        return '';
+      }
+      default:
+        return '';
     }
-    
-    if (settingsValue && key in settingsValue) {
-      return settingsValue[key as keyof typeof settingsValue];
+  };
+
+  const getBooleanValue = (section: keyof SettingsData, key: string): boolean => {
+    // Use type-safe property access instead of dynamic access
+    switch (section) {
+      case 'calcom': {
+        const localValue = localSettings.calcom;
+        const settingsValue = settings?.calcom;
+        if (localValue && key in localValue) {
+          const value = localValue[key as keyof typeof localValue];
+          return typeof value === 'boolean' ? value : false;
+        }
+        if (settingsValue && key in settingsValue) {
+          const value = settingsValue[key as keyof typeof settingsValue];
+          return typeof value === 'boolean' ? value : false;
+        }
+        return false;
+      }
+      case 'appearance': {
+        const localValue = localSettings.appearance;
+        const settingsValue = settings?.appearance;
+        if (localValue && key in localValue) {
+          const value = localValue[key as keyof typeof localValue];
+          return typeof value === 'boolean' ? value : false;
+        }
+        if (settingsValue && key in settingsValue) {
+          const value = settingsValue[key as keyof typeof settingsValue];
+          return typeof value === 'boolean' ? value : false;
+        }
+        return false;
+      }
+      case 'notifications': {
+        const localValue = localSettings.notifications;
+        const settingsValue = settings?.notifications;
+        if (localValue && key in localValue) {
+          const value = localValue[key as keyof typeof localValue];
+          return typeof value === 'boolean' ? value : false;
+        }
+        if (settingsValue && key in settingsValue) {
+          const value = settingsValue[key as keyof typeof settingsValue];
+          return typeof value === 'boolean' ? value : false;
+        }
+        return false;
+      }
+      default:
+        return false;
     }
-    
-    return undefined;
   };
 
   const hasChanges = Object.keys(localSettings).length > 0;
@@ -218,7 +284,7 @@ export default function SettingsPage() {
                       <Label htmlFor="studio-name">Studio Name</Label>
                       <Input 
                         id="studio-name" 
-                        value={getCurrentValue('studioInfo', 'name') || ''}
+                        value={getStringValue('studioInfo', 'name')}
                         onChange={(e) => handleUpdate('studioInfo', 'name', e.target.value)}
                       />
                     </div>
@@ -227,7 +293,7 @@ export default function SettingsPage() {
                       <Input 
                         id="studio-email" 
                         type="email" 
-                        value={getCurrentValue('studioInfo', 'email') || ''}
+                        value={getStringValue('studioInfo', 'email')}
                         onChange={(e) => handleUpdate('studioInfo', 'email', e.target.value)}
                       />
                     </div>
@@ -236,7 +302,7 @@ export default function SettingsPage() {
                       <Input 
                         id="studio-phone" 
                         type="tel" 
-                        value={getCurrentValue('studioInfo', 'phone') || ''}
+                        value={getStringValue('studioInfo', 'phone')}
                         onChange={(e) => handleUpdate('studioInfo', 'phone', e.target.value)}
                       />
                     </div>
@@ -244,7 +310,7 @@ export default function SettingsPage() {
                       <Label htmlFor="studio-address">Address</Label>
                       <Input 
                         id="studio-address" 
-                        value={getCurrentValue('studioInfo', 'address') || ''}
+                        value={getStringValue('studioInfo', 'address')}
                         onChange={(e) => handleUpdate('studioInfo', 'address', e.target.value)}
                       />
                     </div>
@@ -271,7 +337,7 @@ export default function SettingsPage() {
                         </p>
                       </div>
                       <Switch 
-                        checked={getCurrentValue('calcom', 'autoSync') || false}
+                        checked={getBooleanValue('calcom', 'autoSync')}
                         onCheckedChange={(checked) => handleUpdate('calcom', 'autoSync', checked)}
                         className="border-2 border-muted data-[state=checked]:border-orange-500 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500 data-[state=unchecked]:bg-muted shadow-sm" 
                       />
@@ -284,7 +350,7 @@ export default function SettingsPage() {
                         </p>
                       </div>
                       <Switch 
-                        checked={getCurrentValue('calcom', 'emailNotifications') || false}
+                        checked={getBooleanValue('calcom', 'emailNotifications')}
                         onCheckedChange={(checked) => handleUpdate('calcom', 'emailNotifications', checked)}
                         className="border-2 border-muted data-[state=checked]:border-orange-500 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500 data-[state=unchecked]:bg-muted shadow-sm" 
                       />
@@ -294,7 +360,7 @@ export default function SettingsPage() {
                       <Input 
                         id="cal-webhook" 
                         readOnly 
-                        value={getCurrentValue('calcom', 'webhookUrl') || ''}
+                        value={getStringValue('calcom', 'webhookUrl')}
                       />
                     </div>
                     <Button 
@@ -328,7 +394,7 @@ export default function SettingsPage() {
                         </p>
                       </div>
                       <Switch 
-                        checked={getCurrentValue('appearance', 'darkMode') || false}
+                        checked={getBooleanValue('appearance', 'darkMode')}
                         onCheckedChange={(checked) => handleUpdate('appearance', 'darkMode', checked)}
                         className="border-2 border-muted data-[state=checked]:border-orange-500 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500 data-[state=unchecked]:bg-muted shadow-sm" 
                       />
@@ -341,7 +407,7 @@ export default function SettingsPage() {
                         </p>
                       </div>
                       <Switch 
-                        checked={getCurrentValue('appearance', 'compactSidebar') || false}
+                        checked={getBooleanValue('appearance', 'compactSidebar')}
                         onCheckedChange={(checked) => handleUpdate('appearance', 'compactSidebar', checked)}
                         className="border-2 border-muted data-[state=checked]:border-orange-500 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500 data-[state=unchecked]:bg-muted shadow-sm" 
                       />
@@ -369,7 +435,7 @@ export default function SettingsPage() {
                         </p>
                       </div>
                       <Switch 
-                        checked={getCurrentValue('notifications', 'newBookings') || false}
+                        checked={getBooleanValue('notifications', 'newBookings')}
                         onCheckedChange={(checked) => handleUpdate('notifications', 'newBookings', checked)}
                         className="border-2 border-muted data-[state=checked]:border-orange-500 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500 data-[state=unchecked]:bg-muted shadow-sm" 
                       />
@@ -382,7 +448,7 @@ export default function SettingsPage() {
                         </p>
                       </div>
                       <Switch 
-                        checked={getCurrentValue('notifications', 'payments') || false}
+                        checked={getBooleanValue('notifications', 'payments')}
                         onCheckedChange={(checked) => handleUpdate('notifications', 'payments', checked)}
                         className="border-2 border-muted data-[state=checked]:border-orange-500 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500 data-[state=unchecked]:bg-muted shadow-sm" 
                       />
@@ -395,7 +461,7 @@ export default function SettingsPage() {
                         </p>
                       </div>
                       <Switch 
-                        checked={getCurrentValue('notifications', 'dailySummary') || false}
+                        checked={getBooleanValue('notifications', 'dailySummary')}
                         onCheckedChange={(checked) => handleUpdate('notifications', 'dailySummary', checked)}
                         className="border-2 border-muted data-[state=checked]:border-orange-500 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500 data-[state=unchecked]:bg-muted shadow-sm" 
                       />
