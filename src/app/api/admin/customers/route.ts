@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { customerFilterSchema, createCustomerSchema, CreateCustomer } from '@/lib/validations';
-import { createSuccessResponse, createErrorResponse, handleZodError } from '@/lib/api-core';
-import { getCustomers, createCustomer } from '@/lib/db-operations';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
+import type { CreateCustomer } from '@/lib/validations';
+import { createCustomerSchema, customerFilterSchema } from '@/lib/validations';
+import { createErrorResponse, createSuccessResponse, handleZodError } from '@/lib/api-core';
+import { createCustomer, getCustomers } from '@/lib/db-operations';
 import { ZodError } from 'zod';
-import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation';
+import { SecurityPresets, withSecurityValidation } from '@/lib/api-validation';
 
 const getCustomersHandler = async (request: NextRequest, validatedData?: { query?: Record<string, unknown> }) => {
   try {

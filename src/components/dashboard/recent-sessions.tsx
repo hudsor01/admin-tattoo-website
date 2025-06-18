@@ -29,7 +29,7 @@ export function RecentSessions() {
           <CardDescription>Latest tattoo sessions and appointments</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-red-600 py-4">
+          <div className="text-center text-destructive py-4">
             Failed to load recent sessions. Please try again later.
           </div>
         </CardContent>
@@ -77,17 +77,17 @@ function SessionCard({ session }: { session: TattooSessionWithClient }) {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'completed':
-        return 'bg-green-100 text-green-800'
+        return 'bg-success-soft text-success'
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-info-soft text-info'
       case 'scheduled':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-warning-soft text-warning'
       case 'cancelled':
-        return 'bg-red-100 text-red-800'
+        return 'bg-error-soft text-error'
       case 'no_show':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-muted text-muted-foreground'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -108,25 +108,25 @@ function SessionCard({ session }: { session: TattooSessionWithClient }) {
   }
 
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
       <div className="flex items-center space-x-4 flex-1">
         <div className="flex-shrink-0">
-          <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
-            <User className="h-5 w-5 text-orange-600" />
+          <div className="h-10 w-10 rounded-full bg-brand-gradient-soft flex items-center justify-center">
+            <User className="h-5 w-5 text-primary" />
           </div>
         </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {session.client?.firstName} {session.client?.lastName}
+            <p className="text-sm font-medium text-foreground truncate">
+              {session.clients?.firstName} {session.clients?.lastName}
             </p>
             <Badge className={`text-xs ${getStatusColor(session.status)}`}>
               {session.status?.replace('_', ' ')}
             </Badge>
           </div>
           
-          <div className="flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <CalendarDays className="h-3 w-3" />
               <span>{formatDate(session.appointmentDate)}</span>
@@ -137,25 +137,23 @@ function SessionCard({ session }: { session: TattooSessionWithClient }) {
               <span>{Math.round(session.duration / 60)}h</span>
             </div>
             
-            {session.totalCost && (
-              <div className="flex items-center gap-1">
+            {session.totalCost ? <div className="flex items-center gap-1">
                 <DollarSign className="h-3 w-3" />
                 <span>{formatCurrency(Number(session.totalCost))}</span>
-              </div>
-            )}
+              </div> : null}
           </div>
           
-          <p className="text-xs text-gray-500 mt-1 truncate">
+          <p className="text-xs text-muted-foreground mt-1 truncate">
             {session.designDescription}
           </p>
         </div>
       </div>
       
       <div className="text-right">
-        <p className="text-sm font-medium text-gray-900">
-          {session.artist?.name}
+        <p className="text-sm font-medium text-foreground">
+          {session.tattoo_artists?.name}
         </p>
-        <p className="text-xs text-gray-500">Artist</p>
+        <p className="text-xs text-muted-foreground">Artist</p>
       </div>
     </div>
   )

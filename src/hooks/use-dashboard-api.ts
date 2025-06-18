@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch, queryKeys } from '@/lib/api/client';
 import type { 
-  DashboardStats, 
-  DashboardData, 
   ChartDataPoint, 
+  DashboardData, 
+  DashboardStats, 
   RecentClient, 
   RecentSession 
 } from '@/types/dashboard';
@@ -55,7 +55,7 @@ export function useDashboardData() {
 
 // Prefetch utilities for dashboard
 export function prefetchDashboardData() {
-  const queryClient = require('@/lib/api/client').queryClient;
+  const {queryClient} = require('@/lib/api/client');
   
   return Promise.all([
     queryClient.prefetchQuery({

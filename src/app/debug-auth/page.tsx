@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, useSession, useAuthStatus } from '@/stores/auth-store';
+import { useAuthStatus, useSession, useUser } from '@/stores/auth-store';
 
 export default function DebugAuthPage() {
   const user = useUser();

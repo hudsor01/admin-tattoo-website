@@ -1,8 +1,18 @@
 import { create } from 'zustand';
 import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
 import { authClient } from '@/lib/auth-client';
-import type { User, Session } from '@/types/auth';
-import { handleError, ErrorCategory, withEnhancedRetry } from '@/lib/api/enhanced-error-handling';
+import type { Session, User } from '@/types/auth';
+import { ErrorCategory, handleError, withEnhancedRetry } from '@/lib/api/enhanced-error-handling';
+
+// Stable snapshot function to prevent infinite loops
+const createStableSnapshot = (state: AuthState) => {
+  return JSON.stringify({
+    isAuthenticated: state.isAuthenticated,
+    isLoading: state.isLoading,
+    isAdmin: state.isAdmin,
+    userId: state.user?.id,
+  });
+};
 
 // Auth state interface
 interface AuthState {
@@ -313,7 +323,7 @@ export const useAuthStore = create<AuthState>()(
           
           scheduleRefresh: (delay?: number) => {
             const state = get();
-            const session = state.session;
+            const {session} = state;
             
             if (!session || !state.autoRefreshEnabled) return;
             
@@ -455,26 +465,31 @@ export const useCanAccessDashboard = () => useAuthStore((state) => state.canAcce
 export const usePermissions = () => useAuthStore((state) => state.permissions);
 export const useAdminPermissions = () => useAuthStore((state) => state.adminPermissions);
 
-// Compound selectors
-export const useAuthStatus = () => useAuthStore((state) => ({
+// Stable compound selectors to prevent infinite loops
+const authStatusSelector = (state: AuthState) => ({
   isLoading: state.isLoading,
   isAuthenticated: state.isAuthenticated,
   isAdmin: state.isAdmin,
   canAccessDashboard: state.canAccessDashboard,
-}));
+});
 
-export const useAuthActions = () => useAuthStore((state) => ({
+const authActionsSelector = (state: AuthState) => ({
   login: state.login,
   logout: state.logout,
   refreshSession: state.refreshSession,
   checkAdminStatus: state.checkAdminStatus,
   verifyAdminAccess: state.verifyAdminAccess,
-}));
+});
 
-export const usePermissionChecks = () => useAuthStore((state) => ({
+const permissionChecksSelector = (state: AuthState) => ({
   hasPermission: state.hasPermission,
   canManageResource: state.canManageResource,
-}));
+});
+
+// Use stable selectors
+export const useAuthStatus = () => useAuthStore(authStatusSelector);
+export const useAuthActions = () => useAuthStore(authActionsSelector);
+export const usePermissionChecks = () => useAuthStore(permissionChecksSelector);
 
 // Initialize auth store on app start
 export async function initializeAuthStore() {

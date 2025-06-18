@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { IconRefresh, IconAlertTriangle } from "@tabler/icons-react";
+import { IconAlertTriangle, IconRefresh } from "@tabler/icons-react";
 
 interface AuthErrorBoundaryState {
   hasError: boolean;
@@ -60,14 +60,12 @@ export class AuthErrorBoundary extends React.Component<
                     There was a problem with the authentication system. 
                     This might be a temporary issue.
                   </p>
-                  {this.state.error && (
-                    <details className="text-xs opacity-70">
+                  {this.state.error ? <details className="text-xs opacity-70">
                       <summary>Technical details</summary>
                       <pre className="mt-2 whitespace-pre-wrap">
                         {this.state.error.message}
                       </pre>
-                    </details>
-                  )}
+                    </details> : null}
                 </div>
               </AlertDescription>
             </Alert>

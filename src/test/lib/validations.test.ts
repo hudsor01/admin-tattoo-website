@@ -1,30 +1,30 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import {
-  paginationSchema,
-  dateRangeSchema,
-  secureEmailSchema,
-  securePasswordSchema,
-  secureNameSchema,
-  securePhoneSchema,
-  createCustomerSchema,
-  updateCustomerSchema,
-  createAppointmentSchema,
-  updateAppointmentSchema,
-  createPaymentSchema,
-  updatePaymentSchema,
-  createGalleryItemSchema,
-  updateGalleryItemSchema,
-  appointmentFilterSchema,
-  customerFilterSchema,
-  loginSchema,
-  signupSchema,
-  fileUploadSchema,
   analyticsFilterSchema,
-  rateLimitSchema,
-  auditLogSchema,
   apiResponseSchema,
-  paginatedResponseSchema
+  appointmentFilterSchema,
+  auditLogSchema,
+  createAppointmentSchema,
+  createCustomerSchema,
+  createGalleryItemSchema,
+  createPaymentSchema,
+  customerFilterSchema,
+  dateRangeSchema,
+  fileUploadSchema,
+  loginSchema,
+  paginatedResponseSchema,
+  paginationSchema,
+  rateLimitSchema,
+  secureEmailSchema,
+  secureNameSchema,
+  securePasswordSchema,
+  securePhoneSchema,
+  signupSchema,
+  updateAppointmentSchema,
+  updateCustomerSchema,
+  updateGalleryItemSchema,
+  updatePaymentSchema
 } from '@/lib/validations'
 
 // Mock sanitization functions
@@ -119,7 +119,7 @@ describe('validations.ts', () => {
     })
 
     it('should reject emails that are too long', () => {
-      const longEmail = 'a'.repeat(250) + '@example.com'
+      const longEmail = `${'a'.repeat(250)  }@example.com`
       expect(() => secureEmailSchema.parse(longEmail)).toThrow('Email too long')
     })
 
@@ -143,12 +143,12 @@ describe('validations.ts', () => {
     })
 
     it('should reject local part > 64 chars', () => {
-      const longLocal = 'a'.repeat(65) + '@example.com'
+      const longLocal = `${'a'.repeat(65)  }@example.com`
       expect(() => secureEmailSchema.parse(longLocal)).toThrow()
     })
 
     it('should reject domain > 253 chars', () => {
-      const longDomain = 'user@' + 'a'.repeat(250) + '.com'
+      const longDomain = `user@${  'a'.repeat(250)  }.com`
       expect(() => secureEmailSchema.parse(longDomain)).toThrow()
     })
   })
@@ -164,7 +164,7 @@ describe('validations.ts', () => {
     })
 
     it('should reject long passwords', () => {
-      const longPassword = 'A'.repeat(130) + '1!'
+      const longPassword = `${'A'.repeat(130)  }1!`
       expect(() => securePasswordSchema.parse(longPassword)).toThrow('Password too long')
     })
 

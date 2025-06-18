@@ -3,7 +3,7 @@ import { apiFetch, queryKeys } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/utils';
 
 // Enhanced analytics types
-export interface AnalyticsFilters {
+export interface AnalyticsFilters extends Record<string, unknown> {
   startDate?: Date;
   endDate?: Date;
   period?: 'day' | 'week' | 'month' | 'quarter' | 'year';
@@ -281,7 +281,7 @@ export function useAnalyticsComparison(
 
 // Prefetch utilities
 export function prefetchAnalytics(filters?: AnalyticsFilters) {
-  const queryClient = require('@/lib/api/client').queryClient;
+  const {queryClient} = require('@/lib/api/client');
   
   return Promise.all([
     queryClient.prefetchQuery({

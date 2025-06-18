@@ -31,8 +31,8 @@ async function checkDatabase(): Promise<HealthCheckResult> {
     await prisma.$queryRaw`SELECT 1`;
     
     // Check if we can query main tables
-    const clientCount = await prisma.client.count();
-    const appointmentCount = await prisma.appointment.count();
+    const clientCount = await prisma.clients.count();
+    const appointmentCount = await prisma.appointments.count();
     
     const responseTime = Date.now() - start;
     

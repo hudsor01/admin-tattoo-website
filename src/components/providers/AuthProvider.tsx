@@ -1,49 +1,44 @@
 'use client';
 
-import React, { ReactNode, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import React from 'react';
 import { 
-  useUser, 
-  useAuthStatus,
-  initializeAuthStore 
-} from '@/stores/auth-store';
+  useCurrentUser,
+  useIsAdmin,
+  useIsAuthenticated 
+} from '@/lib/auth-utils';
+import { authClient } from '@/lib/auth-client';
 
 /**
  * Auth Provider Component
  * 
- * Initializes and provides authentication state throughout the app using Zustand store
- * This component replaces the old Context API approach with Zustand for better performance
+ * Provides authentication state using Better Auth's native hooks
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Initialize auth store on mount
-  useEffect(() => {
-    initializeAuthStore().catch(console.error);
-  }, []);
-
+  // Better Auth handles initialization automatically
   return <>{children}</>;
 }
 
 /**
- * Hook to access auth state (migrated from Context to Zustand)
- * 
- * @deprecated Use specific auth hooks like useUser, useIsAdmin, etc. for better performance
- * This hook is kept for backward compatibility during migration
+ * Hook to access auth state using Better Auth's native session
  */
 export function useAuth() {
-  const user = useUser();
-  const { isLoading, isAuthenticated, isAdmin } = useAuthStatus();
+  const { data: session, isPending: isLoading, error } = authClient.useSession();
+  const user = useCurrentUser();
+  const isAdmin = useIsAdmin();
+  const isAuthenticated = useIsAuthenticated();
   
   return {
     user,
     isAdmin,
     isLoading,
     isAuthenticated,
-    // For compatibility with existing code that expects session object
     session: {
-      data: user ? { user } : null,
+      data: session,
       isPending: isLoading,
-      error: null,
+      error,
     },
-    error: null,
+    error,
   };
 }
 
@@ -52,8 +47,8 @@ export function useAuth() {
  * Throws error if user is not authenticated
  */
 export function useRequireAuth() {
-  const user = useUser();
-  const { isLoading } = useAuthStatus();
+  const { data: session, isPending: isLoading } = authClient.useSession();
+  const user = session?.user;
   
   if (!isLoading && !user) {
     throw new Error('Authentication required');
@@ -67,8 +62,9 @@ export function useRequireAuth() {
  * Throws error if user is not an admin
  */
 export function useRequireAdmin() {
-  const user = useUser();
-  const { isLoading, isAdmin } = useAuthStatus();
+  const { data: session, isPending: isLoading } = authClient.useSession();
+  const user = session?.user;
+  const isAdmin = user?.role === 'admin';
   
   if (!isLoading && !isAdmin) {
     throw new Error('Admin access required');

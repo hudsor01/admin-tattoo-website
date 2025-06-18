@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { CreateCustomer, CustomerFilter } from '@/lib/validations'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { CreateCustomer, CustomerFilter } from '@/lib/validations'
 import { apiFetch, queryKeys } from '@/lib/api/client'
-import { showSuccessToast, showErrorToast, buildQueryString } from '@/lib/api/utils'
+import { buildQueryString, showErrorToast, showSuccessToast } from '@/lib/api/utils'
 import type { ClientResponse } from '@/types/database'
 
 interface UseCustomerOperationsOptions {

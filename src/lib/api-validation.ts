@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z, ZodSchema } from 'zod';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
+import type { ZodSchema } from 'zod';
+import { z } from 'zod';
 import { createErrorResponse } from './api-core';
 
 export interface ValidationConfig {
@@ -23,7 +25,7 @@ export function withValidation(config: ValidationConfig = {}) {
         }
 
         // Content validation
-        let validatedData: Record<string, unknown> = {};
+        const validatedData: Record<string, unknown> = {};
 
         // Body validation
         if (config.bodySchema && ['POST', 'PUT', 'PATCH'].includes(request.method)) {

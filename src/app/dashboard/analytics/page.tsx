@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { DollarSign, Users, Calendar, TrendingUp, Download, Filter, Activity, BarChart3 } from "lucide-react"
+import { Activity, BarChart3, Calendar, DollarSign, Download, Filter, TrendingUp, Users } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Suspense } from "react"
@@ -54,7 +54,7 @@ export default function AnalyticsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-red-500">
+                        <div className="p-2 rounded-xl bg-brand-gradient">
                           <BarChart3 className="h-6 w-6 text-white" />
                         </div>
                         <div>
@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
                         <Filter className="h-4 w-4" />
                         Filter
                       </Button>
-                      <Button className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
+                      <Button className="gap-2 bg-brand-gradient-hover">
                         <Download className="h-4 w-4" />
                         Export Report
                       </Button>
@@ -79,8 +79,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Error State */}
-                {error && (
-                  <div className="px-6 lg:px-8">
+                {error ? <div className="px-6 lg:px-8">
                     <div className="bg-destructive/15 border border-destructive/20 rounded-xl p-4">
                       <div className="flex items-center gap-2 text-destructive">
                         <span className="font-medium">Failed to load analytics data</span>
@@ -89,8 +88,7 @@ export default function AnalyticsPage() {
                         Please check your connection and try again. If the problem persists, contact support.
                       </p>
                     </div>
-                  </div>
-                )}
+                  </div> : null}
 
                 {/* Key Metrics */}
                 <div className="px-6 lg:px-8">
@@ -196,10 +194,10 @@ function MetricCard({ title, value, change, icon, format, isLoading, color }: {
   }
 
   const colorClasses = {
-    green: 'bg-green-500/10 text-green-600',
-    blue: 'bg-blue-500/10 text-blue-600',
-    purple: 'bg-purple-500/10 text-purple-600',
-    orange: 'bg-orange-500/10 text-orange-600'
+    green: 'bg-success-soft text-success',
+    blue: 'bg-info-soft text-info',
+    purple: 'bg-accent/10 text-accent-foreground',
+    orange: 'bg-brand-gradient-soft text-primary'
   }
 
   const changePrefix = change > 0 ? '+' : ''
@@ -269,7 +267,7 @@ function ClientAcquisitionChart({ data, isLoading }: { data: Array<{ month: stri
         <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
           <span className="font-medium text-foreground">{item.month}</span>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+            <div className="w-6 h-6 bg-info rounded-full flex items-center justify-center">
               <span className="text-white text-xs font-bold">{item.newClients || 0}</span>
             </div>
             <span className="text-sm text-muted-foreground">new</span>

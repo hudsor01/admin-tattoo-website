@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, AlertTriangle, RefreshCw, Home, Settings, MessageCircle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Home, MessageCircle, RefreshCw, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -176,16 +176,14 @@ export class UnifiedErrorBoundary extends React.Component<UnifiedErrorBoundaryPr
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {process.env.NODE_ENV !== 'production' && this.state.error && (
-              <div className="p-3 bg-gray-100 rounded-md">
+            {process.env.NODE_ENV !== 'production' && this.state.error ? <div className="p-3 bg-gray-100 rounded-md">
                 <p className="text-xs font-mono text-gray-700">
                   {this.state.error.message}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   Error ID: {this.state.errorId}
                 </p>
-              </div>
-            )}
+              </div> : null}
             
             <div className="flex gap-2">
               <Button 
@@ -237,22 +235,18 @@ export class UnifiedErrorBoundary extends React.Component<UnifiedErrorBoundaryPr
                 <Badge variant={isNetworkError ? "secondary" : "destructive"}>
                   {isNetworkError ? "Network Error" : "Application Error"}
                 </Badge>
-                {this.state.retryCount > 0 && (
-                  <Badge variant="outline">
+                {this.state.retryCount > 0 ? <Badge variant="outline">
                     Retry {this.state.retryCount}/{this.props.maxRetries || 2}
-                  </Badge>
-                )}
+                  </Badge> : null}
               </div>
             </div>
 
             {/* Retry Information */}
-            {isNetworkError && !maxRetriesReached && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+            {isNetworkError && !maxRetriesReached ? <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                 <p className="text-sm text-blue-800">
                   This appears to be a network issue. The dashboard will automatically retry in a moment.
                 </p>
-              </div>
-            )}
+              </div> : null}
 
             {/* Action Buttons */}
             <div className="space-y-3">

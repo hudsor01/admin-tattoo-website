@@ -9,9 +9,8 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { ImageIcon, Search, Filter, Eye, Edit, Trash2, Video, RefreshCw, ExternalLink } from "lucide-react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { Edit, ExternalLink, Eye, ImageIcon, RefreshCw, Trash2, Video } from "lucide-react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -48,7 +47,6 @@ const fetchMediaItems = async () => {
 }
 
 export default function MediaManagementPage() {
-  const [searchQuery, setSearchQuery] = useState('')
   const [uploadType, setUploadType] = useState<'photo' | 'video'>('photo')
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const { data: mediaItems, isLoading } = useQuery({
@@ -57,12 +55,28 @@ export default function MediaManagementPage() {
     refetchInterval: 60000, // Refresh every minute
   })
 
-  // Ensure mediaItems is always an array before filtering
+  // Ensure mediaItems is always an array and organize by type and sync status
   const safeMediaItems: MediaItem[] = Array.isArray(mediaItems) ? mediaItems : []
-  const filteredItems = safeMediaItems.filter((item: MediaItem) =>
-    item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.tags?.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    item.artistName?.toLowerCase().includes(searchQuery.toLowerCase())
+  
+  // Separate items by type and sync status
+  const syncedImages = safeMediaItems.filter(item => 
+    (item.type === 'photo' || !item.type || (!item.mediaUrl?.includes('.mp4') && !item.mediaUrl?.includes('.mov') && !item.mediaUrl?.includes('.webm'))) && 
+    item.syncedToWebsite
+  )
+  
+  const unsyncedImages = safeMediaItems.filter(item => 
+    (item.type === 'photo' || !item.type || (!item.mediaUrl?.includes('.mp4') && !item.mediaUrl?.includes('.mov') && !item.mediaUrl?.includes('.webm'))) && 
+    !item.syncedToWebsite
+  )
+  
+  const syncedVideos = safeMediaItems.filter(item => 
+    (item.type === 'video' || item.mediaUrl?.includes('.mp4') || item.mediaUrl?.includes('.mov') || item.mediaUrl?.includes('.webm')) && 
+    item.syncedToWebsite
+  )
+  
+  const unsyncedVideos = safeMediaItems.filter(item => 
+    (item.type === 'video' || item.mediaUrl?.includes('.mp4') || item.mediaUrl?.includes('.mov') || item.mediaUrl?.includes('.webm')) && 
+    !item.syncedToWebsite
   )
 
   return (
@@ -85,7 +99,7 @@ export default function MediaManagementPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-red-500">
+                        <div className="p-2 rounded-xl bg-brand-gradient">
                           <ImageIcon className="h-6 w-6 text-white" />
                         </div>
                         <div>
@@ -102,7 +116,7 @@ export default function MediaManagementPage() {
                           setUploadType('photo')
                           setUploadDialogOpen(true)
                         }}
-                        className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+                        className="bg-brand-gradient-hover"
                       >
                         <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                         Upload Photo
@@ -121,82 +135,93 @@ export default function MediaManagementPage() {
                   </div>
                 </div>
 
-                {/* Search and Filters */}
-                <div className="px-6 lg:px-8">
-                  <div className="flex items-center gap-4">
-                    <div className="relative flex-1 max-w-sm">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search media..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8"
-                      />
-                    </div>
-                    <Button variant="outline" size="sm">
-                      <Filter className="mr-2 h-4 w-4" />
-                      Filter
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Media Grid */}
-                <div className="px-6 lg:px-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {isLoading ? (
-                      <>
-                        {[...Array(8)].map((_, i) => (
-                          <Card key={i} className="overflow-hidden">
-                            <Skeleton className="h-48 w-full" />
-                            <CardHeader>
-                              <Skeleton className="h-5 w-32" />
-                              <Skeleton className="h-4 w-24" />
-                            </CardHeader>
-                          </Card>
-                        ))}
-                      </>
-                    ) : filteredItems?.length > 0 ? (
-                      filteredItems.map((item: MediaItem) => (
-                        <MediaItemCard key={item.id} item={item} />
-                      ))
-                    ) : (
-                      <div className="col-span-full">
-                        <Card>
-                          <CardContent className="flex items-center justify-center h-48">
-                            <div className="text-center">
-                              <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
-                              <h3 className="text-lg font-semibold">No media items found</h3>
-                              <p className="text-muted-foreground mb-4">
-                                Start by uploading your first photo or video.
-                              </p>
-                              <div className="flex gap-2 justify-center">
-                                <Button 
-                                  onClick={() => {
-                                    setUploadType('photo')
-                                    setUploadDialogOpen(true)
-                                  }}
-                                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-                                >
-                                  <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
-                                  Upload Photo
-                                </Button>
-                                <Button 
-                                  onClick={() => {
-                                    setUploadType('video')
-                                    setUploadDialogOpen(true)
-                                  }}
-                                  variant="outline"
-                                >
-                                  <Video className="mr-2 h-4 w-4" />
-                                  Upload Video
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
+                {/* Media Sections */}
+                <div className="px-6 lg:px-8 space-y-8">
+                  {isLoading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {[...Array(8)].map((_, i) => (
+                        <Card key={i} className="overflow-hidden">
+                          <Skeleton className="h-48 w-full" />
+                          <CardHeader>
+                            <Skeleton className="h-5 w-32" />
+                            <Skeleton className="h-4 w-24" />
+                          </CardHeader>
                         </Card>
-                      </div>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  ) : safeMediaItems?.length > 0 ? (
+                    <>
+                      {/* Images on Website */}
+                      <MediaSection 
+                        title="Images on Website" 
+                        items={syncedImages} 
+                        icon={<ImageIcon className="h-5 w-5" />}
+                        badge="✓ Synced"
+                        badgeVariant="default"
+                      />
+                      
+                      {/* Images not on Website */}
+                      <MediaSection 
+                        title="Images not on Website" 
+                        items={unsyncedImages} 
+                        icon={<ImageIcon className="h-5 w-5" />}
+                        badge="⚠ Not Synced"
+                        badgeVariant="destructive"
+                      />
+                      
+                      {/* Videos on Website */}
+                      <MediaSection 
+                        title="Videos on Website" 
+                        items={syncedVideos} 
+                        icon={<Video className="h-5 w-5" />}
+                        badge="✓ Synced"
+                        badgeVariant="default"
+                      />
+                      
+                      {/* Videos not on Website */}
+                      <MediaSection 
+                        title="Videos not on Website" 
+                        items={unsyncedVideos} 
+                        icon={<Video className="h-5 w-5" />}
+                        badge="⚠ Not Synced"
+                        badgeVariant="destructive"
+                      />
+                    </>
+                  ) : (
+                    <Card>
+                      <CardContent className="flex items-center justify-center h-48">
+                        <div className="text-center">
+                          <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
+                          <h3 className="text-lg font-semibold">No media items found</h3>
+                          <p className="text-muted-foreground mb-4">
+                            Start by uploading your first photo or video.
+                          </p>
+                          <div className="flex gap-2 justify-center">
+                            <Button 
+                              onClick={() => {
+                                setUploadType('photo')
+                                setUploadDialogOpen(true)
+                              }}
+                              className="bg-brand-gradient-hover"
+                            >
+                              <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+                              Upload Photo
+                            </Button>
+                            <Button 
+                              onClick={() => {
+                                setUploadType('video')
+                                setUploadDialogOpen(true)
+                              }}
+                              variant="outline"
+                            >
+                              <Video className="mr-2 h-4 w-4" />
+                              Upload Video
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               </div>
             </div>
@@ -209,6 +234,46 @@ export default function MediaManagementPage() {
           uploadType={uploadType}
         />
       </SidebarProvider>
+  )
+}
+
+function MediaSection({ 
+  title, 
+  items, 
+  icon, 
+  badge, 
+  badgeVariant 
+}: { 
+  title: string
+  items: MediaItem[]
+  icon: React.ReactNode
+  badge: string
+  badgeVariant: "default" | "destructive"
+}) {
+  if (items.length === 0) return null
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-muted">
+          {icon}
+        </div>
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-semibold">{title}</h2>
+          <Badge variant={badgeVariant} className="text-xs">
+            {badge}
+          </Badge>
+          <Badge variant="outline" className="text-xs">
+            {items.length} {items.length === 1 ? 'item' : 'items'}
+          </Badge>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {items.map((item: MediaItem) => (
+          <MediaItemCard key={item.id} item={item} />
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -289,14 +354,12 @@ function MediaItemCard({ item }: { item: MediaItem }) {
             </div>
           )}
         </div>
-        {isVideo && (
-          <div className="absolute bottom-2 left-2">
+        {isVideo ? <div className="absolute bottom-2 left-2">
             <Badge variant="secondary" className="text-xs bg-black/50 text-white">
               <Video className="h-3 w-3 mr-1" />
               Video
             </Badge>
-          </div>
-        )}
+          </div> : null}
         <div className="absolute top-2 left-2">
           <Badge variant={item.syncedToWebsite ? 'default' : 'destructive'} className="text-xs">
             {item.syncedToWebsite ? '✓ Synced' : '⚠ Not Synced'}
@@ -304,8 +367,7 @@ function MediaItemCard({ item }: { item: MediaItem }) {
         </div>
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="flex gap-1">
-            {item.websiteUrl && (
-              <Button 
+            {item.websiteUrl ? <Button 
                 size="sm" 
                 variant="secondary" 
                 className="h-8 w-8 p-0"
@@ -313,8 +375,7 @@ function MediaItemCard({ item }: { item: MediaItem }) {
                 title="View on website"
               >
                 <ExternalLink className="h-3 w-3" />
-              </Button>
-            )}
+              </Button> : null}
             <Button 
               size="sm" 
               variant="secondary" 
@@ -367,11 +428,9 @@ function MediaItemCard({ item }: { item: MediaItem }) {
               {tag}
             </Badge>
           ))}
-          {item.tags?.length > 3 && (
-            <Badge variant="outline" className="text-xs">
+          {item.tags?.length > 3 ? <Badge variant="outline" className="text-xs">
               +{item.tags.length - 3}
-            </Badge>
-          )}
+            </Badge> : null}
         </div>
         <div className="text-xs text-muted-foreground">
           {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Unknown date'}

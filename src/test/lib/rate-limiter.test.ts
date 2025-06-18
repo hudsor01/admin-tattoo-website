@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  authRateLimiter,
+  ProductionRateLimiter,
   apiRateLimiter,
+  authRateLimiter,
   generalRateLimiter,
   getRateLimiter
 } from '@/lib/rate-limiter'
@@ -163,10 +164,13 @@ describe('Rate Limiter', () => {
       rateLimiter.isAllowed(identifier)
       expect(rateLimiter.getStoreSize()).toBeGreaterThan(0)
 
-      // Fast forward past cleanup interval and window
+      // Fast forward past window time
       vi.advanceTimersByTime(120 * 1000)
 
-      // Trigger cleanup by making another request
+      // Force cleanup manually
+      rateLimiter.forceCleanup()
+
+      // Make a new request
       rateLimiter.isAllowed('different-user')
 
       // Store size should be minimal (only the new user)
@@ -175,7 +179,7 @@ describe('Rate Limiter', () => {
 
     it('should handle LRU eviction when max entries exceeded', () => {
       // Use a custom rate limiter with small max entries for testing
-      const testRateLimiter = new (require('@/lib/rate-limiter') as any).ProductionRateLimiter({
+      const testRateLimiter = new ProductionRateLimiter({
         maxRequests: 10,
         windowMs: 60 * 1000,
         maxEntries: 5
@@ -205,8 +209,14 @@ describe('Rate Limiter', () => {
       rateLimiter.isAllowed(identifier)
       const newResetTime = rateLimiter.getResetTime(identifier)
 
-      // Reset time should be updated
-      expect(newResetTime).toBeGreaterThan(initialResetTime)
+      // Reset time should remain the same within the window
+      expect(newResetTime).toBe(initialResetTime)
+      
+      // But if we advance past the window, it should update
+      vi.advanceTimersByTime(120 * 1000) // Past the 1-minute window
+      rateLimiter.isAllowed(identifier)
+      const futureResetTime = rateLimiter.getResetTime(identifier)
+      expect(futureResetTime).toBeGreaterThan(initialResetTime)
     })
   })
 

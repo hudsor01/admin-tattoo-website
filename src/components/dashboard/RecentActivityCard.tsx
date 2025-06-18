@@ -3,7 +3,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, DollarSign, User, Mail } from 'lucide-react';
+import { Calendar, DollarSign, Mail, User } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
 
@@ -125,8 +125,7 @@ export default function RecentActivityCard() {
             <p className="text-sm text-muted-foreground truncate">{activity.description}</p>
             
             {/* User info if available */}
-            {activity.user && (
-              <div className="flex items-center gap-2 mt-1">
+            {activity.user ? <div className="flex items-center gap-2 mt-1">
                 <Avatar className="h-4 w-4">
                   <AvatarImage src={activity.user.avatar} />
                   <AvatarFallback className="text-xs">
@@ -134,8 +133,7 @@ export default function RecentActivityCard() {
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-xs text-muted-foreground">{activity.user.name}</span>
-              </div>
-            )}
+              </div> : null}
           </div>
 
           {/* Timestamp */}

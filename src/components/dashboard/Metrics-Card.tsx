@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -98,10 +98,8 @@ export default function MetricCard({
       <CardContent className="relative z-10">
         <div className="space-y-3">
           <div className={getValueClassName()}>{value}</div>
-          {(change !== undefined || description) && (
-            <div className="admin-metric-comparison">
-              {change !== undefined && (
-                <Badge
+          {(change !== undefined || description) ? <div className="admin-metric-comparison">
+              {change !== undefined ? <Badge
                   variant="outline"
                   className={cn(
                     'flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border-2',
@@ -110,27 +108,21 @@ export default function MetricCard({
                     trend === 'neutral' && 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700'
                   )}
                 >
-                  {trend === 'up' && <ArrowUpRight className="h-3 w-3" />}
-                  {trend === 'down' && <ArrowDownRight className="h-3 w-3" />}
-                  {change > 0 && '+'}
+                  {trend === 'up' ? <ArrowUpRight className="h-3 w-3" /> : null}
+                  {trend === 'down' ? <ArrowDownRight className="h-3 w-3" /> : null}
+                  {change > 0 ? '+' : null}
                   {change}%
-                </Badge>
-              )}
+                </Badge> : null}
               <p className="admin-text-small text-xs opacity-75">
                 {description ?? 'from last month'}
               </p>
-            </div>
-          )}
-          {comparison && (
-            <div className="flex flex-col gap-1 mt-3 pt-3 border-t border-border/40">
-              {typeof comparison === 'object' && comparison.previousValue && (
-                <div className="flex items-center justify-between text-xs">
+            </div> : null}
+          {comparison ? <div className="flex flex-col gap-1 mt-3 pt-3 border-t border-border/40">
+              {typeof comparison === 'object' && comparison.previousValue ? <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Previous:</span>
                   <span className="font-medium">{comparison.previousValue}</span>
-                </div>
-              )}
-              {typeof comparison === 'object' && comparison.yearOverYear !== undefined && (
-                <div className="flex items-center justify-between text-xs">
+                </div> : null}
+              {typeof comparison === 'object' && comparison.yearOverYear !== undefined ? <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">YoY:</span>
                   <span className={cn(
                     "font-medium",
@@ -138,23 +130,19 @@ export default function MetricCard({
                     comparison.yearOverYear < 0 ? "text-red-600 dark:text-red-400" : 
                     "text-muted-foreground"
                   )}>
-                    {typeof comparison === 'object' && comparison.yearOverYear > 0 && '+'}
-                    {typeof comparison === 'object' && comparison.yearOverYear}%
+                    {typeof comparison === 'object' && comparison.yearOverYear > 0 ? '+' : null}
+                    {typeof comparison === 'object' ? comparison.yearOverYear : null}%
                   </span>
-                </div>
-              )}
-            </div>
-          )}
-          {showProgress && (
-            <div className="mt-3">
+                </div> : null}
+            </div> : null}
+          {showProgress ? <div className="mt-3">
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-primary to-primary/60 transition-all duration-700"
                   style={{ width: `${Math.min(100, Math.abs(change ?? 0))}%` }}
                 />
               </div>
-            </div>
-          )}
+            </div> : null}
         </div>
       </CardContent>
     </>

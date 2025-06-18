@@ -17,11 +17,11 @@ export function NavSecondary({
   items,
   ...props
 }: {
-  items: {
+  items: Array<{
     title: string
     url: string
     icon: Icon
-  }[]
+  }>
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   const pathname = usePathname()
 

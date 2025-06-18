@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Mail, Phone, Calendar, User, Search } from "lucide-react"
+import { Calendar, Mail, Phone, Search, User, Eye, Edit, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import type { ClientResponse } from '@/types/database'
@@ -108,11 +109,9 @@ export function CustomersList() {
         </div>
         
         {/* Footer with pagination info - outside scrollable area */}
-        {!isLoading && filteredCustomers.length > 0 && (
-          <div className="text-center text-sm text-muted-foreground pt-4 mt-4 border-t">
+        {!isLoading && filteredCustomers.length > 0 ? <div className="text-center text-sm text-muted-foreground pt-4 mt-4 border-t">
             Showing {filteredCustomers.length} of {customers?.data?.length || 0} customers
-          </div>
-        )}
+          </div> : null}
       </CardContent>
     </Card>
   )
@@ -143,7 +142,7 @@ function CustomerCard({ customer }: { customer: ClientResponse }) {
   }
 
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors group">
       <div className="flex items-center space-x-4 flex-1">
         <div className="flex-shrink-0">
           <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
@@ -158,11 +157,9 @@ function CustomerCard({ customer }: { customer: ClientResponse }) {
             <p className="text-sm font-medium text-gray-900 truncate">
               {customer.firstName} {customer.lastName}
             </p>
-            {customer.preferredArtist && (
-              <Badge variant="secondary" className="text-xs">
+            {customer.preferredArtist ? <Badge variant="secondary" className="text-xs">
                 Prefers {customer.preferredArtist}
-              </Badge>
-            )}
+              </Badge> : null}
           </div>
           
           <div className="flex items-center gap-4 text-xs text-gray-500">
@@ -182,23 +179,35 @@ function CustomerCard({ customer }: { customer: ClientResponse }) {
             </div>
           </div>
           
-          {(customer.allergies?.length > 0 || customer.medicalConds?.length > 0) && (
-            <div className="mt-1">
+          {(customer.allergies?.length > 0 || customer.medicalConds?.length > 0) ? <div className="mt-1">
               <Badge variant="outline" className="text-xs text-amber-600 bg-amber-50">
                 Medical conditions noted
               </Badge>
-            </div>
-          )}
+            </div> : null}
         </div>
       </div>
       
-      <div className="text-right">
-        <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
-          <Calendar className="h-3 w-3" />
-          <span>Joined {formatDate(customer.createdAt)}</span>
+      <div className="flex items-center gap-4">
+        <div className="text-right">
+          <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+            <Calendar className="h-3 w-3" />
+            <span>Joined {formatDate(customer.createdAt)}</span>
+          </div>
+          <div className="text-xs text-gray-500">
+            {customer.sessions?.length || 0} sessions
+          </div>
         </div>
-        <div className="text-xs text-gray-500">
-          {customer.sessions?.length || 0} sessions
+        
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="View Customer Details">
+            <Eye className="h-3 w-3" />
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Edit Customer">
+            <Edit className="h-3 w-3" />
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Delete Customer">
+            <Trash2 className="h-3 w-3" />
+          </Button>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiFetch, queryKeys, invalidateQueries } from '@/lib/api/client';
-import { buildQueryString, createOptimisticUpdate, createOptimisticDelete } from '@/lib/api/utils';
-import { showSuccessToast, showErrorToast } from '@/lib/api/utils';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiFetch, invalidateQueries, queryKeys } from '@/lib/api/client';
+import { buildQueryString, createOptimisticDelete, createOptimisticUpdate } from '@/lib/api/utils';
+import { showErrorToast, showSuccessToast } from '@/lib/api/utils';
 import type { Client } from '@prisma/client';
 
 // Customer specific types

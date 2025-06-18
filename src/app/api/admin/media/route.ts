@@ -1,18 +1,54 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation'
-import { createSuccessResponse, createErrorResponse } from '@/lib/api-core'
-import { sanitizeString, sanitizeArrayOfStrings } from '@/lib/sanitization'
+import type { Prisma } from '@prisma/client' // Import Prisma from @prisma/client
+import { SecurityPresets, withSecurityValidation } from '@/lib/api-validation'
+import { createErrorResponse, createSuccessResponse } from '@/lib/api-core'
+import { sanitizeArrayOfStrings, sanitizeString } from '@/lib/sanitization'
 import { logger } from '@/lib/logger'
+
+// TODO: Move these interfaces to a centralized types file (e.g., src/types/media.ts)
+interface MediaItemAdminDTO {
+  id: string;
+  title: string;
+  description: string | null;
+  style: string | null;
+  tags: string[];
+  mediaUrl: string;
+  imageUrl: string;
+  type: 'photo' | 'video';
+  artistName: string;
+  isPublic: boolean;
+  popularity: number;
+  estimatedHours: number | null; // Prisma Decimal is nullable
+  createdAt: Date;
+  updatedAt: Date;
+  syncedToWebsite: boolean;
+  websiteUrl: string;
+}
+
+interface SyncMediaItemPayload {
+  id: string;
+  title: string;
+  description: string | null; // Prisma String?
+  style: string | null; // Prisma String?
+  tags: string[];
+  imageUrl: string;
+  isPublic: boolean;
+  estimatedHours: number | null; // Prisma Decimal? converted to number
+  createdAt: Date;
+  tattoo_artists: { name: string };
+}
+// End TODO
 
 const getMediaHandler = async (_request: NextRequest) => {
   try {
 
     // Get media items from TattooDesign table
-    const mediaItems = await prisma.tattooDesign.findMany({
+    const mediaItems = await prisma.tattoo_designs.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        artist: {
+        tattoo_artists: {
           select: {
             name: true
           }
@@ -21,7 +57,7 @@ const getMediaHandler = async (_request: NextRequest) => {
     })
 
     // Transform to include sync status and media type
-    const transformedItems = mediaItems.map(item => ({
+    const transformedItems: MediaItemAdminDTO[] = mediaItems.map(item => ({
       id: item.id,
       title: item.title,
       description: item.description,
@@ -30,14 +66,14 @@ const getMediaHandler = async (_request: NextRequest) => {
       mediaUrl: item.imageUrl,
       imageUrl: item.imageUrl, // For backward compatibility
       type: item.imageUrl?.includes('.mp4') || item.imageUrl?.includes('.mov') || item.imageUrl?.includes('.webm') ? 'video' : 'photo',
-      artistName: item.artist.name,
+      artistName: item.tattoo_artists.name,
       isPublic: item.isPublic,
       popularity: item.popularity,
-      estimatedHours: item.estimatedHours,
+      estimatedHours: item.estimatedHours ? Number(item.estimatedHours) : null, // Convert Decimal to number
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
       // Add sync status - SAFETY: Default to false to prevent placeholder images syncing to production
-      syncedToWebsite: false,
+      syncedToWebsite: false, // This field might need to come from the DB if persistence is needed
       websiteUrl: `https://ink37tattoos.com/gallery/${item.id}`
     }))
 
@@ -55,6 +91,8 @@ const createMediaHandler = async (request: NextRequest) => {
   try {
 
     const body = await request.json()
+    
+    // Explicitly define types for destructured properties from body to avoid 'any'
     const { 
       title, 
       description, 
@@ -62,10 +100,24 @@ const createMediaHandler = async (request: NextRequest) => {
       tags, 
       mediaUrl, 
       type,
-      isPublic = true,
-      estimatedHours = 0,
-      syncToWebsite = false  // SAFETY: Default to false to require manual approval
-    } = body
+      isPublic: rawIsPublic, // Keep original name if needed, or just use isPublic
+      estimatedHours: rawEstimatedHours,
+      syncToWebsite = false
+    }: {
+      title: string;
+      description?: string;
+      style?: string;
+      tags?: string[];
+      mediaUrl: string;
+      type?: 'photo' | 'video';
+      isPublic?: boolean;
+      estimatedHours?: number | string;
+      syncToWebsite?: boolean;
+    } = body;
+
+    const isPublic = typeof rawIsPublic === 'boolean' ? rawIsPublic : true;
+    const estimatedHours = typeof rawEstimatedHours === 'number' ? rawEstimatedHours : (typeof rawEstimatedHours === 'string' ? parseFloat(rawEstimatedHours) : 0);
+
 
     // Sanitize input data
     const sanitizedTitle = sanitizeString(title)
@@ -75,7 +127,7 @@ const createMediaHandler = async (request: NextRequest) => {
     const sanitizedMediaUrl = sanitizeString(mediaUrl)
 
     // Get Fernando's artist ID
-    const fernando = await prisma.tattooArtist.findFirst({
+    const fernando = await prisma.tattoo_artists.findFirst({
       where: { name: 'Fernando Govea' }
     })
 
@@ -85,36 +137,57 @@ const createMediaHandler = async (request: NextRequest) => {
         { status: 404 }
       )
     }
+    
+    // Define the type for mediaItem with included relations - removing as create() might not return relations directly
+    // type TattooDesignWithArtist = Prisma.tattoo_designsGetPayload<{ 
+    //   include: {
+    //     tattoo_artists: {
+    //       select: {
+    //         name: true
+    //       }
+    //     }
+    //   }
+    // }>;
 
     // Create media item in database
-    const mediaItem = await prisma.tattooDesign.create({
+    // Let mediaItem type be inferred from prisma.tattoo_designs.create()
+    // Prisma's create() typically returns the base model type.
+    const mediaItem = await prisma.tattoo_designs.create({ 
       data: {
         title: sanitizedTitle,
         description: sanitizedDescription,
         style: sanitizedStyle,
         tags: sanitizedTags,
         imageUrl: sanitizedMediaUrl,
-        artistId: fernando.id,
+        artistId: fernando.id, // We know the artist is Fernando
         isPublic,
-        estimatedHours: parseFloat(String(estimatedHours)),
-        popularity: 0
-      },
-      include: {
-        artist: {
-          select: {
-            name: true
-          }
-        }
-      }
+        estimatedHours, // Already a number from earlier processing
+        popularity: 0,
+        // Adding placeholder id and updatedAt to satisfy Prisma.tattoo_designsUncheckedCreateInput
+        // These should be overridden by the database if schema defaults are set (e.g., @default(uuid()), @updatedAt)
+        id: crypto.randomUUID(), // Or a placeholder string if crypto is not available/appropriate
+        updatedAt: new Date()
+      } satisfies Prisma.tattoo_designsUncheckedCreateInput
+      // Removed include from create, as we'll use fernando.name for artist info
     })
 
     // If syncToWebsite is true, sync to main website
     if (syncToWebsite) {
       try {
-        await syncToMainWebsite({
-          ...mediaItem,
-          estimatedHours: Number(mediaItem.estimatedHours)
-        }, type)
+        // Ensure the object passed to syncToMainWebsite matches SyncMediaItemPayload
+        const payloadForSync: SyncMediaItemPayload = {
+          id: mediaItem.id,
+          title: mediaItem.title,
+          description: mediaItem.description,
+          style: mediaItem.style,
+          tags: mediaItem.tags,
+          imageUrl: mediaItem.imageUrl,
+          isPublic: mediaItem.isPublic,
+          estimatedHours: mediaItem.estimatedHours ? Number(mediaItem.estimatedHours) : null,
+          createdAt: mediaItem.createdAt,
+          tattoo_artists: { name: fernando.name } // Use Fernando's name directly
+        };
+        await syncToMainWebsite(payloadForSync, type || 'photo') // Provide default for type
       } catch (syncError) {
         logger.error('Failed to sync to main website', syncError)
         // Don't fail the request if sync fails, just log it
@@ -122,7 +195,7 @@ const createMediaHandler = async (request: NextRequest) => {
     }
 
     // Transform response
-    const transformedItem = {
+    const transformedItem: MediaItemAdminDTO = {
       id: mediaItem.id,
       title: mediaItem.title,
       description: mediaItem.description,
@@ -130,14 +203,14 @@ const createMediaHandler = async (request: NextRequest) => {
       tags: mediaItem.tags,
       mediaUrl: mediaItem.imageUrl,
       imageUrl: mediaItem.imageUrl,
-      type: type || 'photo',
-      artistName: mediaItem.artist.name,
+      type: type || (mediaItem.imageUrl?.includes('.mp4') || mediaItem.imageUrl?.includes('.mov') || mediaItem.imageUrl?.includes('.webm') ? 'video' : 'photo'),
+      artistName: fernando.name, // Using fernando.name as mediaItem won't have tattoo_artists
       isPublic: mediaItem.isPublic,
       popularity: mediaItem.popularity,
-      estimatedHours: Number(mediaItem.estimatedHours),
+      estimatedHours: mediaItem.estimatedHours ? Number(mediaItem.estimatedHours) : null, // Convert Decimal to number
       createdAt: mediaItem.createdAt,
       updatedAt: mediaItem.updatedAt,
-      syncedToWebsite: syncToWebsite,
+      syncedToWebsite: syncToWebsite, // This assumes syncToWebsite reflects the actual sync status post-operation
       websiteUrl: `https://ink37tattoos.com/gallery/${mediaItem.id}`
     }
 
@@ -161,18 +234,7 @@ export const POST = withSecurityValidation({
 })(createMediaHandler)
 
 // Function to sync media to main website
-async function syncToMainWebsite(mediaItem: {
-  id: string;
-  title: string;
-  description: string;
-  style: string;
-  tags: string[];
-  imageUrl: string;
-  isPublic: boolean;
-  estimatedHours: number;
-  createdAt: Date;
-  artist: { name: string };
-}, type: string) {
+async function syncToMainWebsite(mediaItem: SyncMediaItemPayload, type: string) {
   const mainWebsiteApiUrl = process.env.MAIN_WEBSITE_API_URL || 'https://ink37tattoos.com/api'
   const syncEndpoint = `${mainWebsiteApiUrl}/gallery/sync`
 
@@ -183,8 +245,8 @@ async function syncToMainWebsite(mediaItem: {
     style: mediaItem.style,
     tags: mediaItem.tags,
     mediaUrl: mediaItem.imageUrl,
-    type: type,
-    artistName: mediaItem.artist.name,
+    type,
+    artistName: mediaItem.tattoo_artists.name,
     isPublic: mediaItem.isPublic,
     estimatedHours: Number(mediaItem.estimatedHours),
     source: 'admin-dashboard',

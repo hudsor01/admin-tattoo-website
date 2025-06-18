@@ -1,15 +1,143 @@
 import { prisma } from './prisma'
 import type { Prisma } from '@prisma/client'
-import {
-  CreateClientData,
-  CreateAppointmentData,
-  ClientFilters,
+import type {
   AppointmentFilters,
-  PaginatedResponse,
-  ClientResponse
+  AppointmentResponse,
+  AppointmentWithClient,
+  ClientFilters,
+  ClientResponse,
+  CreateAppointmentData,
+  CreateClientData,
+  PaginatedResponse
 } from '@/types/database'
+import type { DashboardStats } from '@/types/dashboard'
 import { ApiError } from './api-core'
-import { withCache, CACHE_TTL } from './repository-utils'
+// Production-ready LRU cache implementation
+interface CacheEntry<T> {
+  data: T
+  timestamp: number
+  accessCount: number
+  lastAccessed: number
+}
+
+class ProductionCache<T> {
+  private cache = new Map<string, CacheEntry<T>>()
+  private readonly maxSize: number
+  private readonly defaultTtl: number
+  
+  constructor(maxSize: number = 1000, defaultTtl: number = 5 * 60 * 1000) {
+    this.maxSize = maxSize
+    this.defaultTtl = defaultTtl
+  }
+
+  get(key: string, ttl: number = this.defaultTtl): T | null {
+    const entry = this.cache.get(key)
+    if (!entry) return null
+
+    const now = Date.now()
+    if (now - entry.timestamp > ttl) {
+      this.cache.delete(key)
+      return null
+    }
+
+    // Update access tracking for LRU
+    entry.lastAccessed = now
+    entry.accessCount++
+    return entry.data
+  }
+
+  set(key: string, data: T): void {
+    const now = Date.now()
+    
+    // Evict old entries if at capacity
+    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+      this.evictLeastRecentlyUsed()
+    }
+
+    this.cache.set(key, {
+      data,
+      timestamp: now,
+      accessCount: 1,
+      lastAccessed: now
+    })
+  }
+
+  private evictLeastRecentlyUsed(): void {
+    let oldestKey: string | null = null
+    let oldestTime = Date.now()
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (entry.lastAccessed < oldestTime) {
+        oldestTime = entry.lastAccessed
+        oldestKey = key
+      }
+    }
+
+    if (oldestKey) {
+      this.cache.delete(oldestKey)
+    }
+  }
+
+  clear(): void {
+    this.cache.clear()
+  }
+
+  size(): number {
+    return this.cache.size
+  }
+
+  // Cleanup expired entries
+  cleanup(): void {
+    const now = Date.now()
+    for (const [key, entry] of this.cache.entries()) {
+      if (now - entry.timestamp > this.defaultTtl) {
+        this.cache.delete(key)
+      }
+    }
+  }
+}
+
+// Global cache instance with production settings  
+const dbCache = new ProductionCache<Record<string, unknown>>(1000, 5 * 60 * 1000) // 1000 entries, 5 min TTL
+
+// Export for testing
+export const clearCache = () => dbCache.clear()
+
+// Cache TTL constants
+const CACHE_TTL = {
+  DASHBOARD_STATS: 5 * 60 * 1000, // 5 minutes
+  RECENT_APPOINTMENTS: 2 * 60 * 1000, // 2 minutes
+  CUSTOMER_LIST: 3 * 60 * 1000, // 3 minutes
+  APPOINTMENT_LIST: 2 * 60 * 1000, // 2 minutes
+} as const
+
+function withCache<T>(
+  fn: () => Promise<T>, 
+  keyFn: () => string, 
+  ttl: number = CACHE_TTL.DASHBOARD_STATS
+): Promise<T> {
+  const key = keyFn()
+  const cached = dbCache.get(key, ttl)
+  
+  if (cached !== null) {
+    return Promise.resolve(cached)
+  }
+  
+  return fn().then(data => {
+    dbCache.set(key, data)
+    return data
+  }).catch(error => {
+    // Don't cache errors
+    throw error
+  })
+}
+
+// Periodic cleanup to prevent memory leaks
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    dbCache.cleanup()
+  }, 10 * 60 * 1000) // Cleanup every 10 minutes
+}
 
 // Legacy type aliases for backward compatibility
 type CreateCustomer = CreateClientData
@@ -319,7 +447,7 @@ export async function deleteCustomer(id: string): Promise<void> {
     }
 
     // Check if customer has sessions
-    const sessionCount = await prisma.tattooSession.count({
+    const sessionCount = await prisma.tattoo_sessions.count({
       where: { clientId: id }
     })
 
@@ -489,7 +617,7 @@ export async function createAppointment(data: CreateAppointment) {
     }
 
     // Get Fernando's artist ID (only one artist in the system)
-    const artist = await prisma.tattooArtist.findFirst({
+    const artist = await prisma.tattoo_artists.findFirst({
       where: { name: 'Fernando Govea' }
     })
 
@@ -520,7 +648,7 @@ export async function createAppointment(data: CreateAppointment) {
       data: {
         clientId: data.clientId || data.customerId!,
         artistId: artist.id,
-        scheduledDate: scheduledDate,
+        scheduledDate,
         duration: data.estimatedDuration || 60,
         status: 'SCHEDULED',
         type: data.type,
@@ -668,12 +796,12 @@ const _getDashboardStatsUncached = async () => {
           createdAt: { gte: thirtyDaysAgo }
         }
       }),
-      prisma.tattooSession.count({
+      prisma.tattoo_sessions.count({
         where: {
           createdAt: { gte: thirtyDaysAgo }
         }
       }),
-      prisma.tattooSession.aggregate({
+      prisma.tattoo_sessions.aggregate({
         _sum: { totalCost: true },
         where: {
           status: 'COMPLETED',
@@ -695,7 +823,7 @@ const _getDashboardStatsUncached = async () => {
   }
 }
 
-export const getDashboardStats = withCache(
+export const getDashboardStats = () => withCache(
   _getDashboardStatsUncached,
   () => 'dashboard:stats',
   CACHE_TTL.DASHBOARD_STATS
@@ -756,8 +884,8 @@ const _getRecentAppointmentsUncached = async (limit: number = 5) => {
   }
 }
 
-export const getRecentAppointments = withCache(
-  _getRecentAppointmentsUncached,
-  (limit: number) => `recent:appointments:${limit}`,
+export const getRecentAppointments = (limit: number = 5) => withCache(
+  () => _getRecentAppointmentsUncached(limit),
+  () => `recent:appointments:${limit}`,
   CACHE_TTL.RECENT_APPOINTMENTS
 );

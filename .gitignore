@@ -1,0 +1,266 @@
+# ===================================
+# PROJECT DOCUMENTATION & README
+# ===================================
+CLAUDE.md
+README.md
+DEVELOPMENT.md
+DEPLOYMENT.md
+CHANGELOG.md
+
+# ===================================
+# DEPENDENCIES
+# ===================================
+/node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+.pnpm-debug.log*
+.npm/
+
+# ===================================
+# NEXT.JS BUILD OUTPUT
+# ===================================
+/.next/
+/out/
+.next/
+*.tsbuildinfo
+next-env.d.ts
+
+# ===================================
+# PRODUCTION BUILDS
+# ===================================
+/build/
+/dist/
+*.tgz
+*.tar.gz
+
+# ===================================
+# ENVIRONMENT & CONFIGURATION
+# ===================================
+.env*
+!.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production.example
+
+# ===================================
+# DATABASE FILES
+# ===================================
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+/prisma/*.db
+/prisma/dev.db*
+/src/generated/prisma
+
+# ===================================
+# TESTING & COVERAGE
+# ===================================
+/coverage/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/.nyc_output/
+/jest-coverage/
+.vitest/
+*.lcov
+lib-cov/
+.istanbul/
+
+# ===================================
+# TYPESCRIPT BUILD CACHE
+# ===================================
+*.tsbuildinfo
+/node_modules/.tmp/
+
+# ===================================
+# CACHE DIRECTORIES
+# ===================================
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.turbo/
+.swc/
+
+# ===================================
+# LOGS & DEBUG FILES
+# ===================================
+*.log
+*.logs
+*.log.*
+logs/
+log/
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ===================================
+# RUNTIME & PROCESS FILES
+# ===================================
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ===================================
+# DEPLOYMENT & HOSTING
+# ===================================
+.vercel/
+.netlify/
+.firebase/
+.aws/
+.gcp/
+
+# ===================================
+# CERTIFICATES & SECURITY
+# ===================================
+*.key
+*.cert
+*.crt
+*.pem
+*.p12
+*.pfx
+*.csr
+ssl/
+certificates/
+
+# ===================================
+# BACKUP & TEMPORARY FILES
+# ===================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.swp
+*.swo
+*~
+/tmp/
+/temp/
+.DS_Store?
+._*
+
+# ===================================
+# OS GENERATED FILES
+# ===================================
+.DS_Store
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ===================================
+# IDE & EDITOR FILES
+# ===================================
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/*.code-workspace
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+*.sublime-*
+.atom/
+.brackets.json
+
+# ===================================
+# ADMIN DASHBOARD SPECIFIC
+# ===================================
+# Media uploads (handled by cloud storage)
+/public/uploads/
+/uploads/
+/media/
+/assets/uploads/
+
+# Generated reports
+/reports/
+*.pdf
+*.xlsx
+*.csv
+/exports/
+
+# Analytics data
+/analytics/
+/stats/
+
+# Admin session files
+/sessions/
+.session
+
+# ===================================
+# DEVELOPMENT TOOLS
+# ===================================
+.storybook-static/
+.chromatic/
+.docusaurus/
+.docz/
+
+# ===================================
+# MONITORING & ANALYTICS
+# ===================================
+.sentry/
+.newrelic/
+.datadog/
+
+# ===================================
+# DOCKER & CONTAINERIZATION
+# ===================================
+.docker/
+docker-compose.override.yml
+.dockerignore
+Dockerfile.local
+
+# ===================================
+# MISCELLANEOUS
+# ===================================
+*.zip
+*.rar
+*.7z
+.bundle/
+vendor/bundle/
+.yarn/install-state.gz
+
+# ===================================
+# PACKAGE MANAGER LOCKS (KEEP THESE)
+# ===================================
+# Uncomment to ignore specific lock files if needed
+# package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ===================================
+# CUSTOM PROJECT EXCLUDES
+# ===================================
+# Add any project-specific files here
+/scripts/private/
+/docs/
+/config/local/
+/tools/dev/
+
+# Keep important dotfiles visible
+!.gitignore
+!.env.example
+!.eslintrc*
+!.prettierrc*
+!.nvmrc
+!.node-version

@@ -4,13 +4,13 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { 
-  Calendar, 
-  UserPlus, 
   BarChart3, 
-  Settings, 
+  Calendar, 
+  FileText, 
+  Mail, 
+  Settings,
   Upload,
-  FileText,
-  Mail
+  UserPlus
 } from 'lucide-react';
 
 export default function QuickActionsCard() {

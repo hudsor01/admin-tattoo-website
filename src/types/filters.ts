@@ -23,7 +23,7 @@ function isValidSessionStatus(status: string): status is SessionStatus {
   return ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(status);
 }
 
-export type FilterParams = {
+export interface FilterParams {
   appointmentStatus?: AppointmentStatusFilter;
   sessionStatus?: SessionStatusFilter;
   startDate?: string;
@@ -33,4 +33,4 @@ export type FilterParams = {
   search?: string;
   clientId?: string;
   artistId?: string;
-};
+}

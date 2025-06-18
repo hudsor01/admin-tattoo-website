@@ -1,11 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiFetch, queryKeys, invalidateQueries } from '@/lib/api/client';
-import { buildQueryString, createOptimisticUpdate, createOptimisticDelete } from '@/lib/api/utils';
-import { showSuccessToast, showErrorToast } from '@/lib/api/utils';
-import type { TattooDesign } from '@prisma/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiFetch, invalidateQueries, queryKeys } from '@/lib/api/client';
+import { buildQueryString, createOptimisticDelete, createOptimisticUpdate } from '@/lib/api/utils';
+import { showErrorToast, showSuccessToast } from '@/lib/api/utils';
+import type { tattoo_designs } from '@prisma/client';
 
 // Media specific types
-export interface MediaFilters {
+export interface MediaFilters extends Record<string, unknown> {
   search?: string;
   type?: 'photo' | 'video';
   style?: string;
@@ -16,9 +16,8 @@ export interface MediaFilters {
   offset?: number;
 }
 
-export interface MediaItem extends TattooDesign {
+export interface MediaItem extends tattoo_designs {
   artistName: string;
-  popularity: number;
   websiteUrl?: string;
 }
 
@@ -48,7 +47,7 @@ export interface UploadResult {
   thumbnailUrl: string | null;
   type: 'photo' | 'video';
   uploadedAt: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   syncedToWebsite: boolean;
 }
 

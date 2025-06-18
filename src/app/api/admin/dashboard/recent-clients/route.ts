@@ -1,64 +1,106 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { logger } from '@/lib/logger'
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+import type { RecentClient } from '@/types/dashboard';
 
-export async function GET() {
+export async function GET(): Promise<NextResponse<RecentClient[] | { error: string }>> {
   try {
-    // Get recent clients with their latest session info
-    const recentClients = await prisma.client.findMany({
+    // Fetch the 10 most recently updated clients
+    const recentClients = await prisma.clients.findMany({
       take: 10,
       orderBy: {
-        updatedAt: 'desc'
+        updatedAt: 'desc',
       },
-      include: {
-        sessions: {
-          orderBy: {
-            createdAt: 'desc'
-          },
-          take: 1,
-          select: {
-            totalCost: true,
-            designDescription: true,
-            status: true,
-            style: true
-          }
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        createdAt: true,
+      },
+    });
+
+    if (recentClients.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    const clientIds = recentClients.map(client => client.id);
+
+    // Fetch session aggregates in parallel
+    const [sessionAggregates, lastSessions] = await Promise.all([
+      // Get session count and total cost per client
+      prisma.tattoo_sessions.groupBy({
+        by: ['clientId'],
+        where: { clientId: { in: clientIds } },
+        _count: {
+          id: true,
         },
-        appointments: {
-          orderBy: {
-            scheduledDate: 'desc'
-          },
-          take: 1,
-          select: {
-            type: true,
-            status: true
-          }
-        }
+        _sum: {
+          totalCost: true,
+        },
+      }),
+      // Get last session date for each client
+      Promise.all(
+        clientIds.map(clientId =>
+          prisma.tattoo_sessions.findFirst({
+            where: { clientId },
+            orderBy: { appointmentDate: 'desc' },
+            select: { 
+              clientId: true,
+              appointmentDate: true 
+            },
+          })
+        )
+      ),
+    ]);
+
+    // Create lookup maps for performance
+    const aggregatesMap = new Map<string, { totalSessions: number; totalSpent: number }>();
+    sessionAggregates.forEach(aggregate => {
+      aggregatesMap.set(aggregate.clientId, {
+        totalSessions: aggregate._count.id,
+        totalSpent: Number(aggregate._sum.totalCost || 0),
+      });
+    });
+
+    const lastSessionMap = new Map<string, Date>();
+    lastSessions.forEach(session => {
+      if (session) {
+        lastSessionMap.set(session.clientId, session.appointmentDate);
       }
-    })
+    });
 
-    // Format the data for the dashboard
-    const formattedClients = recentClients.map(client => ({
-      id: client.id,
-      firstName: client.firstName,
-      lastName: client.lastName,
-      email: client.email,
-      lastSessionType: client.sessions[0]?.designDescription || 
-                      client.sessions[0]?.style || 
-                      client.appointments[0]?.type?.toLowerCase().replace('_', ' ') || 
-                      'New client',
-      lastPayment: client.sessions[0]?.totalCost 
-        ? Number(client.sessions[0].totalCost)
-        : null,
-      status: client.sessions[0]?.status || client.appointments[0]?.status || 'ACTIVE'
-    }))
+    // Format client data with aggregated information
+    const formattedClients: RecentClient[] = recentClients.map(client => {
+      const aggregates = aggregatesMap.get(client.id) ?? { 
+        totalSessions: 0, 
+        totalSpent: 0 
+      };
+      const lastSessionDate = lastSessionMap.get(client.id);
 
-    return NextResponse.json(formattedClients)
+      return {
+        id: client.id,
+        name: `${client.firstName} ${client.lastName}`,
+        email: client.email,
+        phone: client.phone || undefined,
+        joinDate: client.createdAt.toISOString(),
+        totalSessions: aggregates.totalSessions,
+        totalSpent: aggregates.totalSpent,
+        lastSession: lastSessionDate?.toISOString(),
+      };
+    });
+
+    return NextResponse.json(formattedClients);
 
   } catch (error) {
-    logger.error('Recent clients error', error)
+    logger.error('Failed to fetch recent clients', { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    
     return NextResponse.json(
       { error: 'Failed to fetch recent clients' },
       { status: 500 }
-    )
+    );
   }
 }

@@ -12,8 +12,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import type {
+  ChartConfig} from "@/components/ui/chart";
 import {
-  ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -29,7 +30,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
-import { AreaChart, CartesianGrid, XAxis, Area } from "recharts"
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 
 export const description = "An interactive area chart"
 

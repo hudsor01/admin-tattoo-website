@@ -80,11 +80,11 @@ export function InfiniteList<T>({
     <div className={cn('space-y-2', className)}>
       <div className="space-y-2">{data.map((item, index) => renderItem(item, index))}</div>
 
-      {isFetching && <div className="space-y-2">{renderSkeleton(3)}</div>}
+      {isFetching ? <div className="space-y-2">{renderSkeleton(3)}</div> : null}
 
-      {hasMore && <div ref={observerRef} className="h-4" />}
+      {hasMore ? <div ref={observerRef} className="h-4" /> : null}
 
-      {!hasMore && data.length > 0 && renderEndMessage()}
+      {!hasMore && data.length > 0 ? renderEndMessage() : null}
     </div>
   );
 }

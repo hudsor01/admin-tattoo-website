@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, RefreshCw, Home } from 'lucide-react';
+import { AlertCircle, Home, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -82,16 +82,14 @@ export class ApiErrorBoundary extends React.Component<ApiErrorBoundaryProps, Api
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {process.env.NODE_ENV !== 'production' && (
-                <div className="p-3 bg-gray-100 rounded-md">
+              {process.env.NODE_ENV !== 'production' ? <div className="p-3 bg-gray-100 rounded-md">
                   <p className="text-xs font-mono text-gray-700">
                     {this.state.error?.message}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Error ID: {this.state.errorId}
                   </p>
-                </div>
-              )}
+                </div> : null}
               
               <div className="flex gap-2">
                 <Button 

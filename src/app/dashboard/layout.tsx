@@ -1,21 +1,44 @@
-import { Icons } from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+import { AppSidebar } from "@/components/layout/app-sidebar"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger
+} from "@/components/ui/sidebar"
+import { requireAdmin } from "@/lib/auth"
 
-export default function RootLayout({
+export default async function DashboardLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
+  // Require admin access for entire dashboard
+  try {
+    await requireAdmin()
+  } catch {
+    redirect("/access-denied")
+  }
+
+  const cookieStore = await cookies()
+  const defaultOpen = cookieStore.get("sidebar_state")?.value === "true"
+
   return (
-    <section className="flex min-h-screen bg-zinc-50 px-4 py-16 md:py-32 dark:bg-transparent">
-      <Button className="fixed top-5" variant={"outline"} asChild>
-        <Link href={"/"}>
-          <Icons.chevronLeft className="h-4 w-4" />
-          Back
-        </Link>
-      </Button>
-      {children}
-    </section>
-  );
+    <div className="flex h-screen bg-background">
+      <SidebarProvider
+        defaultOpen={defaultOpen}
+        style={
+          {
+            "--sidebar-width": "16rem",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar />
+        <SidebarInset className="flex-1 flex flex-col overflow-hidden">
+          <SidebarTrigger className="-ml-1" />
+          <main className="flex-1 overflow-auto">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
+  )
 }

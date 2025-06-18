@@ -8,7 +8,7 @@ import type {
   User,
   Account,
   Session,
-  VerificationToken,
+  Verification,
   SessionStatus,
   AppointmentStatus,
   AppointmentType,
@@ -217,8 +217,8 @@ describe('Database Types', () => {
       expect(session.expires instanceof Date).toBe(true)
     })
 
-    it('should define VerificationToken interface properties', () => {
-      const token: Partial<VerificationToken> = {
+    it('should define Verification interface properties', () => {
+      const token: Partial<Verification> = {
         identifier: 'email@example.com',
         token: 'verification-token-123',
         expires: new Date(Date.now() + 3600000)

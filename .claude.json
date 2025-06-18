@@ -1,0 +1,81 @@
+{
+  "mcpServers": {
+    "desktop-commander": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wonderwhy-er/desktop-commander@latest"
+      ]
+    },
+    "firecrawl": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "firecrawl-mcp"
+      ],
+      "env": {
+        "FIRECRAWL_API_KEY": "fc-4d352c07344d4d8a9d648509981a1e1c"
+      }
+    },
+    "mcp-dockmaster": {
+      "command": "/Applications/MCP Dockmaster.app/Contents/MacOS/mcp-proxy-server",
+      "args": []
+    },
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--headless"
+      ],
+      "env": {}
+    },
+    "ollama-mcp": {
+      "command": "node",
+      "args": [
+        "/Users/richard/Documents/Cline/MCP/Ollama-mcp/build/index.js"
+      ],
+      "env": {
+        "OLLAMA_HOST": "http://127.0.0.1:11434",
+        "HOME": "/Users/richard/Developer/admin-dash"
+      }
+    },
+    "openmemory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "openmemory"
+      ],
+      "env": {
+        "OPENMEMORY_API_KEY": "om-yp0w5fyqc6fs7rfv0h73ajm8yc9guuvo",
+        "CLIENT_NAME": "claude"
+      }
+    },
+    "context7-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ]
+    },
+    "claude-code": {
+      "command": "claude",
+      "args": ["mcp", "serve"],
+      "env": {}
+}
+  }
+}

@@ -1,7 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isVerifiedAdmin, BetterAuthUser, toBetterAuthUser } from '@/lib/authorization'
+import type { SessionStatus as PrismaSessionStatus } from '@prisma/client';
+import { AppointmentStatus } from '@prisma/client'
+import type { BetterAuthUser} from '@/lib/authorization';
+import { isVerifiedAdmin, toBetterAuthUser } from '@/lib/authorization'
+import type { ChartDataPoint, DashboardStats, RecentClient, RecentSession } from '@/types/dashboard'
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,102 +48,177 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function getDashboardStats() {
+async function getDashboardStats(): Promise<DashboardStats> { // Add return type
   const now = new Date()
   const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const lastOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
-
-  // Get current month stats
-  const [currentRevenue, currentClients, currentAppointments] = await Promise.all([
-    prisma.tattooSession.aggregate({
+ 
+  const [
+    currentRevenueData,
+    currentNewClients, 
+    currentMonthAppointmentsCount,
+    activeBookingsCount,
+    completedSessionsThisMonthCount,
+    totalSessionsThisMonthCount
+  ] = await Promise.all([
+    prisma.tattoo_sessions.aggregate({
       where: {
         appointmentDate: { gte: firstOfMonth }
       },
       _sum: { totalCost: true }
     }),
-    prisma.client.count({
+    prisma.clients.count({
       where: {
         createdAt: { gte: firstOfMonth }
       }
     }),
-    prisma.appointment.count({
+    prisma.appointments.count({
       where: {
         scheduledDate: { gte: firstOfMonth }
       }
-    })
+    }),
+    prisma.appointments.count({ 
+      where: { 
+        status: { in: [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED, AppointmentStatus.IN_PROGRESS] } 
+      } 
+    }),
+    prisma.tattoo_sessions.count({ 
+      where: { 
+        status: 'COMPLETED', 
+        appointmentDate: { gte: firstOfMonth } 
+      } 
+    }),
+    prisma.tattoo_sessions.count({ 
+      where: { 
+        appointmentDate: { gte: firstOfMonth } 
+      } 
+    }),
   ])
 
   // Get last month stats for comparison
-  const [lastRevenue, lastClients, lastAppointments] = await Promise.all([
-    prisma.tattooSession.aggregate({
+  const [
+    lastMonthRevenueData,
+    lastMonthNewClients,
+    lastMonthAppointmentsCount,
+    activeBookingsLastMonthCount,
+    completedSessionsLastMonthCount,
+    totalSessionsLastMonthCount
+  ] = await Promise.all([
+    prisma.tattoo_sessions.aggregate({
       where: {
         appointmentDate: { 
           gte: firstOfLastMonth,
-          lte: lastOfLastMonth
+          lt: firstOfMonth
         }
       },
       _sum: { totalCost: true }
     }),
-    prisma.client.count({
+    prisma.clients.count({
       where: {
         createdAt: { 
           gte: firstOfLastMonth,
-          lte: lastOfLastMonth
+          lt: firstOfMonth 
         }
       }
     }),
-    prisma.appointment.count({
+    prisma.appointments.count({
       where: {
         scheduledDate: { 
           gte: firstOfLastMonth,
-          lte: lastOfLastMonth
+          lt: firstOfMonth
         }
       }
-    })
+    }),
+    prisma.appointments.count({ 
+      where: { 
+        status: { in: [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED, AppointmentStatus.IN_PROGRESS] },
+        scheduledDate: { lt: firstOfMonth, gte: firstOfLastMonth }
+      } 
+    }),
+    prisma.tattoo_sessions.count({ 
+      where: { 
+        status: 'COMPLETED', 
+        appointmentDate: { gte: firstOfLastMonth, lt: firstOfMonth } 
+      } 
+    }),
+    prisma.tattoo_sessions.count({ 
+      where: { 
+        appointmentDate: { gte: firstOfLastMonth, lt: firstOfMonth } 
+      } 
+    }),
   ])
 
-  // Calculate percentage changes
-  const revenue = Number(currentRevenue._sum.totalCost || 0)
-  const totalClients = await prisma.client.count()
-  const monthlyAppointments = currentAppointments
+  // Calculate metrics
+  const totalRevenue = Number(currentRevenueData._sum.totalCost || 0)
+  const overallTotalClients = await prisma.clients.count()
+  const monthlyAppointments = currentMonthAppointmentsCount
 
-  const lastMonthRevenue = Number(lastRevenue._sum.totalCost || 0)
-  const revenueChangeNum = lastMonthRevenue 
-    ? ((revenue - lastMonthRevenue) / lastMonthRevenue * 100)
-    : 0
-  const revenueChange = revenueChangeNum.toFixed(1)
-  const clientsChange = lastClients 
-    ? Math.round(((currentClients - lastClients) / lastClients) * 100)
-    : 0
-  const appointmentsChange = lastAppointments 
-    ? ((currentAppointments - lastAppointments) / lastAppointments * 100).toFixed(1)
-    : '0'
+  const lastMonthRevenueValue = Number(lastMonthRevenueData._sum.totalCost || 0)
+  
+  const revenueGrowth = lastMonthRevenueValue > 0 
+    ? parseFloat(((totalRevenue - lastMonthRevenueValue) / lastMonthRevenueValue * 100).toFixed(1))
+    : (totalRevenue > 0 ? 100 : 0);
+  
+  const clientGrowth = lastMonthNewClients > 0 
+    ? parseFloat(((currentNewClients - lastMonthNewClients) / lastMonthNewClients * 100).toFixed(1))
+    : (currentNewClients > 0 ? 100 : 0);
+
+  const bookingGrowth = activeBookingsLastMonthCount > 0
+    ? parseFloat(((activeBookingsCount - activeBookingsLastMonthCount) / activeBookingsLastMonthCount * 100).toFixed(1))
+    : (activeBookingsCount > 0 ? 100 : 0);
+
+  const completionRate = totalSessionsThisMonthCount > 0 
+    ? parseFloat((completedSessionsThisMonthCount / totalSessionsThisMonthCount * 100).toFixed(1)) 
+    : 0;
+  
+  const completionRateLastMonth = totalSessionsLastMonthCount > 0 
+    ? (completedSessionsLastMonthCount / totalSessionsLastMonthCount * 100) 
+    : 0;
+  
+  const completionGrowth = completionRateLastMonth > 0 
+    ? parseFloat(((completionRate - completionRateLastMonth) / completionRateLastMonth * 100).toFixed(1))
+    : (completionRate > 0 ? 100 : 0);
+
+  // Calculate percentage change strings
+  const revenueChangeStr = `${revenueGrowth >= 0 ? '+' : ''}${revenueGrowth.toFixed(1)}%`
+  const clientsChangeStr = `${clientGrowth >= 0 ? '+' : ''}${clientGrowth.toFixed(1)}%`
+  const appointmentsChangeNum = lastMonthAppointmentsCount > 0 
+    ? ((currentMonthAppointmentsCount - lastMonthAppointmentsCount) / lastMonthAppointmentsCount * 100)
+    : (currentMonthAppointmentsCount > 0 ? 100 : 0);
+  const appointmentsChangeStr = `${appointmentsChangeNum >= 0 ? '+' : ''}${appointmentsChangeNum.toFixed(1)}%`
+
 
   return {
-    revenue,
-    revenueChange: `${Number(revenueChange) > 0 ? '+' : ''}${revenueChange}%`,
-    totalClients,
-    clientsChange: `${clientsChange > 0 ? '+' : ''}${clientsChange}`,
+    totalRevenue,
+    revenueGrowth,
+    newClients: currentNewClients,
+    clientGrowth,
+    activeBookings: activeBookingsCount,
+    bookingGrowth,
+    completionRate,
+    completionGrowth,
+    revenue: totalRevenue,
+    revenueChange: revenueChangeStr,
+    totalClients: overallTotalClients,
+    clientsChange: clientsChangeStr,
     monthlyAppointments,
-    appointmentsChange: `${Number(appointmentsChange) > 0 ? '+' : ''}${appointmentsChange}%`,
-    // Calculate satisfaction rating based on completion rate
-    averageRating: await calculateSatisfactionRating(),
-    ratingChange: await calculateRatingChange()
+    appointmentsChange: appointmentsChangeStr,
+    averageRating: parseFloat(await calculateSatisfactionRating()),
+    ratingChange: await calculateRatingChange(),
   }
 }
 
 async function calculateSatisfactionRating(): Promise<string> {
-  const completedSessions = await prisma.tattooSession.count({
+  const completedSessions = await prisma.tattoo_sessions.count({
     where: { status: 'COMPLETED' }
   });
   
-  const totalSessions = await prisma.tattooSession.count();
+  const totalSessions = await prisma.tattoo_sessions.count();
   
   if (totalSessions === 0) return '5.0';
   
   const completionRate = completedSessions / totalSessions;
-  // Scale from 3.0 to 5.0 based on completion rate
+
   const rating = Math.min(5.0, 3.0 + (completionRate * 2.0));
   
   return rating.toFixed(1);
@@ -151,16 +231,16 @@ async function calculateRatingChange(): Promise<string> {
   
   // Get completion rates for this month and last month
   const [thisMonthCompleted, thisMonthTotal, lastMonthCompleted, lastMonthTotal] = await Promise.all([
-    prisma.tattooSession.count({
+    prisma.tattoo_sessions.count({
       where: { 
         status: 'COMPLETED',
         updatedAt: { gte: thisMonthStart }
       }
     }),
-    prisma.tattooSession.count({
+    prisma.tattoo_sessions.count({
       where: { updatedAt: { gte: thisMonthStart } }
     }),
-    prisma.tattooSession.count({
+    prisma.tattoo_sessions.count({
       where: { 
         status: 'COMPLETED',
         updatedAt: { 
@@ -169,7 +249,7 @@ async function calculateRatingChange(): Promise<string> {
         }
       }
     }),
-    prisma.tattooSession.count({
+    prisma.tattoo_sessions.count({
       where: { 
         updatedAt: { 
           gte: lastMonthStart,
@@ -187,37 +267,52 @@ async function calculateRatingChange(): Promise<string> {
   return ratingChange >= 0 ? `+${ratingChange.toFixed(1)}` : ratingChange.toFixed(1);
 }
 
-async function getRecentClients() {
-  const clients = await prisma.client.findMany({
+async function getRecentClients(): Promise<RecentClient[]> {
+  const clientsData = await prisma.clients.findMany({ // Renamed to clientsData to avoid conflict
     take: 5,
     orderBy: { createdAt: 'desc' },
-    include: {
-      sessions: {
-        take: 1,
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      createdAt: true,
+      tattoo_sessions: {
         orderBy: { appointmentDate: 'desc' },
         select: {
-          style: true,
-          totalCost: true
+          appointmentDate: true,
+          totalCost: true,
         }
       }
     }
-  })
+  });
 
-  return clients.map(client => ({
-    id: client.id,
-    firstName: client.firstName,
-    lastName: client.lastName,
-    email: client.email,
-    lastSessionType: client.sessions[0]?.style || null,
-    lastPayment: client.sessions[0] ? Number(client.sessions[0].totalCost) : null
-  }))
+  return clientsData.map(client => {
+    const lastSessionData = client.tattoo_sessions[0];
+    // For totalSessions and totalSpent, a more accurate calculation might involve aggregating all sessions.
+    // Here, we're simplifying based on available data or using placeholders.
+    const totalSessions = client.tattoo_sessions.length;
+    const totalSpent = client.tattoo_sessions.reduce((acc, s) => acc + Number(s.totalCost || 0), 0);
+
+    return {
+      id: client.id,
+      name: `${client.firstName} ${client.lastName}`,
+      email: client.email,
+      phone: client.phone || undefined,
+      joinDate: client.createdAt.toISOString(),
+      totalSessions,
+      totalSpent,
+      lastSession: lastSessionData?.appointmentDate.toISOString() || undefined,
+    };
+  });
 }
 
-async function getChartData() {
+async function getChartData(): Promise<ChartDataPoint[]> {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-  const sessions = await prisma.tattooSession.findMany({
+  const sessions = await prisma.tattoo_sessions.findMany({
     where: {
       appointmentDate: { gte: thirtyDaysAgo }
     },
@@ -228,7 +323,7 @@ async function getChartData() {
     orderBy: { appointmentDate: 'asc' }
   })
 
-  const appointments = await prisma.appointment.findMany({
+  const appointments = await prisma.appointments.findMany({
     where: {
       scheduledDate: { gte: thirtyDaysAgo }
     },
@@ -239,8 +334,8 @@ async function getChartData() {
   })
 
   // Group by date
-  const revenueByDate = new Map()
-  const appointmentsByDate = new Map()
+  const revenueByDate = new Map<string, number>()
+  const appointmentsByDate = new Map<string, number>()
 
   sessions.forEach(session => {
     const date = session.appointmentDate.toISOString().split('T')[0]
@@ -253,50 +348,63 @@ async function getChartData() {
   })
 
   // Generate chart data for last 30 days
-  const chartData = []
+  const chartData: ChartDataPoint[] = []
   for (let i = 29; i >= 0; i--) {
     const date = new Date()
     date.setDate(date.getDate() - i)
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = date.toISOString().slice(0, 10)
     
     chartData.push({
       date: dateStr,
       revenue: revenueByDate.get(dateStr) || 0,
-      appointments: appointmentsByDate.get(dateStr) || 0
+      sessions: appointmentsByDate.get(dateStr) || 0
     })
   }
 
   return chartData
 }
 
-async function getRecentSessions() {
-  const sessions = await prisma.tattooSession.findMany({
+async function getRecentSessions(): Promise<RecentSession[]> {
+  const sessionsData = await prisma.tattoo_sessions.findMany({ 
     take: 10,
     orderBy: { appointmentDate: 'desc' },
-    include: {
-      client: {
+    select: {
+      id: true,
+      style: true,
+      duration: true,
+      totalCost: true,
+      appointmentDate: true,
+      status: true, 
+      clients: {
         select: {
           firstName: true,
           lastName: true,
-          email: true
         }
       },
-      artist: {
+      tattoo_artists: {
         select: {
           name: true
         }
       }
     }
-  })
+  });
 
-  return sessions.map(session => ({
-    id: session.id,
-    clientName: `${session.client.firstName} ${session.client.lastName}`,
-    clientEmail: session.client.email,
-    artistName: session.artist.name,
-    sessionType: session.style,
-    price: Number(session.totalCost),
-    sessionDate: session.appointmentDate,
-    status: session.status.toLowerCase()
-  }))
+  return sessionsData.map(session => {
+    // Ensure status is a valid SessionStatus enum member.
+    // The Prisma client returns the enum string directly.
+    // The RecentSession type expects SessionStatus enum from './database'
+    // which should be compatible with PrismaSessionStatus.
+    const statusValue = session.status as PrismaSessionStatus;
+
+    return {
+      id: session.id,
+      clientName: `${session.clients.firstName} ${session.clients.lastName}`,
+      artistName: session.tattoo_artists.name,
+      type: session.style || 'N/A',
+      duration: session.duration || 0, 
+      amount: Number(session.totalCost || 0),
+      date: session.appointmentDate.toISOString(),
+      status: statusValue, 
+    };
+  });
 }

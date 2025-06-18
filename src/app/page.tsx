@@ -1,155 +1,83 @@
-"use client"
+import type { Metadata } from "next"
+import Image from "next/image"
+import Link from "next/link"
+import LogIn from "@/components/auth/login-form"
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
-import { signIn } from "@/lib/auth-client";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
+export const metadata: Metadata = {
+  title: "Authentication",
+  description: "Authentication forms built using the components.",
+}
 
-export default function SignIn() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-
+export default function AuthenticationPage() {
   return (
-    <Card className="max-w-md">
-      <CardHeader>
-        <CardTitle className="text-lg md:text-xl">Sign In</CardTitle>
-        <CardDescription className="text-xs md:text-sm">
-          Enter your email below to login to your account
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-4">
-          <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                }}
-                value={email}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                    href="#"
-                    className="ml-auto inline-block text-sm underline"
-                  >
-                    Forgot your password?
-                  </Link>
-              </div>
-
-              <Input
-                id="password"
-                type="password"
-                placeholder="password"
-                autoComplete="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-                <Checkbox
-                  id="remember"
-                  onClick={() => {
-                    setRememberMe(!rememberMe);
-                  }}
-                />
-                <Label htmlFor="remember">Remember me</Label>
-              </div>
-
-          
-
-          <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-              onClick={async () => {
-                await signIn.email(
-                {
-                    email,
-                    password
-                },
-                {
-                  onRequest: (_ctx) => {
-                    setLoading(true);
-                  },
-                  onResponse: (_ctx) => {
-                    setLoading(false);
-                  },
-                },
-                );
-              }}
-            >
-              {loading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <p> Login </p>
-              )}
-              </Button>
-
-          
-
-          <div className={cn(
-              "w-full gap-2 flex items-center",
-              "justify-between flex-col"
-            )}>
-              
-				<Button
-                  variant="outline"
-                  className={cn(
-                    "w-full gap-2"
-                  )}
-                  disabled={loading}
-                  onClick={async () => {
-                    await signIn.social(
-                    {
-                      provider: "google",
-                      callbackURL: "/dashboard",
-                      errorCallbackURL: "/?error=oauth_failed",
-                      newUserCallbackURL: "/dashboard?welcome=true"
-                    },
-                    {
-                      onRequest: (_ctx) => {
-                         setLoading(true);
-                      },
-                      onResponse: (_ctx) => {
-                         setLoading(false);
-                      },
-                      onError: (ctx) => {
-                        setLoading(false);
-                        console.error("OAuth error:", ctx.error);
-                      },
-                     },
-                    );
-                  }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="0.98em" height="1em" viewBox="0 0 256 262">
-				<path fill="#4285F4" d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622l38.755 30.023l2.685.268c24.659-22.774 38.875-56.282 38.875-96.027"></path>
-				<path fill="#34A853" d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055c-34.523 0-63.824-22.773-74.269-54.25l-1.531.13l-40.298 31.187l-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1"></path>
-				<path fill="#FBBC05" d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82c0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602z"></path>
-				<path fill="#EB4335" d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0C79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"></path>
-			</svg>
-                  Sign in with Google
-                </Button>
-            </div>
+    <div className="container relative hidden h-screen flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
+      <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex">
+        <div className="absolute inset-0 bg-zinc-900" />
+        <Image
+          src="/images/tattoogun.jpg"
+          alt="Professional tattoo equipment and workspace"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />
+        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#020505] to-transparent" />
+        <div className="relative z-20 pt-8">
+          <blockquote className="space-y-2">
+            <p className="text-lg">
+              &ldquo;Where artistry meets precision. Experience the finest tattoo craftsmanship in our state-of-the-art studio.&rdquo;
+            </p>
+            <footer className="text-sm text-gray-300">Master Artist</footer>
+          </blockquote>
         </div>
-      </CardContent>
-      
-    </Card>
-  );
+      </div>
+      <div className="relative flex h-full items-center p-4 lg:p-8 bg-[#020505]">
+        <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#020505] to-transparent pointer-events-none" />
+        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+          <div className="flex flex-col space-y-2 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Welcome back
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Enter your credentials to access the admin dashboard
+            </p>
+          </div>
+          <LogIn />
+          <p className="px-8 text-center text-sm text-muted-foreground">
+            By clicking continue, you agree to our{" "}
+            <Link
+              href="/terms"
+              className="underline underline-offset-4 hover:text-primary"
+            >
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              className="underline underline-offset-4 hover:text-primary"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </div>
+      </div>
+      <div className="md:hidden">
+        <Image
+          src="/images/tattoogun.jpg"
+          width={1280}
+          height={843}
+          alt="Professional tattoo equipment and workspace"
+          className="block dark:hidden"
+        />
+        <Image
+          src="/images/tattoogun.jpg"
+          width={1280}
+          height={843}
+          alt="Professional tattoo equipment and workspace"
+          className="hidden dark:block"
+        />
+      </div>
+    </div>
+  )
 }

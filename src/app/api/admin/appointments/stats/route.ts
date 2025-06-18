@@ -1,20 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
+import { SecurityPresets, withSecurityValidation } from '@/lib/api-validation'
 import { createErrorResponse, createSuccessResponse } from '@/lib/api-core'
 import { prisma } from '@/lib/prisma'
 import { AppointmentStatus } from '@prisma/client'
 import { logger } from '@/lib/logger'
-
-interface AppointmentStats {
-  totalAppointments: number
-  confirmedAppointments: number
-  completedAppointments: number
-  completionRate: number
-  appointmentsChange: string
-  confirmedChange: string
-  completedChange: string
-  completionRateChange: string
-}
+import type { AppointmentStats } from '@/types/dashboard'
 
 const statsHandler = async (_request: NextRequest) => {
   try {
@@ -31,7 +22,7 @@ const statsHandler = async (_request: NextRequest) => {
       completedCurrent
     ] = await Promise.all([
       // Total appointments in last 30 days
-      prisma.appointment.count({
+      prisma.appointments.count({
         where: {
           createdAt: {
             gte: thirtyDaysAgo
@@ -40,7 +31,7 @@ const statsHandler = async (_request: NextRequest) => {
       }),
       
       // Confirmed appointments in last 30 days
-      prisma.appointment.count({
+      prisma.appointments.count({
         where: {
           status: AppointmentStatus.CONFIRMED,
           createdAt: {
@@ -50,7 +41,7 @@ const statsHandler = async (_request: NextRequest) => {
       }),
       
       // Completed appointments in last 30 days
-      prisma.appointment.count({
+      prisma.appointments.count({
         where: {
           status: AppointmentStatus.COMPLETED,
           createdAt: {
@@ -67,7 +58,7 @@ const statsHandler = async (_request: NextRequest) => {
       completedPrevious
     ] = await Promise.all([
       // Total appointments 30-60 days ago
-      prisma.appointment.count({
+      prisma.appointments.count({
         where: {
           createdAt: {
             gte: sixtyDaysAgo,
@@ -77,7 +68,7 @@ const statsHandler = async (_request: NextRequest) => {
       }),
       
       // Confirmed appointments 30-60 days ago
-      prisma.appointment.count({
+      prisma.appointments.count({
         where: {
           status: AppointmentStatus.CONFIRMED,
           createdAt: {
@@ -88,7 +79,7 @@ const statsHandler = async (_request: NextRequest) => {
       }),
       
       // Completed appointments 30-60 days ago
-      prisma.appointment.count({
+      prisma.appointments.count({
         where: {
           status: AppointmentStatus.COMPLETED,
           createdAt: {

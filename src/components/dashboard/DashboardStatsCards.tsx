@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, Users, Calendar, Star } from "lucide-react"
+import { ArrowDownRight, ArrowUpRight, Calendar, DollarSign, Star, TrendingUp, Users } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface DashboardStatsCardsProps {
@@ -57,7 +57,7 @@ export function DashboardStatsCards({ data }: DashboardStatsCardsProps) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[...Array(4)].map((_, index) => (
-          <Card key={index} className="bg-gray-900 border-gray-800 group hover:border-gray-700 transition-all duration-200 hover:shadow-lg hover:shadow-orange-500/10">
+          <Card key={index} className="bg-card border-border group hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-4" />
@@ -75,13 +75,13 @@ export function DashboardStatsCards({ data }: DashboardStatsCardsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat, index) => (
-        <Card key={index} className="bg-gray-900 border-gray-800 group hover:border-gray-700 transition-all duration-200 hover:shadow-lg hover:shadow-orange-500/10 hover:scale-105">
+        <Card key={index} className="bg-card border-border group hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10 hover:scale-105">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-normal text-gray-400">
+            <CardTitle className="text-sm font-normal text-muted-foreground">
               {stat.title}
             </CardTitle>
             <div className={`flex items-center text-xs font-medium ${
-              stat.trend === "up" ? "text-green-500" : "text-red-500"
+              stat.trend === "up" ? "text-success" : "text-error"
             }`}>
               {stat.change}
               {stat.trend === "up" ? (
@@ -94,15 +94,15 @@ export function DashboardStatsCards({ data }: DashboardStatsCardsProps) {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-white transition-all duration-200">{stat.value}</div>
+                <div className="text-2xl font-bold text-foreground transition-all duration-200">{stat.value}</div>
                 <div className="flex items-center pt-1">
-                  <TrendingUp className="mr-1 h-3 w-3 text-gray-500" />
-                  <p className="text-xs text-gray-500">{stat.description}</p>
+                  <TrendingUp className="mr-1 h-3 w-3 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">{stat.description}</p>
                 </div>
-                <p className="text-xs text-gray-600 mt-1">{stat.subtext}</p>
+                <p className="text-xs text-muted-foreground/80 mt-1">{stat.subtext}</p>
               </div>
               <div className="ml-4">
-                <stat.icon className="h-8 w-8 text-gray-700 transition-colors duration-200 group-hover:text-gray-600" />
+                <stat.icon className="h-8 w-8 text-muted-foreground transition-colors duration-200 group-hover:text-primary" />
               </div>
             </div>
           </CardContent>

@@ -1,10 +1,10 @@
-import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { DashboardStats } from '@/types/database';
 import type { RecentSession } from '@/types/dashboard';
 import type { AppointmentResponse, ClientResponse } from '@/types/database';
 import type { FilterParams } from '@/types/filters';
 import { apiFetch, queryKeys } from '@/lib/api/client';
-import { showSuccessToast, showErrorToast } from '@/lib/api/utils';
+import { showErrorToast, showSuccessToast } from '@/lib/api/utils';
 
 const API_BASE_URL = '/api/admin';
 
@@ -110,11 +110,11 @@ export function recentSessionsOptions(limit = 10) {
 
 export function chartDataOptions() {
   // Define a type for chart data if available, otherwise use unknown
-  type ChartData = {
+  type ChartData = Array<{
     date: string;
     revenue: number;
     sessions: number;
-  }[];
+  }>;
   return queryOptions({
     queryKey: queryKeys.dashboard.chartData(),
     queryFn: () => fetchApi<ChartData>(`${API_BASE_URL}/dashboard/chart-data`),
@@ -176,7 +176,7 @@ export const useUpdateAppointmentStatus = () => {
 
       return { previousAppointments };
     },
-    onError: (error, _variables, context) => {
+    onError: (_error, _variables, context) => {
       // Rollback optimistic updates on error
       if (context?.previousAppointments) {
         context.previousAppointments.forEach(([queryKey, data]) => {
@@ -217,7 +217,7 @@ export const useDeleteCustomer = () => {
 
       return { previousCustomers };
     },
-    onError: (error, _variables, context) => {
+    onError: (_error, _variables, context) => {
       // Rollback optimistic updates on error
       if (context?.previousCustomers) {
         context.previousCustomers.forEach(([queryKey, data]) => {
@@ -253,7 +253,7 @@ export const useSendMessage = () => {
       queryClient.invalidateQueries({ queryKey: [...queryKeys.all, 'messages'] });
       showSuccessToast('Message sent successfully');
     },
-    onError: (error) => {
+    onError: (_error) => {
       showErrorToast('Failed to send message');
     },
   });
@@ -283,7 +283,7 @@ export const useCreateCustomer = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       showSuccessToast('Customer created successfully');
     },
-    onError: (error) => {
+    onError: (_error) => {
       showErrorToast('Failed to create customer');
     },
   });
@@ -313,7 +313,7 @@ export const useUpdateCustomer = () => {
 
       return { previousCustomers };
     },
-    onError: (error, _variables, context) => {
+    onError: (_error, _variables, context) => {
       if (context?.previousCustomers) {
         context.previousCustomers.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);

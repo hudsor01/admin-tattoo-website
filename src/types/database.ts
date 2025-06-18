@@ -1,50 +1,42 @@
 import type { 
-  TattooArtist, 
-  Client, 
-  TattooSession, 
-  Appointment, 
-  TattooDesign, 
-  User, 
-  Account, 
-  Session, 
-  VerificationToken,
-  SessionStatus,
-  AppointmentStatus,
-  AppointmentType,
-  Prisma
+  AppointmentStatus, 
+  AppointmentType, 
+  Prisma, 
+  SessionStatus, 
+  appointments,
+  clients,
+  tattoo_artists,
+  tattoo_designs,
+  tattoo_sessions
 } from "@prisma/client";
 
 // Database model types
 export type { 
-  TattooArtist, 
-  Client, 
-  TattooSession, 
-  Appointment, 
-  TattooDesign, 
-  User, 
-  Account, 
-  Session, 
-  VerificationToken 
+  tattoo_artists as TattooArtist, 
+  clients as Client, 
+  tattoo_sessions as TattooSession, 
+  appointments as Appointment, 
+  tattoo_designs as TattooDesign
 };
 
 // Enum types
 export type { SessionStatus, AppointmentStatus, AppointmentType };
 
 // Extended types with relations
-export type AppointmentWithClient = Prisma.AppointmentGetPayload<{
-  include: { client: true }
+export type AppointmentWithClient = Prisma.appointmentsGetPayload<{
+  include: { clients: true }
 }>;
 
-export type TattooSessionWithClient = Prisma.TattooSessionGetPayload<{
-  include: { client: true; artist: true }
+export type TattooSessionWithClient = Prisma.tattoo_sessionsGetPayload<{
+  include: { clients: true; tattoo_artists: true }
 }>;
 
-export type ClientWithAppointments = Prisma.ClientGetPayload<{
-  include: { appointments: true; sessions: true }
+export type ClientWithAppointments = Prisma.clientsGetPayload<{
+  include: { appointments: true; tattoo_sessions: true }
 }>;
 
-export type TattooDesignWithArtist = Prisma.TattooDesignGetPayload<{
-  include: { artist: true }
+export type TattooDesignWithArtist = Prisma.tattoo_designsGetPayload<{
+  include: { tattoo_artists: true }
 }>;
 
 export type UserWithAccounts = Prisma.UserGetPayload<{
@@ -52,10 +44,8 @@ export type UserWithAccounts = Prisma.UserGetPayload<{
 }>;
 
 // Gallery/Design types
-export type GalleryItem = TattooDesign;
-export type DesignWithArtist = Prisma.TattooDesignGetPayload<{
-  include: { artist: true }
-}>;
+export type GalleryItem = tattoo_designs;
+// DesignWithArtist was a duplicate of TattooDesignWithArtist and has been removed.
 
 // Re-export dashboard types
 export type { DashboardStats } from './dashboard';
@@ -81,23 +71,44 @@ export interface PaginatedResponse<T = Record<string, unknown>> {
 }
 
 // API Response types for admin endpoints
-export interface AppointmentResponse extends Appointment {
-  client?: Client;
-  artist?: TattooArtist;
+export interface AppointmentResponse extends appointments {
+  client?: clients;
+  artist?: tattoo_artists;
 }
 
-export interface ClientResponse extends Client {
-  appointments?: Appointment[];
-  sessions?: TattooSession[];
+export interface ClientResponse extends clients {
+  appointments?: appointments[];
+  sessions?: tattoo_sessions[];
 }
 
 // Use ClientResponse instead of CustomerResponse for consistency
 
-export interface TattooSessionResponse extends TattooSession {
-  client?: Client;
-  artist?: TattooArtist;
+export interface TattooSessionResponse extends tattoo_sessions {
+  client?: clients;
+  artist?: tattoo_artists;
 }
 
+export interface RecentSessionDTO {
+  id: string;
+  appointmentDate: Date;
+  status: SessionStatus;
+  consentSigned: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  client: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    phone: string | null;
+  };
+  artist: {
+    id: string;
+    name: string;
+    email: string;
+    specialties: string[];
+  };
+}
 
 // Search and filter types
 export interface AppointmentFilters {
@@ -255,10 +266,8 @@ export interface ClientAnalytics {
   returningClients: number;
   clientsBySource: Array<{ source: string; count: number }>;
   clientLifetimeValue: number;
-  topClients: Array<{ client: Client; totalSpent: number; sessionCount: number }>;
+  topClients: Array<{ client: clients; totalSpent: number; sessionCount: number }>;
 }
-
-// Chart data types - use ChartDataPoint from @/types/dashboard instead
 
 export interface TimeSeriesDataPoint {
   date: string;

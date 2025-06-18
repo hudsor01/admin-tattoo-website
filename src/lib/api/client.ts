@@ -1,15 +1,13 @@
 import { QueryClient } from '@tanstack/react-query';
 import { authClient } from '@/lib/auth-client';
-import type { Session } from '@/types/auth';
+import type { 
+  FetchConfig} from '@/lib/api/enhanced-error-handling';
 import { 
-  resilientFetch, 
-  FetchConfig, 
-  handleError, 
-  ApiErrorResponse,
-  ApiSuccessResponse,
-  ErrorCategory,
-  categorizeError,
-  getCircuitBreaker
+  ErrorCategory, 
+  categorizeError, 
+  getCircuitBreaker,
+  handleError,
+  resilientFetch
 } from '@/lib/api/enhanced-error-handling';
 import { z } from 'zod';
 
@@ -18,9 +16,9 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: Error | ApiError) => {
         // Don't retry on 4xx errors
-        if (error?.status >= 400 && error?.status < 500) {
+        if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
           return false;
         }
         return failureCount < 3;
@@ -46,7 +44,7 @@ export class ApiError extends Error {
     message: string,
     public status: number,
     public code?: string,
-    public details?: any,
+    public details?: string | object | null,
     public category?: ErrorCategory
   ) {
     super(message);
@@ -55,7 +53,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T = any>(
+export async function apiFetch<T = string>(
   endpoint: string,
   options: EnhancedFetchOptions = {}
 ): Promise<T> {
@@ -76,9 +74,9 @@ export async function apiFetch<T = any>(
   if (requireAuth) {
     try {
       const session = await authClient.getSession();
-      if (session?.user) {
+      if (session && 'data' in session && session.data?.user) {
         authHeaders = {
-          Authorization: `Bearer ${session.token || ''}`,
+          Authorization: `Bearer ${session.data.session?.token || ''}`,
         };
       } else if (requireAuth) {
         throw new ApiError('Authentication required', 401, 'AUTH_REQUIRED', null, ErrorCategory.AUTHENTICATION);
@@ -87,7 +85,7 @@ export async function apiFetch<T = any>(
       if (error instanceof ApiError) throw error;
       console.warn('Failed to get auth session:', error);
       if (requireAuth) {
-        throw new ApiError('Authentication failed', 401, 'AUTH_FAILED', error, ErrorCategory.AUTHENTICATION);
+        throw new ApiError('Authentication failed', 401, 'AUTH_FAILED', error instanceof Error ? error.message : String(error), ErrorCategory.AUTHENTICATION);
       }
     }
   }
@@ -117,7 +115,7 @@ export async function apiFetch<T = any>(
 
     // Handle standardized API response format if parsing is enabled
     if (parseResponse && response && typeof response === 'object') {
-      const data = response as any;
+      const data = response as { success?: boolean; error?: string; status?: number; code?: string; data?: unknown };
       
       // Handle standardized API response format
       if (data.success === false && data.error) {
@@ -149,12 +147,12 @@ export async function apiFetch<T = any>(
         error.message || 'Network error occurred',
         0,
         'NETWORK_ERROR',
-        error,
+        error.message,
         category
       );
     }
 
-    throw new ApiError('An unexpected error occurred', 0, 'UNKNOWN_ERROR', error, category);
+    throw new ApiError('An unexpected error occurred', 0, 'UNKNOWN_ERROR', String(error), category);
   }
 }
 
@@ -168,34 +166,34 @@ export const queryKeys = {
   },
   dashboard: {
     all: ['api', 'dashboard'] as const,
-    stats: (filters?: any) => [...queryKeys.dashboard.all, 'stats', filters] as const,
-    chartData: (filters?: any) => [...queryKeys.dashboard.all, 'chart', filters] as const,
+    stats: (filters?: Record<string, unknown>) => [...queryKeys.dashboard.all, 'stats', filters] as const,
+    chartData: (filters?: Record<string, unknown>) => [...queryKeys.dashboard.all, 'chart', filters] as const,
     recentSessions: () => [...queryKeys.dashboard.all, 'recent-sessions'] as const,
     recentClients: () => [...queryKeys.dashboard.all, 'recent-clients'] as const,
   },
   customers: {
     all: ['api', 'customers'] as const,
     lists: () => [...queryKeys.customers.all, 'list'] as const,
-    list: (filters?: any) => [...queryKeys.customers.lists(), filters] as const,
+    list: (filters?: Record<string, unknown>) => [...queryKeys.customers.lists(), filters] as const,
     details: () => [...queryKeys.customers.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.customers.details(), id] as const,
   },
   appointments: {
     all: ['api', 'appointments'] as const,
     lists: () => [...queryKeys.appointments.all, 'list'] as const,
-    list: (filters?: any) => [...queryKeys.appointments.lists(), filters] as const,
+    list: (filters?: Record<string, unknown>) => [...queryKeys.appointments.lists(), filters] as const,
     details: () => [...queryKeys.appointments.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.appointments.details(), id] as const,
-    stats: (filters?: any) => [...queryKeys.appointments.all, 'stats', filters] as const,
+    stats: (filters?: Record<string, unknown>) => [...queryKeys.appointments.all, 'stats', filters] as const,
   },
   media: {
     all: ['api', 'media'] as const,
     lists: () => [...queryKeys.media.all, 'list'] as const,
-    list: (filters?: any) => [...queryKeys.media.lists(), filters] as const,
+    list: (filters?: Record<string, unknown>) => [...queryKeys.media.lists(), filters] as const,
   },
   analytics: {
     all: ['api', 'analytics'] as const,
-    data: (filters?: any) => [...queryKeys.analytics.all, 'data', filters] as const,
+    data: (filters?: Record<string, unknown>) => [...queryKeys.analytics.all, 'data', filters] as const,
   },
 } as const;
 
@@ -217,7 +215,7 @@ export function prefetchQuery<T = unknown>(
 }
 
 // Enhanced API utilities with error handling
-export function createApiCall<T = any>(
+export function createApiCall<T = unknown>(
   endpoint: string,
   defaultOptions: Partial<EnhancedFetchOptions> = {}
 ) {
@@ -272,13 +270,13 @@ export function getApiHealthStatus() {
 }
 
 // Batch request utility for efficient API calls
-export async function batchApiCalls<T extends Record<string, () => Promise<any>>>(
+export async function batchApiCalls<T extends Record<string, () => Promise<unknown>>>(
   calls: T,
   options: { concurrency?: number; failFast?: boolean } = {}
 ): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> {
   const { concurrency = 3, failFast = false } = options;
   const entries = Object.entries(calls);
-  const results: Record<string, any> = {};
+  const results: Record<string, unknown> = {};
   const errors: Record<string, Error> = {};
 
   // Process requests in batches

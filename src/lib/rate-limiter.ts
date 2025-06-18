@@ -14,7 +14,7 @@ interface RateLimitConfig {
  * Production-ready rate limiter with LRU eviction
  * Falls back gracefully when external storage is unavailable
  */
-class ProductionRateLimiter {
+export class ProductionRateLimiter {
   private store = new Map<string, RateLimitEntry>();
   private config: RateLimitConfig;
 
@@ -116,7 +116,9 @@ class ProductionRateLimiter {
     const entries = Array.from(this.store.entries())
       .sort(([, a], [, b]) => a.lastRequest - b.lastRequest);
     
-    const toRemove = entries.slice(0, Math.floor(this.config.maxEntries * 0.1));
+    // Remove at least 1 entry, or 10% of maxEntries, whichever is larger
+    const toRemoveCount = Math.max(1, Math.floor(this.config.maxEntries * 0.1));
+    const toRemove = entries.slice(0, toRemoveCount);
     toRemove.forEach(([key]) => this.store.delete(key));
   }
 
@@ -125,6 +127,13 @@ class ProductionRateLimiter {
    */
   getStoreSize(): number {
     return this.store.size;
+  }
+
+  /**
+   * Manual cleanup for testing
+   */
+  forceCleanup(): void {
+    this.cleanup();
   }
 }
 

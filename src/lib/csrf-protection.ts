@@ -4,7 +4,7 @@
  */
 
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { env } from './env-validation';
 import { logger } from './logger';
 

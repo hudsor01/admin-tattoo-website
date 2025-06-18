@@ -3,9 +3,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch, queryKeys } from '@/lib/api/client'
 import type { 
-  DashboardStats, 
-  DashboardData, 
   ChartDataPoint, 
+  DashboardData, 
+  DashboardStats, 
   RecentClient, 
   RecentSession 
 } from '@/types/dashboard'

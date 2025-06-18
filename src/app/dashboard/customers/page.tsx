@@ -2,6 +2,8 @@ import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SectionCards } from "@/components/dashboard/section-cards"
 import { CustomersList } from "@/components/customers/customers-list"
 import { SiteHeader } from "@/components/layout/site-header"
+import { Button } from "@/components/ui/button"
+import { Plus, Users } from "lucide-react"
 import {
   SidebarInset,
   SidebarProvider,
@@ -24,6 +26,32 @@ export default function CustomersPage() {
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <SectionCards />
+              
+              {/* Page Header */}
+              <div className="px-6 lg:px-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-brand-gradient">
+                      <Users className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-3xl font-black text-foreground tracking-tight">Customers</h1>
+                      <p className="text-muted-foreground">
+                        Manage your client database and relationships
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      className="bg-brand-gradient-hover"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Customer
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
               <div className="px-6 lg:px-8">
                 <CustomersList />
               </div>

@@ -54,7 +54,7 @@ export function clearCache(pattern?: string) {
 }
 
 // Generic type for Prisma model delegates
-type PrismaModelDelegate = {
+interface PrismaModelDelegate {
   findMany: (args?: unknown) => Promise<unknown[]>;
   findUnique: (args: { where: unknown; include?: unknown; select?: unknown }) => Promise<unknown | null>;
   findFirst: (args: { where: unknown; include?: unknown; select?: unknown }) => Promise<unknown | null>;
@@ -62,7 +62,7 @@ type PrismaModelDelegate = {
   update: (args: { where: unknown; data: unknown; include?: unknown; select?: unknown }) => Promise<unknown>;
   delete: (args: { where: unknown }) => Promise<unknown>;
   count: (args?: { where?: unknown }) => Promise<number>;
-};
+}
 
 export class GenericRepository<
   TCreateInput,

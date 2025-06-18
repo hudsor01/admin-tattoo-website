@@ -10,9 +10,9 @@ export async function GET() {
     
     // Test table access and get basic stats
     const [clientCount, sessionCount, appointmentCount] = await Promise.all([
-      prisma.client.count(),
-      prisma.tattooSession.count(),
-      prisma.appointment.count()
+      prisma.clients.count(),
+      prisma.tattoo_sessions.count(),
+      prisma.appointments.count()
     ]);
     
     const responseTime = Date.now() - start;

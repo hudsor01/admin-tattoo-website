@@ -57,7 +57,7 @@ export function Logo({
             quality={95}
             className="relative z-10"
           />
-          <div className="absolute inset-0 bg-fernando-gradient opacity-40 mix-blend-overlay"></div>
+          <div className="absolute inset-0 bg-fernando-gradient opacity-40 mix-blend-overlay" />
         </div>
       </motion.div>
     ) : (

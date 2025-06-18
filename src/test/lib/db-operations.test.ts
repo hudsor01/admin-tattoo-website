@@ -1,21 +1,49 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  getCustomers,
-  getCustomerById,
-  createCustomer,
-  updateCustomer,
-  deleteCustomer,
-  getAppointments,
-  getAppointmentById,
+  clearCache,
   createAppointment,
-  updateAppointment,
+  createCustomer,
   deleteAppointment,
+  deleteCustomer,
+  getAppointmentById,
+  getAppointments,
+  getCustomerById,
+  getCustomers,
   getDashboardStats,
-  getRecentAppointments
+  getRecentAppointments,
+  updateAppointment,
+  updateCustomer
 } from '@/lib/db-operations'
 
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    client: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      count: vi.fn()
+    },
+    appointment: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      count: vi.fn()
+    },
+    tattoo_sessions: {
+      findMany: vi.fn(),
+      count: vi.fn(),
+      aggregate: vi.fn()
+    },
+    tattoo_artists: {
+      findFirst: vi.fn()
+    }
+  },
   getPrismaClient: vi.fn(() => ({
     client: {
       findMany: vi.fn(),
@@ -34,12 +62,12 @@ vi.mock('@/lib/prisma', () => ({
       delete: vi.fn(),
       count: vi.fn()
     },
-    tattooSession: {
+    tattoo_sessions: {
       findMany: vi.fn(),
       count: vi.fn(),
       aggregate: vi.fn()
     },
-    tattooArtist: {
+    tattoo_artists: {
       findFirst: vi.fn()
     }
   }))
@@ -55,14 +83,7 @@ vi.mock('@/lib/api-core', () => ({
   }
 }))
 
-// Mock repository utils
-vi.mock('@/lib/repository-utils', () => ({
-  withCache: vi.fn((fn) => fn),
-  CACHE_TTL: {
-    DASHBOARD_STATS: 300000,
-    RECENT_APPOINTMENTS: 60000
-  }
-}))
+// No need to mock repository utils - cache is built-in now
 
 // Mock data
 const mockClient = {
@@ -112,13 +133,41 @@ const mockAppointment = {
   }
 }
 
+const mockArtist = {
+  id: '1',
+  name: 'Fernando Govea',
+  email: 'fernando@ink37tattoos.com'
+}
+
 describe('Database Operations', () => {
   let mockPrisma: any
 
   beforeEach(async () => {
     vi.clearAllMocks()
-    const { getPrismaClient } = await import('@/lib/prisma')
-    mockPrisma = getPrismaClient()
+    clearCache() // Clear cache between tests
+    const { prisma, getPrismaClient } = await import('@/lib/prisma')
+    mockPrisma = prisma
+    
+    // Set up default mock return values
+    mockPrisma.client.findMany.mockResolvedValue([])
+    mockPrisma.client.findUnique.mockResolvedValue(null)
+    mockPrisma.client.create.mockResolvedValue(mockClient)
+    mockPrisma.client.update.mockResolvedValue(mockClient)
+    mockPrisma.client.delete.mockResolvedValue(mockClient)
+    mockPrisma.client.count.mockResolvedValue(0)
+    
+    mockPrisma.appointment.findMany.mockResolvedValue([])
+    mockPrisma.appointment.findUnique.mockResolvedValue(null)
+    mockPrisma.appointment.findFirst.mockResolvedValue(null)
+    mockPrisma.appointment.create.mockResolvedValue(mockAppointment)
+    mockPrisma.appointment.update.mockResolvedValue(mockAppointment)
+    mockPrisma.appointment.delete.mockResolvedValue(mockAppointment)
+    mockPrisma.appointment.count.mockResolvedValue(0)
+    
+    mockPrisma.tattoo_sessions.count.mockResolvedValue(0)
+    mockPrisma.tattoo_sessions.aggregate.mockResolvedValue({ _sum: { totalCost: 0 } })
+    
+    mockPrisma.tattoo_artists.findFirst.mockResolvedValue(mockArtist)
   })
 
   describe('Customer Operations', () => {
@@ -349,7 +398,7 @@ describe('Database Operations', () => {
     describe('deleteCustomer', () => {
       it('should delete customer after checking constraints', async () => {
         mockPrisma.appointment.count.mockResolvedValue(0)
-        mockPrisma.tattooSession.count.mockResolvedValue(0)
+        mockPrisma.tattoo_sessions.count.mockResolvedValue(0)
         mockPrisma.client.delete.mockResolvedValue(mockClient)
 
         await deleteCustomer('1')
@@ -357,7 +406,7 @@ describe('Database Operations', () => {
         expect(mockPrisma.appointment.count).toHaveBeenCalledWith({
           where: { clientId: '1' }
         })
-        expect(mockPrisma.tattooSession.count).toHaveBeenCalledWith({
+        expect(mockPrisma.tattoo_sessions.count).toHaveBeenCalledWith({
           where: { clientId: '1' }
         })
         expect(mockPrisma.client.delete).toHaveBeenCalledWith({
@@ -374,7 +423,7 @@ describe('Database Operations', () => {
 
       it('should prevent deletion with existing sessions', async () => {
         mockPrisma.appointment.count.mockResolvedValue(0)
-        mockPrisma.tattooSession.count.mockResolvedValue(1)
+        mockPrisma.tattoo_sessions.count.mockResolvedValue(1)
 
         await expect(deleteCustomer('1'))
           .rejects.toThrow('Cannot delete customer with existing sessions')
@@ -479,7 +528,7 @@ describe('Database Operations', () => {
         mockPrisma.client.findUnique.mockResolvedValue(mockClient)
         
         // Mock artist exists
-        mockPrisma.tattooArtist.findFirst.mockResolvedValue({
+        mockPrisma.tattoo_artists.findFirst.mockResolvedValue({
           id: '1',
           name: 'Fernando Govea'
         })
@@ -529,7 +578,7 @@ describe('Database Operations', () => {
 
       it('should handle scheduling conflicts', async () => {
         mockPrisma.client.findUnique.mockResolvedValue(mockClient)
-        mockPrisma.tattooArtist.findFirst.mockResolvedValue({ id: '1', name: 'Fernando' })
+        mockPrisma.tattoo_artists.findFirst.mockResolvedValue({ id: '1', name: 'Fernando' })
         mockPrisma.appointment.findFirst.mockResolvedValue(mockAppointment)
 
         await expect(createAppointment({
@@ -587,8 +636,8 @@ describe('Database Operations', () => {
         // Mock all the aggregation queries
         mockPrisma.client.count.mockResolvedValue(45)
         mockPrisma.appointment.count.mockResolvedValue(25)
-        mockPrisma.tattooSession.count.mockResolvedValue(42)
-        mockPrisma.tattooSession.aggregate.mockResolvedValue({
+        mockPrisma.tattoo_sessions.count.mockResolvedValue(42)
+        mockPrisma.tattoo_sessions.aggregate.mockResolvedValue({
           _sum: { totalCost: 12500 }
         })
 
@@ -606,8 +655,8 @@ describe('Database Operations', () => {
       it('should handle zero revenue gracefully', async () => {
         mockPrisma.client.count.mockResolvedValue(0)
         mockPrisma.appointment.count.mockResolvedValue(0)
-        mockPrisma.tattooSession.count.mockResolvedValue(0)
-        mockPrisma.tattooSession.aggregate.mockResolvedValue({
+        mockPrisma.tattoo_sessions.count.mockResolvedValue(0)
+        mockPrisma.tattoo_sessions.aggregate.mockResolvedValue({
           _sum: { totalCost: null }
         })
 

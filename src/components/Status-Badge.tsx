@@ -2,7 +2,7 @@ import React from 'react';
 
 // CONVERTED TO SERVER COMPONENT: Pure display component with CSS classes only
 // import { Badge } from '@/components/ui/badge'; // unused in this file
-import { cva, type VariantProps } from 'class-variance-authority';
+import { type VariantProps, cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const statusBadgeVariants = cva(

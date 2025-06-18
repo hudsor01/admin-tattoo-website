@@ -29,7 +29,7 @@ export const ApiSuccessSchema = <T extends z.ZodTypeAny>(dataSchema: T) => z.obj
 })
 
 export type ApiErrorResponse = z.infer<typeof ApiErrorSchema>
-export type ApiSuccessResponse<T> = {
+export interface ApiSuccessResponse<T> {
   success: true
   data: T
   message?: string

@@ -1,9 +1,9 @@
 import { z } from "zod"
 import { 
-  sanitizeString, 
+  containsSuspiciousPatterns, 
   sanitizeEmail, 
   sanitizePhone, 
-  containsSuspiciousPatterns 
+  sanitizeString 
 } from './sanitization';
 
 // Common validation schemas
@@ -316,14 +316,14 @@ export type Login = z.infer<typeof loginSchema>
 export type Signup = z.infer<typeof signupSchema>
 
 // API response types with proper generics
-export type ApiResponse<T = unknown> = { 
+export interface ApiResponse<T = unknown> { 
   success: boolean; 
   data?: T; 
   error?: string; 
   message?: string 
 }
 
-export type PaginatedResponse<T = unknown> = { 
+export interface PaginatedResponse<T = unknown> { 
   success: boolean; 
   data: T[]; 
   pagination: { 

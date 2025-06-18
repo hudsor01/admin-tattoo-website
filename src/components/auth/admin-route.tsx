@@ -1,8 +1,9 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import type { ReactNode} from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useAuthStatus } from '@/stores/auth-store';
+import { useAuthStatus, useUser } from '@/stores/auth-store';
 
 interface AdminRouteProps {
   children: ReactNode;
@@ -24,7 +25,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900" />
       </div>
     );
   }
@@ -33,7 +34,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900" />
       </div>
     );
   }

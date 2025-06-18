@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { IconLogout, IconLoader2 } from "@tabler/icons-react"
+import { IconLoader2, IconLogout } from "@tabler/icons-react"
 
 import { Button } from "@/components/ui/button"
 import {

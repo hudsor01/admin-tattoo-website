@@ -2,20 +2,20 @@
 
 import * as React from "react"
 import {
-  closestCenter,
   DndContext,
+  type DragEndEvent,
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
+  type UniqueIdentifier,
+  closestCenter,
   useSensor,
   useSensors,
-  type DragEndEvent,
-  type UniqueIdentifier,
 } from "@dnd-kit/core"
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
 import {
-  arrayMove,
   SortableContext,
+  arrayMove,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
@@ -34,9 +34,13 @@ import {
   IconPlus,
   IconTrendingUp,
 } from "@tabler/icons-react"
-import {
+import type {
   ColumnDef,
   ColumnFiltersState,
+  Row,
+  SortingState,
+  VisibilityState} from "@tanstack/react-table";
+import {
   flexRender,
   getCoreRowModel,
   getFacetedRowModel,
@@ -44,10 +48,7 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  Row,
-  SortingState,
-  useReactTable,
-  VisibilityState,
+  useReactTable
 } from "@tanstack/react-table"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 import { toast } from "sonner"
@@ -56,8 +57,9 @@ import { z } from "zod"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import type {
+  ChartConfig} from "@/components/ui/chart";
 import {
-  ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -136,7 +138,7 @@ function DragHandle({ id }: { id: number }) {
   )
 }
 
-const columns: ColumnDef<z.infer<typeof schema>>[] = [
+const columns: Array<ColumnDef<z.infer<typeof schema>>> = [
   {
     id: "drag",
     header: () => null,
@@ -318,13 +320,13 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
 
   return (
     <TableRow
-      data-state={row.getIsSelected() && "selected"}
+      data-state={row.getIsSelected() ? "selected" : null}
       data-dragging={isDragging}
       ref={setNodeRef}
       className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
       style={{
         transform: CSS.Transform.toString(transform),
-        transition: transition,
+        transition,
       }}
     >
       {row.getVisibleCells().map((cell) => (
@@ -339,7 +341,7 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
 export function DataTable({
   data: initialData,
 }: {
-  data: z.infer<typeof schema>[]
+  data: Array<z.infer<typeof schema>>
 }) {
   const [data, setData] = React.useState(() => initialData)
   const [rowSelection, setRowSelection] = React.useState({})
@@ -670,8 +672,7 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
           </DrawerDescription>
         </DrawerHeader>
         <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
-          {!isMobile && (
-            <>
+          {!isMobile ? <>
               <ChartContainer config={chartConfig}>
                 <AreaChart
                   accessibilityLayer
@@ -725,8 +726,7 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
                 </div>
               </div>
               <Separator />
-            </>
-          )}
+            </> : null}
           <form className="flex flex-col gap-4">
             <div className="flex flex-col gap-3">
               <Label htmlFor="header">Header</Label>

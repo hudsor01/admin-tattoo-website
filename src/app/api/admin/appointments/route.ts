@@ -1,5 +1,5 @@
-import { NextRequest } from 'next/server';
-import { getAppointments, createAppointment, updateAppointment } from '@/lib/db-operations';
+import type { NextRequest } from 'next/server';
+import { createAppointment, getAppointments, updateAppointment } from '@/lib/db-operations';
 import { appointmentFilterSchema, createAppointmentSchema, updateAppointmentSchema } from '@/lib/validations';
 import { withApiHandler } from '@/lib/api-core';
 

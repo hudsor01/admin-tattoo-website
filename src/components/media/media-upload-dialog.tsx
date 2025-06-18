@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useRef, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { ImageIcon, Video, Upload, X } from "lucide-react"
+import { ImageIcon, Upload, Video, X } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { PutBlobResult } from '@vercel/blob'
@@ -33,7 +33,7 @@ export function MediaUploadDialog({
   onOpenChange: legacyOnOpenChange, 
   uploadType: legacyUploadType 
 }: MediaUploadDialogProps = {}) {
-  // Use UI store for modal state
+  // Use UI store for modal state - Fixed uploadType variable references
   const { modals, closeModal, setComponentLoading, loading } = useUIStore();
   
   // Get loading state from store
@@ -75,11 +75,15 @@ export function MediaUploadDialog({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: blob.url,
-          pathname: blob.pathname,
-          size: blob.size,
+          title: metadata.title,
+          description: metadata.description,
+          style: metadata.style,
+          tags: metadata.tags,
+          mediaUrl: blob.url,
           type: currentUploadType,
-          metadata
+          isPublic: true,
+          estimatedHours: 0,
+          syncToWebsite: metadata.syncToWebsite
         })
       })
       
@@ -141,7 +145,7 @@ export function MediaUploadDialog({
     e.stopPropagation()
     setDragActive(false)
     
-    const files = e.dataTransfer.files
+    const {files} = e.dataTransfer
     if (files && files[0]) {
       uploadFile(files[0])
     }
@@ -234,7 +238,7 @@ export function MediaUploadDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-background text-foreground">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {currentUploadType === 'photo' ? (
@@ -300,11 +304,11 @@ export function MediaUploadDialog({
                 <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                 <div>
                   <p className="text-lg font-medium">
-                    Drop your {uploadType} here, or{' '}
+                    Drop your {currentUploadType} here, or{' '}
                     <span className="text-primary hover:underline">browse</span>
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {uploadType === 'photo' 
+                    {currentUploadType === 'photo' 
                       ? 'JPEG, PNG, WebP up to 4.5MB'
                       : 'MP4, MOV, WebM up to 4.5MB'
                     }
@@ -376,8 +380,7 @@ export function MediaUploadDialog({
                 Add
               </Button>
             </div>
-            {metadata.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+            {metadata.tags.length > 0 ? <div className="flex flex-wrap gap-2 mt-2">
                 {metadata.tags.map((tag, index) => (
                   <Badge key={index} variant="secondary" className="flex items-center gap-1">
                     {tag}
@@ -387,8 +390,7 @@ export function MediaUploadDialog({
                     />
                   </Badge>
                 ))}
-              </div>
-            )}
+              </div> : null}
           </div>
 
           <div className="flex items-center space-x-2">
@@ -407,7 +409,7 @@ export function MediaUploadDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
               disabled={saveMutation.isPending}
             >
               Cancel
@@ -416,7 +418,7 @@ export function MediaUploadDialog({
               type="button"
               onClick={handleSave}
               disabled={!uploadedBlob || !metadata.title.trim() || saveMutation.isPending}
-              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+              className="bg-brand-gradient-hover"
             >
               {saveMutation.isPending ? (
                 <>
@@ -426,7 +428,7 @@ export function MediaUploadDialog({
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Save {uploadType === 'photo' ? 'Photo' : 'Video'}
+                  Save {currentUploadType === 'photo' ? 'Photo' : 'Video'}
                 </>
               )}
             </Button>

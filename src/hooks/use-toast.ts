@@ -4,7 +4,7 @@ import * as React from "react"
 
 // Toast types - using sonner for actual toasts
 type ToastActionElement = React.ReactElement
-type ToastProps = {
+interface ToastProps {
   variant?: "default" | "destructive"
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -69,7 +69,7 @@ const addToRemoveQueue = (toastId: string) => {
     toastTimeouts.delete(toastId)
     dispatch({
       type: "REMOVE_TOAST",
-      toastId: toastId,
+      toastId,
     })
   }, TOAST_REMOVE_DELAY)
 
@@ -167,7 +167,7 @@ function toast({ ...props }: Toast) {
   })
 
   return {
-    id: id,
+    id,
     dismiss,
     update,
   }

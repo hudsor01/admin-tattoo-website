@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Providers } from "@/components/providers";
-import { ErrorBoundary } from "@/components/error/error-boundary";
+// import { ErrorBoundary } from "@/components/error/error-boundary";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -13,6 +13,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Ink 37 Tattoos - Admin Dashboard",
   description: "Professional tattoo artist administration",
+  icons: {
+    icon: "/icons/favicon.ico",
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -23,12 +27,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <ErrorBoundary>
-          <Providers>
-            {children}
-          </Providers>
-          <Toaster richColors />
-        </ErrorBoundary>
+        {/* Temporarily removed ErrorBoundary to troubleshoot ChunkLoadError */}
+        <Providers>
+          {children}
+        </Providers>
+        <Toaster richColors />
       </body>
     </html>
   );

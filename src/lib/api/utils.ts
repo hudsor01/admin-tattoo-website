@@ -21,7 +21,7 @@ export function showLoadingToast(message: string) {
 }
 
 // API response helpers matching the existing format
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -90,7 +90,7 @@ export function createPaginationParams(
 }
 
 // Filter utilities
-export function buildQueryString(params: Record<string, any>): string {
+export function buildQueryString(params: Record<string, unknown>): string {
   const searchParams = new URLSearchParams();
   
   Object.entries(params).forEach(([key, value]) => {

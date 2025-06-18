@@ -1,12 +1,12 @@
 'use client';
 
 import type { PutBlobResult } from '@vercel/blob';
-import { useState, useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, X, Check } from 'lucide-react';
+import { Check, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface FileUploadProps {
@@ -40,6 +40,11 @@ export function FileUpload({
     }
 
     const file = inputFileRef.current.files[0];
+    
+    if (!file) {
+      setError('No file selected');
+      return;
+    }
 
     // Validate file size
     const maxSizeBytes = maxSize * 1024 * 1024;
@@ -126,7 +131,7 @@ export function FileUpload({
     e.stopPropagation();
     setDragActive(false);
     
-    const files = e.dataTransfer.files;
+    const {files} = e.dataTransfer;
     if (files && files[0]) {
       setSelectedFile(files[0]);
       if (inputFileRef.current) {
@@ -208,14 +213,11 @@ export function FileUpload({
             disabled={isUploading}
           />
 
-          {error && (
-            <Alert variant="destructive">
+          {error ? <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+            </Alert> : null}
 
-          {blob && (
-            <Alert>
+          {blob ? <Alert>
               <Check className="h-4 w-4" />
               <AlertDescription>
                 <div className="space-y-2">
@@ -240,8 +242,7 @@ export function FileUpload({
                   </div>
                 </div>
               </AlertDescription>
-            </Alert>
-          )}
+            </Alert> : null}
 
           <div className="flex gap-2">
             <Button 
@@ -251,15 +252,13 @@ export function FileUpload({
             >
               {isUploading ? 'Uploading...' : 'Upload'}
             </Button>
-            {blob && (
-              <Button
+            {blob ? <Button
                 type="button"
                 variant="outline"
                 onClick={clearSelection}
               >
                 Upload Another
-              </Button>
-            )}
+              </Button> : null}
           </div>
         </form>
       </CardContent>

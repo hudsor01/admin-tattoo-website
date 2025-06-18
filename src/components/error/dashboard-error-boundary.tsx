@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, RefreshCw, Settings, MessageCircle } from 'lucide-react';
+import { AlertTriangle, MessageCircle, RefreshCw, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -133,23 +133,19 @@ export class DashboardErrorBoundary extends React.Component<DashboardErrorBounda
                   <Badge variant={isNetworkError ? "secondary" : "destructive"}>
                     {isNetworkError ? "Network Error" : "Application Error"}
                   </Badge>
-                  {this.state.retryCount > 0 && (
-                    <Badge variant="outline">
+                  {this.state.retryCount > 0 ? <Badge variant="outline">
                       Retry {this.state.retryCount}/{this.props.maxRetries || 2}
-                    </Badge>
-                  )}
+                    </Badge> : null}
                 </div>
                 
               </div>
 
               {/* Retry Information */}
-              {isNetworkError && !maxRetriesReached && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+              {isNetworkError && !maxRetriesReached ? <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                   <p className="text-sm text-blue-800">
                     This appears to be a network issue. The dashboard will automatically retry in a moment.
                   </p>
-                </div>
-              )}
+                </div> : null}
 
               {/* Action Buttons */}
               <div className="space-y-3">

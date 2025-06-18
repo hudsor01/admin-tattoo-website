@@ -159,10 +159,10 @@ export class AuditLogger {
     // Remove or hash sensitive fields
     sensitiveFields?.forEach(field => {
       if (sanitized[field]) {
-        sanitized[field] = crypto.createHash('sha256')
+        sanitized[field] = `${crypto.createHash('sha256')
           .update(String(sanitized[field]))
           .digest('hex')
-          .substring(0, 8) + '...'
+          .substring(0, 8)  }...`
       }
     })
 

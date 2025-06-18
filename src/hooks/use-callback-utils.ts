@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { handleCallbackError } from '@/hooks/use-utils';
 
 // Utility type for any function parameters
@@ -422,7 +422,7 @@ export function useDeferredCallback<T extends (...args: AnyParams) => unknown>(
   const isPendingRef = useRef(false);
 
   // Queue for pending executions (for 'append' mode)
-  const queueRef = useRef<Parameters<T>[]>([]);
+  const queueRef = useRef<Array<Parameters<T>>>([]);
 
   // AbortController for cancellation
   const abortControllerRef = useRef<AbortController | null>(null);

@@ -1,30 +1,28 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiFetch, queryKeys, invalidateQueries } from '@/lib/api/client';
-import { buildQueryString, createOptimisticUpdate, createOptimisticDelete } from '@/lib/api/utils';
-import { showSuccessToast, showErrorToast } from '@/lib/api/utils';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiFetch, invalidateQueries, queryKeys } from '@/lib/api/client';
+import { buildQueryString, createOptimisticDelete } from '@/lib/api/utils';
+import { showErrorToast, showSuccessToast } from '@/lib/api/utils';
 import type { 
-  Appointment, 
-  Client, 
-  TattooArtist,
-  AppointmentType,
-  AppointmentStatus 
+  appointments, 
+  clients, 
+  tattoo_artists
 } from '@prisma/client';
 
 // Appointment specific types
-export interface AppointmentFilters {
-  status?: AppointmentStatus | AppointmentStatus[];
+export interface AppointmentFilters extends Record<string, unknown> {
+  status?: string | string[];
   startDate?: Date;
   endDate?: Date;
   customerId?: string;
   artistId?: string;
-  type?: AppointmentType;
+  type?: string;
   limit?: number;
   offset?: number;
 }
 
-export interface AppointmentResponse extends Appointment {
-  client: Pick<Client, 'id' | 'name' | 'email' | 'phone'>;
-  artist: Pick<TattooArtist, 'id' | 'name' | 'specialties'>;
+export interface AppointmentResponse extends appointments {
+  client: Pick<clients, 'id' | 'firstName' | 'lastName' | 'email' | 'phone'>;
+  artist: Pick<tattoo_artists, 'id' | 'name'>;
 }
 
 export interface AppointmentStats {
@@ -41,7 +39,7 @@ export interface AppointmentStats {
 export interface CreateAppointmentData {
   clientId: string;
   artistId: string;
-  type: AppointmentType;
+  type: string;
   scheduledDate: Date;
   estimatedDuration: number;
   description?: string;

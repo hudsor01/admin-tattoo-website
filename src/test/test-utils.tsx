@@ -1,5 +1,6 @@
-import React, { ReactElement } from 'react'
-import { render, RenderOptions } from '@testing-library/react'
+import React, { type ReactElement } from 'react';
+import type { RenderOptions } from '@testing-library/react';
+import { render } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthUIProvider } from '@daveyplate/better-auth-ui'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -7,7 +8,7 @@ import { vi } from 'vitest'
 
 // Mock Better Auth UI hooks
 vi.mock('@daveyplate/better-auth-ui', async () => {
-  const actual = await vi.importActual('@daveyplate/better-auth-ui') as any
+  const actual = await vi.importActual('@daveyplate/better-auth-ui') as Record<string, unknown>
   return {
     ...actual,
     useSession: vi.fn().mockReturnValue({
@@ -78,7 +79,7 @@ function AllTheProviders({ children, queryClient }: AllTheProvidersProps) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <QueryClientProvider client={testQueryClient}>
-        <AuthUIProvider authClient={mockAuthClient as any}>
+        <AuthUIProvider authClient={mockAuthClient as Record<string, unknown>}>
           {children}
         </AuthUIProvider>
       </QueryClientProvider>
@@ -174,7 +175,7 @@ export const mockSession = {
 }
 
 // Helper to mock fetch responses
-export function mockFetchResponse(data: any, ok = true, status = 200) {
+export function mockFetchResponse(data: Record<string, unknown>, ok = true, status = 200) {
   return vi.fn().mockResolvedValue({
     ok,
     status,

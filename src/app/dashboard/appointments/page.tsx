@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, User, Phone } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Calendar, Clock, Phone, User, Plus, Edit, Trash2, Eye } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { AppointmentResponse } from '@/types/database'
@@ -54,6 +55,14 @@ export default function AppointmentsPage() {
                     <p className="text-muted-foreground">
                       Manage client appointments and bookings
                     </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      className="bg-brand-gradient-hover"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Appointment
+                    </Button>
                   </div>
                 </div>
 
@@ -122,15 +131,28 @@ function AppointmentCard({ appointment }: { appointment: AppointmentResponse }) 
   }
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 group">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">
             {`${appointment.client?.firstName} ${appointment.client?.lastName}` || 'Unknown Client'}
           </CardTitle>
-          <Badge className={getStatusColor(appointment.status)}>
-            {appointment.status || 'Pending'}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className={getStatusColor(appointment.status)}>
+              {appointment.status || 'Pending'}
+            </Badge>
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="View Details">
+                <Eye className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Edit Appointment">
+                <Edit className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Cancel Appointment">
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
         </div>
         <CardDescription>
           {appointment.type || 'Tattoo Session'}
@@ -155,11 +177,9 @@ function AppointmentCard({ appointment }: { appointment: AppointmentResponse }) 
             <span>{appointment.client?.phone || 'N/A'}</span>
           </div>
         </div>
-        {appointment.notes && (
-          <div className="mt-3 pt-3 border-t">
+        {appointment.notes ? <div className="mt-3 pt-3 border-t">
             <p className="text-sm text-muted-foreground">{appointment.notes}</p>
-          </div>
-        )}
+          </div> : null}
       </CardContent>
     </Card>
   )

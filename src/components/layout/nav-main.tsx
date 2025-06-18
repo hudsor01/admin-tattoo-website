@@ -16,14 +16,14 @@ import {
 export function NavMain({
   items,
 }: {
-  items: {
+  items: Array<{
     title: string
     url: string
     icon?: Icon
     hasQuickAction?: boolean
     quickActionLabel?: string
     quickActionUrl?: string
-  }[]
+  }>
 }) {
   const pathname = usePathname()
 
@@ -43,17 +43,16 @@ export function NavMain({
                       transition-all duration-200 font-semibold py-3 px-3 rounded-xl mx-1 flex-1
                       ${isActive 
                         ? 'bg-brand-gradient text-white shadow-lg' 
-                        : 'hover:bg-brand-gradient-soft hover:text-orange-700 dark:hover:text-orange-300'
+                        : 'hover:bg-brand-gradient-soft hover:text-primary dark:hover:text-primary'
                       }
                     `}
                   >
                     <Link href={item.url} className="flex items-center gap-3">
-                      {item.icon && <item.icon className="w-6 h-6" />}
+                      {item.icon ? <item.icon className="w-6 h-6" /> : null}
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
-                  {item.hasQuickAction && item.quickActionUrl && (
-                    <Button
+                  {item.hasQuickAction && item.quickActionUrl ? <Button
                       asChild
                       size="sm"
                       variant="ghost"
@@ -66,8 +65,7 @@ export function NavMain({
                       <Link href={item.quickActionUrl}>
                         <IconPlus className="h-4 w-4" />
                       </Link>
-                    </Button>
-                  )}
+                    </Button> : null}
                 </div>
               </SidebarMenuItem>
             )

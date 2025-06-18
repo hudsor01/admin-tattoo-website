@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest} from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from '@/lib/prisma';
-import { withSecurityValidation, SecurityPresets } from '@/lib/api-validation';
-import { createSuccessResponse, createErrorResponse } from '@/lib/api-core';
+import type { Prisma } from '@prisma/client';
+import { SecurityPresets, withSecurityValidation } from '@/lib/api-validation';
+import { createErrorResponse, createSuccessResponse } from '@/lib/api-core';
 import { logger } from '@/lib/logger';
 
 const getAnalyticsHandler = async (_request: NextRequest) => {
@@ -16,14 +18,14 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
 
     // 1. Total Revenue (from completed sessions)
     const [currentMonthRevenue, lastMonthRevenue] = await Promise.all([
-      prisma.tattooSession.aggregate({
+      prisma.tattoo_sessions.aggregate({
         where: {
           status: 'COMPLETED',
           updatedAt: { gte: firstDayThisMonth }
         },
         _sum: { totalCost: true }
       }),
-      prisma.tattooSession.aggregate({
+      prisma.tattoo_sessions.aggregate({
         where: {
           status: 'COMPLETED',
           updatedAt: { gte: firstDayLastMonth, lte: lastDayLastMonth }
@@ -40,18 +42,18 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
 
     // 2. Active Clients (clients with sessions in last 30 days)
     const [activeClientsCount, lastMonthActiveClients] = await Promise.all([
-      prisma.client.count({
+      prisma.clients.count({
         where: {
-          sessions: {
+          tattoo_sessions: {
             some: {
               appointmentDate: { gte: thirtyDaysAgo }
             }
           }
         }
       }),
-      prisma.client.count({
+      prisma.clients.count({
         where: {
-          sessions: {
+          tattoo_sessions: {
             some: {
               appointmentDate: { gte: firstDayLastMonth, lte: lastDayLastMonth }
             }
@@ -66,12 +68,12 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
 
     // 3. Sessions This Month
     const [currentMonthSessions, lastMonthSessions] = await Promise.all([
-      prisma.tattooSession.count({
+      prisma.tattoo_sessions.count({
         where: {
           appointmentDate: { gte: firstDayThisMonth }
         }
       }),
-      prisma.tattooSession.count({
+      prisma.tattoo_sessions.count({
         where: {
           appointmentDate: { gte: firstDayLastMonth, lte: lastDayLastMonth }
         }
@@ -90,9 +92,9 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
       : 0;
 
     // 5. Top Performing Artists
-    const topArtists = await prisma.tattooArtist.findMany({
+    const topArtists = await prisma.tattoo_artists.findMany({
       include: {
-        sessions: {
+        tattoo_sessions: {
           where: {
             status: 'COMPLETED',
             appointmentDate: { gte: firstDayThisMonth }
@@ -104,11 +106,11 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
     const artistsWithRevenue = topArtists.map(artist => ({
       id: artist.id,
       name: artist.name,
-      revenue: artist.sessions.reduce((sum, session) => sum + Number(session.totalCost), 0)
+      revenue: artist.tattoo_sessions.reduce((sum: number, session: { totalCost: Prisma.Decimal | number | null }) => sum + Number(session.totalCost), 0)
     })).sort((a, b) => b.revenue - a.revenue);
 
     // 6. Session Types Breakdown
-    const sessionsByStyle = await prisma.tattooSession.groupBy({
+    const sessionsByStyle = await prisma.tattoo_sessions.groupBy({
       by: ['style'],
       where: {
         appointmentDate: { gte: firstDayThisMonth }
@@ -124,12 +126,12 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
     }));
 
     // 7. Client Acquisition (last 6 months)
-    const clientAcquisition = [];
+    const clientAcquisition: Array<{ month: string; newClients: number }> = [];
     for (let i = 5; i >= 0; i--) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
       
-      const newClients = await prisma.client.count({
+      const newClients = await prisma.clients.count({
         where: {
           createdAt: { gte: monthStart, lte: monthEnd }
         }

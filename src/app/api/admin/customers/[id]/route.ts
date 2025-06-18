@@ -1,5 +1,5 @@
 import { createResourceHandlers } from '@/lib/api-core';
-import { getCustomerById, updateCustomer, deleteCustomer } from '@/lib/db-operations';
+import { deleteCustomer, getCustomerById, updateCustomer } from '@/lib/db-operations';
 import { updateCustomerSchema } from '@/lib/validations';
 
 // Create resource handlers using the helper

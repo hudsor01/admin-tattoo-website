@@ -13,11 +13,9 @@ export function AdminPageHeader({ title, description, children }: AdminPageHeade
     <div className="flex items-center justify-between mb-8">
       <div>
         <h1 className="text-4xl font-black text-foreground">{title}</h1>
-        {description && (
-          <p className="text-lg text-muted-foreground mt-2">{description}</p>
-        )}
+        {description ? <p className="text-lg text-muted-foreground mt-2">{description}</p> : null}
       </div>
-      {children && <div className="flex items-center gap-4">{children}</div>}
+      {children ? <div className="flex items-center gap-4">{children}</div> : null}
     </div>
   )
 }
@@ -35,14 +33,12 @@ interface AdminPageStructureProps {
 export function AdminPageStructure({ header, children, className }: AdminPageStructureProps) {
   return (
     <div className={cn("p-6 lg:p-8 space-y-6", className)}>
-      {header && (
-        <AdminPageHeader 
+      {header ? <AdminPageHeader 
           title={header.title} 
           description={header.description}
         >
           {header.actions}
-        </AdminPageHeader>
-      )}
+        </AdminPageHeader> : null}
       {children}
     </div>
   )

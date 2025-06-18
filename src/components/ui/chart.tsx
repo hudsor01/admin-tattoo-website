@@ -18,7 +18,7 @@ export type ChartConfig = {
   )
 }
 
-type ChartContextProps = {
+interface ChartContextProps {
   config: ChartConfig
 }
 
@@ -232,11 +232,9 @@ function ChartTooltipContent({
                         {itemConfig?.label || item.name}
                       </span>
                     </div>
-                    {item.value && (
-                      <span className="text-foreground font-mono font-medium tabular-nums">
+                    {item.value ? <span className="text-foreground font-mono font-medium tabular-nums">
                         {item.value.toLocaleString()}
-                      </span>
-                    )}
+                      </span> : null}
                   </div>
                 </>
               )}

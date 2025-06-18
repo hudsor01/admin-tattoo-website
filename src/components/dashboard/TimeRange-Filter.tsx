@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import { Calendar, ChevronDown, Clock, Filter } from 'lucide-react';
-import { format, subDays, subMonths, subYears, startOfDay, endOfDay } from 'date-fns';
+import { endOfDay, format, startOfDay, subDays, subMonths, subYears } from 'date-fns';
 import { motion } from 'framer-motion';
-import { useTimeRange as useStoreTimeRange, useDashboardStore, TIME_RANGE_PRESETS } from '@/stores/dashboard-store';
+import { TIME_RANGE_PRESETS, useDashboardStore, useTimeRange as useStoreTimeRange } from '@/stores/dashboard-store';
 
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -240,15 +240,11 @@ export function TimeRangeFilter({
                     >
                       <div className="flex items-center justify-between">
                         <span>{preset.label}</span>
-                        {isSelected && (
-                          <Badge variant="secondary" className="ml-2 text-xs">
+                        {isSelected ? <Badge variant="secondary" className="ml-2 text-xs">
                             Active
-                          </Badge>
-                        )}
+                          </Badge> : null}
                       </div>
-                      {showDescription && preset.description && (
-                        <div className="text-xs text-muted-foreground mt-1">{preset.description}</div>
-                      )}
+                      {showDescription && preset.description ? <div className="text-xs text-muted-foreground mt-1">{preset.description}</div> : null}
                     </motion.button>
                   );
                 })}
@@ -272,12 +268,10 @@ export function TimeRangeFilter({
               disabled={(date) => date > new Date()}
             />
 
-            {currentRange?.from && currentRange?.to && timeRange?.preset === TIME_RANGE_PRESETS.CUSTOM && (
-              <div className="mt-3 p-2 bg-muted rounded-md">
+            {currentRange?.from && currentRange?.to && timeRange?.preset === TIME_RANGE_PRESETS.CUSTOM ? <div className="mt-3 p-2 bg-muted rounded-md">
                 <div className="text-sm font-medium">Custom Range:</div>
                 <div className="text-sm text-muted-foreground">{formatDateRange(currentRange)}</div>
-              </div>
-            )}
+              </div> : null}
           </div>
         </div>
       </PopoverContent>

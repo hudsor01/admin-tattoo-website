@@ -2,11 +2,11 @@
 
 import Link from "next/link"
 import {
+  type Icon,
   IconDots,
   IconFolder,
   IconShare3,
   IconTrash,
-  type Icon,
 } from "@tabler/icons-react"
 
 import {
@@ -29,11 +29,11 @@ import {
 export function NavDocuments({
   items,
 }: {
-  items: {
+  items: Array<{
     name: string
     url: string
     icon: Icon
-  }[]
+  }>
 }) {
   const { isMobile } = useSidebar()
 

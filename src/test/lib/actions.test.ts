@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { signIn, signUp, searchAccount } from '@/lib/actions'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { searchAccount, signIn, signUp } from '@/lib/actions'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'

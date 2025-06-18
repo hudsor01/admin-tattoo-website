@@ -31,15 +31,18 @@ import { LogoutMenuItem } from "@/components/auth/logout-button"
 import { useUser } from "@/stores/auth-store"
 
 // Helper functions
-function getImageSrc(user: any): string | null {
-  // Only return a valid non-empty string, otherwise return null to prevent empty src
-  if (typeof user?.image === 'string' && user.image.trim().length > 0) {
-    return user.image;
+function getImageSrc(user: unknown): string | undefined {
+  // Only return a valid non-empty string, otherwise return undefined to prevent empty src
+  if (typeof user === 'object' && user !== null) {
+    const userObj = user as Record<string, unknown>;
+    if (typeof userObj.image === 'string' && userObj.image.trim().length > 0) {
+      return userObj.image;
+    }
+    if (typeof userObj.avatar === 'string' && userObj.avatar.trim().length > 0) {
+      return userObj.avatar;
+    }
   }
-  if (typeof user?.avatar === 'string' && user.avatar.trim().length > 0) {
-    return user.avatar;
-  }
-  return null;
+  return undefined;
 }
 
 interface NavUserProps {
@@ -80,10 +83,12 @@ export function NavUser({ user: propUser }: NavUserProps) {
       .filter(initial => initial);
     
     if (parts.length === 0) return 'U';
-    if (parts.length === 1) return parts[0];
+    if (parts.length === 1) return parts[0] || 'U';
     
     return parts.slice(0, 2).join('');
   }
+
+  const imageSrc = getImageSrc(user);
 
   return (
     <SidebarMenu>
@@ -95,9 +100,7 @@ export function NavUser({ user: propUser }: NavUserProps) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 transition-colors"
             >
               <Avatar className="h-8 w-8 rounded-lg ring-2 ring-border">
-                {getImageSrc(user) && (
-                  <AvatarImage src={getImageSrc(user)} alt={displayName} />
-                )}
+                {imageSrc ? <AvatarImage src={imageSrc} alt={displayName} /> : null}
                 <AvatarFallback className="rounded-lg bg-brand-gradient text-white font-semibold">
                   {getInitials(displayName)}
                 </AvatarFallback>
@@ -122,9 +125,7 @@ export function NavUser({ user: propUser }: NavUserProps) {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-3 px-2 py-2 text-left">
                 <Avatar className="h-10 w-10 rounded-lg ring-2 ring-border">
-                  {getImageSrc(user) && (
-                    <AvatarImage src={getImageSrc(user)} alt={displayName} />
-                  )}
+                  {imageSrc ? <AvatarImage src={imageSrc} alt={displayName} /> : null}
                   <AvatarFallback className="rounded-lg bg-brand-gradient text-white font-semibold">
                     {getInitials(displayName)}
                   </AvatarFallback>
@@ -136,11 +137,9 @@ export function NavUser({ user: propUser }: NavUserProps) {
                   <span className="text-muted-foreground truncate text-sm">
                     {displayEmail}
                   </span>
-                  {authUser?.role && (
-                    <span className="text-xs text-brand-gradient font-medium capitalize">
+                  {authUser?.role ? <span className="text-xs text-brand-gradient font-medium capitalize">
                       {authUser.role}
-                    </span>
-                  )}
+                    </span> : null}
                 </div>
               </div>
             </DropdownMenuLabel>

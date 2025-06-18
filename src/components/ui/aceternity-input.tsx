@@ -29,7 +29,7 @@ const AceternityInput = React.forwardRef<HTMLInputElement, AceternityInputProps>
         style={{
           background: useMotionTemplate`
             radial-gradient(
-              ${visible ? radius + "px" : "0px"} circle at ${mouseX}px ${mouseY}px,
+              ${visible ? `${radius  }px` : "0px"} circle at ${mouseX}px ${mouseY}px,
               var(--gradient-from, #ef4444),
               transparent 80%
             )
