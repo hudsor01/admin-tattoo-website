@@ -283,7 +283,7 @@ export const useAuthStore = create<AuthState>()(
                 const enhancedUser = {
                   ...session.data.user,
                   banned: null,
-                  role: (session.data.user as any).role || 'user' // Use actual role from session
+                  role: (session.data.user as { role?: string }).role || 'user' // Use actual role from session
                 };
                 get().setUser(enhancedUser);
                 get().setSession(session.data);

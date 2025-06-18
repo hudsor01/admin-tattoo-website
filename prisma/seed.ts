@@ -14,10 +14,10 @@ async function main() {
     console.warn(`Creating ${adminEmails.length} admin user(s) from environment configuration...`);
     
     for (let i = 0; i < adminEmails.length; i++) {
-      const email = adminEmails[i];
-      const name = adminNames[i] || email.split('@')[0]; // Use email prefix as fallback name
+      const email = adminEmails.at(i);
+      const name = adminNames.at(i) || email?.split('@')[0] || 'Admin'; // Use email prefix as fallback name
       
-      if (email && email.includes('@')) {
+      if (email && email.includes('@') && name) {
         try {
           // eslint-disable-next-line no-await-in-loop
           await prisma.user.upsert({
@@ -79,7 +79,7 @@ async function main() {
 
   // Skip creating sample clients for production - start with clean slate
   console.warn('Skipping sample clients creation for production deployment');
-  const createdClients: any[] = []; // Empty array for production
+  const createdClients: Array<{ id: string }> = []; // Empty array for production
 
   // Create tattoo sessions only if we have clients
   const sessions = createdClients.length > 0 ? [
