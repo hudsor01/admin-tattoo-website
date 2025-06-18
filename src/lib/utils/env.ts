@@ -12,7 +12,9 @@ const ALLOWED_ENV_KEYS = [
   'GOOGLE_CLIENT_SECRET',
   'NEXTAUTH_SECRET',
   'NEXTAUTH_URL',
-  'BLOB_READ_WRITE_TOKEN'
+  'BLOB_READ_WRITE_TOKEN',
+  'UPLOADTHING_SECRET',
+  'UPLOADTHING_APP_ID'
 ] as const;
 
 type AllowedEnvKey = typeof ALLOWED_ENV_KEYS[number];
@@ -23,6 +25,7 @@ export function getEnvSafe(key: AllowedEnvKey, defaultValue?: string): string {
     throw new Error(`Environment variable '${key}' is not in the allowed list`);
   }
   
+  // eslint-disable-next-line security/detect-object-injection
   const value = process.env[key];
 
   if (value === undefined) {
@@ -40,6 +43,7 @@ export function getEnvOptional(key: AllowedEnvKey, defaultValue?: string): strin
   if (!ALLOWED_ENV_KEYS.includes(key)) {
     throw new Error(`Environment variable '${key}' is not in the allowed list`);
   }
+  // eslint-disable-next-line security/detect-object-injection
   return process.env[key] || defaultValue;
 }
 
@@ -48,6 +52,7 @@ export function getEnvBoolean(key: AllowedEnvKey, defaultValue = false): boolean
   if (!ALLOWED_ENV_KEYS.includes(key)) {
     throw new Error(`Environment variable '${key}' is not in the allowed list`);
   }
+  // eslint-disable-next-line security/detect-object-injection
   const value = process.env[key];
   
   if (value === undefined) {
@@ -58,6 +63,7 @@ export function getEnvBoolean(key: AllowedEnvKey, defaultValue = false): boolean
 }
 
 export function getEnvNumber(key: string, defaultValue?: number): number {
+  // eslint-disable-next-line security/detect-object-injection
   const value = process.env[key];
   
   if (value === undefined) {

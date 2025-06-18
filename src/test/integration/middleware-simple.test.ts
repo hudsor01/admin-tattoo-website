@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // Mock auth session responses
 const mockAuthResponses = {
@@ -27,7 +27,7 @@ const mockAuthResponses = {
 
 // Mock middleware behavior
 function createMockMiddleware(sessionResponse: any) {
-  return async (request: any) => {
+  return (request: any) => {
     try {
       const session = sessionResponse;
 
@@ -159,7 +159,7 @@ describe('Middleware Authentication Logic', () => {
   describe('Error Handling', () => {
     it('should handle session validation errors gracefully', async () => {
       // Simulate an error during middleware processing
-      const middleware = async () => {
+      const _middleware = () => {
         throw new Error('Session validation failed');
       };
       
@@ -265,6 +265,7 @@ describe('Middleware Authentication Logic', () => {
       
       for (const route of dashboardRoutes) {
         const request = { pathname: route, url: `http://localhost:3001${route}` };
+        // eslint-disable-next-line no-await-in-loop
         const response = await middleware(request);
         
         expect(response.status).toBe(307); // Should redirect non-admin
@@ -285,6 +286,7 @@ describe('Middleware Authentication Logic', () => {
       
       for (const route of dashboardRoutes) {
         const request = { pathname: route, url: `http://localhost:3001${route}` };
+        // eslint-disable-next-line no-await-in-loop
         const response = await middleware(request);
         
         expect(response.status).toBe(200); // Should allow access

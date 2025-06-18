@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, invalidateQueries, queryKeys } from '@/lib/api/client';
-import { buildQueryString, createOptimisticDelete } from '@/lib/api/utils';
-import { showErrorToast, showSuccessToast } from '@/lib/api/utils';
+import { buildQueryString, createOptimisticDelete, showErrorToast, showSuccessToast } from '@/lib/api/utils';
 import type { 
+  AppointmentStatus,
   appointments, 
   clients, 
   tattoo_artists
@@ -161,7 +161,7 @@ export function useUpdateAppointment() {
       
       return { previousAppointment };
     },
-    onSuccess: (updatedAppointment) => {
+    onSuccess: (_updatedAppointment) => {
       // Invalidate related queries
       invalidateQueries(queryKeys.appointments.lists());
       invalidateQueries(queryKeys.appointments.stats());
@@ -236,7 +236,7 @@ export function useDeleteAppointment() {
 
 // Bulk status update mutation
 export function useBulkUpdateAppointmentStatus() {
-  const queryClient = useQueryClient();
+  const _queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: (data: { ids: string[]; status: AppointmentStatus }) =>

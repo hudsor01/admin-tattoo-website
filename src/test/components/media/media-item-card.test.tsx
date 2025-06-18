@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 
 // Extract MediaItemCard from the page component since it's not exported
 // In a real scenario, this should be a separate component file
-const MediaItemCard = vi.fn()
+const _MediaItemCard = vi.fn()
 
 // Mock dependencies
 vi.mock('sonner', () => ({
@@ -99,6 +99,8 @@ const TestMediaItemCard = ({ item }: { item: typeof mockMediaItem }) => {
   )
 }
 
+TestMediaItemCard.displayName = 'TestMediaItemCard'
+
 const React = await import('react')
 
 const createWrapper = () => {
@@ -109,9 +111,13 @@ const createWrapper = () => {
     },
   })
   
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
+  
+  Wrapper.displayName = 'QueryWrapper'
+  
+  return Wrapper
 }
 
 describe('MediaItemCard', () => {
@@ -140,7 +146,7 @@ describe('MediaItemCard', () => {
     const user = userEvent.setup()
     ;(global.fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({
+      json: () => Promise.resolve({
         success: true,
         data: { syncedToWebsite: true }
       }),
@@ -170,7 +176,7 @@ describe('MediaItemCard', () => {
     
     ;(global.fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({
+      json: () => Promise.resolve({
         success: true,
         data: { syncedToWebsite: false }
       }),
@@ -198,7 +204,7 @@ describe('MediaItemCard', () => {
     const user = userEvent.setup()
     ;(global.fetch as any).mockResolvedValueOnce({
       ok: false,
-      json: async () => ({
+      json: () => Promise.resolve({
         error: { message: 'Network error' }
       }),
     })
@@ -218,7 +224,7 @@ describe('MediaItemCard', () => {
     ;(global.fetch as any).mockImplementationOnce(() => 
       new Promise(resolve => setTimeout(() => resolve({
         ok: true,
-        json: async () => ({ success: true }),
+        json: () => Promise.resolve({ success: true }),
       }), 100))
     )
     

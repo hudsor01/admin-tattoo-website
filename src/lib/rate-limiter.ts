@@ -22,6 +22,7 @@ export class ProductionRateLimiter {
     this.config = config;
     
     // Clean up old entries periodically to prevent memory leaks
+    // eslint-disable-next-line no-restricted-syntax
     setInterval(() => this.cleanup(), config.windowMs);
   }
 

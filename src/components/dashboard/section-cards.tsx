@@ -20,8 +20,8 @@ export function SectionCards() {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @sm:grid-cols-2 @3xl:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i}>
+        {['section-1', 'section-2', 'section-3', 'section-4'].map((sectionId) => (
+          <Card key={`section-skeleton-${sectionId}`}>
             <CardHeader>
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-8 w-32" />

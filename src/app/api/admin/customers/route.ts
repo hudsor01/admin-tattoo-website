@@ -1,16 +1,14 @@
-import type { NextRequest} from 'next/server';
-import { NextResponse } from 'next/server';
-import type { CreateCustomer } from '@/lib/validations';
-import { createCustomerSchema, customerFilterSchema } from '@/lib/validations';
+import { type NextRequest, NextResponse } from 'next/server';
+import { type CreateCustomer, createCustomerSchema, customerFilterSchema } from '@/lib/validations';
 import { createErrorResponse, createSuccessResponse, handleZodError } from '@/lib/api-core';
 import { createCustomer, getCustomers } from '@/lib/db-operations';
 import { ZodError } from 'zod';
 import { SecurityPresets, withSecurityValidation } from '@/lib/api-validation';
 
-const getCustomersHandler = async (request: NextRequest, validatedData?: { query?: Record<string, unknown> }) => {
+const getCustomersHandler = async (request: NextRequest, validatedData?: { query?: Record<string, unknown> }): Promise<NextResponse> => {
   try {
     // Use validated query data if available, otherwise parse manually
-    const filters = validatedData?.query || (() => {
+    const filters = validatedData?.query || ((): Record<string, unknown> => {
       const { searchParams } = new URL(request.url);
       return customerFilterSchema.parse({
         search: searchParams.get('search') || undefined,
@@ -43,10 +41,10 @@ const getCustomersHandler = async (request: NextRequest, validatedData?: { query
   }
 }
 
-const createCustomerHandler = async (request: NextRequest, validatedData?: { body?: Record<string, unknown> }) => {
+const createCustomerHandler = async (request: NextRequest, validatedData?: { body?: Record<string, unknown> }): Promise<NextResponse> => {
   try {
     // Use validated body data if available, otherwise parse manually
-    const parsedData = validatedData?.body || await (async () => {
+    const parsedData = validatedData?.body || await (async (): Promise<Record<string, unknown>> => {
       const body = await request.json();
       return createCustomerSchema.parse(body);
     })();

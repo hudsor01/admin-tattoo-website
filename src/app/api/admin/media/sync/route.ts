@@ -1,5 +1,4 @@
-import type { NextRequest} from 'next/server';
-import { NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server';
 import { SecurityPresets, withSecurityValidation } from '@/lib/api-validation'
 import { createErrorResponse, createSuccessResponse } from '@/lib/api-core'
 
@@ -8,7 +7,7 @@ interface SyncRequest {
   action: 'sync' | 'unsync'
 }
 
-const syncHandler = async (request: NextRequest) => {
+const syncHandler = async (request: NextRequest): Promise<NextResponse> => {
   try {
     const body: SyncRequest = await request.json()
     

@@ -2,84 +2,6 @@
 @import 'tw-animate-css';
 @source "../node_modules/@daveyplate/better-auth-ui";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
-/* Tailwind v4 Theme Configuration - Ink 37 Branding */
-@theme {
-  /* Color system using OKLCH - Ink 37 Brand Colors */
-  --color-background: oklch(1.0000 0 0);
-  --color-foreground: oklch(0.1448 0 0);
-  --color-card: oklch(1.0000 0 0);
-  --color-card-foreground: oklch(0.1448 0 0);
-  --color-popover: oklch(1.0000 0 0);
-  --color-popover-foreground: oklch(0.1448 0 0);
-  --color-primary: oklch(0.5830 0.2387 28.4765);
-  --color-primary-foreground: oklch(1.0000 0 0);
-  --color-secondary: oklch(0.9702 0 0);
-  --color-secondary-foreground: oklch(0.1448 0 0);
-  --color-muted: oklch(0.9702 0 0);
-  --color-muted-foreground: oklch(0.5555 0 0);
-  --color-accent: oklch(0.6500 0.2200 35.0000);
-  --color-accent-foreground: oklch(1.0000 0 0);
-  --color-destructive: oklch(0.5830 0.2387 28.4765);
-  --color-destructive-foreground: oklch(1.0000 0 0);
-  --color-border: oklch(0.9219 0 0);
-  --color-input: oklch(0.9219 0 0);
-  --color-ring: oklch(0.5830 0.2387 28.4765);
-  --color-chart-1: oklch(0.5830 0.2387 28.4765);
-  --color-chart-2: oklch(0.6500 0.2200 35.0000);
-  --color-chart-3: oklch(0.7000 0.1800 42.0000);
-  --color-chart-4: oklch(0.7500 0.1600 48.0000);
-  --color-chart-5: oklch(0.8000 0.1400 55.0000);
-  --color-sidebar: oklch(0.9851 0 0);
-  --color-sidebar-foreground: oklch(0.1448 0 0);
-  --color-sidebar-primary: oklch(0.5830 0.2387 28.4765);
-  --color-sidebar-primary-foreground: oklch(1.0000 0 0);
-  --color-sidebar-accent: oklch(0.6500 0.2200 35.0000);
-  --color-sidebar-accent-foreground: oklch(1.0000 0 0);
-  --color-sidebar-border: oklch(0.9219 0 0);
-  --color-sidebar-ring: oklch(0.5830 0.2387 28.4765);
-  
-  /* Font families */
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
-  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
-  
-  /* Spacing scale - v4 naming */
-  --spacing-xs: 0.5rem;
-  --spacing-sm: 1rem;
-  --spacing-md: 1.5rem;
-  --spacing-lg: 2rem;
-  --spacing-xl: 3rem;
-  
-  /* Border radius - v4 naming */
-  --radius-xs: 0.125rem;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
-  
-  /* Shadow scale - v4 naming */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  
-  /* Container query breakpoints */
-  --container-3xs: 16rem;
-  --container-2xs: 18rem;
-  --container-xs: 20rem;
-  --container-sm: 24rem;
-  --container-md: 28rem;
-  --container-lg: 32rem;
-  --container-xl: 36rem;
-  --container-2xl: 42rem;
-  --container-3xl: 48rem;
-  --container-4xl: 56rem;
-  --container-5xl: 64rem;
-}
 
 
 @layer base {
@@ -155,12 +77,12 @@
   }
 
   * {
-    border-color: hsl(var(--border));
+    border-color: var(--border);
   }
   
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    background-color: var(--background);
+    color: var(--foreground);
     font-family: var(--font-sans);
     font-feature-settings: "rlig" 1, "calt" 1;
     text-rendering: optimizeLegibility;

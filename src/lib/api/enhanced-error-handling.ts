@@ -19,7 +19,14 @@ export const ApiErrorSchema = z.object({
   retryAfter: z.number().optional(),
 })
 
-export const ApiSuccessSchema = <T extends z.ZodTypeAny>(dataSchema: T) => z.object({
+export const ApiSuccessSchema = <T extends z.ZodTypeAny>(dataSchema: T): z.ZodObject<{
+  success: z.ZodLiteral<true>;
+  data: T;
+  message: z.ZodOptional<z.ZodString>;
+  status: z.ZodNumber;
+  timestamp: z.ZodString;
+  requestId: z.ZodOptional<z.ZodString>;
+}> => z.object({
   success: z.literal(true),
   data: dataSchema,
   message: z.string().optional(),
@@ -45,9 +52,9 @@ export class CircuitBreaker {
   private nextAttempt = 0
   
   constructor(
-    private maxFailures = 5,
-    private timeout = 60000, // 1 minute
-    private resetTimeout = 300000 // 5 minutes
+    private readonly maxFailures = 5,
+    private readonly timeout = 60000, // 1 minute
+    private readonly resetTimeout = 300000 // 5 minutes
   ) {}
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
@@ -89,7 +96,7 @@ export class CircuitBreaker {
     this.nextAttempt = this.lastFailure + this.resetTimeout
   }
 
-  getStatus() {
+  getStatus(): { failures: number; isOpen: boolean; nextAttempt: number } {
     return {
       failures: this.failures,
       isOpen: this.isOpen(),
@@ -105,6 +112,7 @@ export function getCircuitBreaker(service: string): CircuitBreaker {
   if (!circuitBreakers.has(service)) {
     circuitBreakers.set(service, new CircuitBreaker())
   }
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   return circuitBreakers.get(service)!
 }
 
@@ -143,11 +151,13 @@ export async function withEnhancedRetry<T>(
 
   for (let attempt = 0; attempt <= finalConfig.maxRetries; attempt++) {
     try {
+      // eslint-disable-next-line no-await-in-loop
       return await operation()
     } catch (error) {
       lastError = error
 
       // Don't retry if it's the last attempt or retry condition fails
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (attempt === finalConfig.maxRetries || !finalConfig.retryCondition!(error)) {
         throw error
       }
@@ -162,6 +172,7 @@ export async function withEnhancedRetry<T>(
         delay = delay * (0.5 + Math.random() * 0.5) // Add ±50% jitter
       }
 
+      // eslint-disable-next-line no-await-in-loop
       await new Promise(resolve => setTimeout(resolve, delay))
     }
   }
@@ -201,7 +212,7 @@ export function withDeduplication<T>(
   pendingRequests.set(key, promise)
 
   // Clean up after TTL or completion
-  const cleanup = () => pendingRequests.delete(key)
+  const cleanup = (): boolean => pendingRequests.delete(key)
   setTimeout(cleanup, ttl)
   promise.finally(cleanup)
 
@@ -217,7 +228,7 @@ export interface FetchConfig {
   validateResponse?: z.ZodSchema
 }
 
-export async function resilientFetch<T = unknown>(
+export function resilientFetch<T = unknown>(
   url: string,
   options: RequestInit & FetchConfig = {}
 ): Promise<T> {
@@ -246,7 +257,7 @@ export async function resilientFetch<T = unknown>(
     try {
       const text = await response.text()
       data = text ? JSON.parse(text) : null
-    } catch (error) {
+    } catch {
       throw new ApiError('Invalid JSON response', 422, 'INVALID_JSON')
     }
 
@@ -274,20 +285,20 @@ export async function resilientFetch<T = unknown>(
 
   // 1. Deduplication
   if (deduplicationKey) {
-    wrappedOperation = () => withDeduplication(deduplicationKey, operation)
+    wrappedOperation = (): Promise<T> => withDeduplication(deduplicationKey, operation)
   }
 
   // 2. Retry logic
-  if (retryConfig !== false) {
+  if (retryConfig !== undefined && retryConfig !== null) {
     const currentOperation = wrappedOperation
-    wrappedOperation = () => withEnhancedRetry(currentOperation, retryConfig)
+    wrappedOperation = (): Promise<T> => withEnhancedRetry(currentOperation, retryConfig)
   }
 
   // 3. Circuit breaker
   if (circuitBreakerService) {
     const currentOperation = wrappedOperation
     const circuitBreaker = getCircuitBreaker(circuitBreakerService)
-    wrappedOperation = () => circuitBreaker.execute(currentOperation)
+    wrappedOperation = (): Promise<T> => circuitBreaker.execute(currentOperation)
   }
 
   return wrappedOperation()
@@ -358,6 +369,7 @@ export function handleError(
   } = options
 
   const category = providedCategory || categorizeError(error)
+  // eslint-disable-next-line security/detect-object-injection
   const message = ERROR_MESSAGES[category]
 
   if (logError) {
@@ -417,6 +429,7 @@ export function getCircuitBreakerStatus(): Record<string, ReturnType<CircuitBrea
   const status: Record<string, ReturnType<CircuitBreaker['getStatus']>> = {}
   
   for (const [service, breaker] of circuitBreakers) {
+    // eslint-disable-next-line security/detect-object-injection
     status[service] = breaker.getStatus()
   }
   

@@ -5,7 +5,7 @@
  * and provide proper type safety throughout the application.
  */
 
-import type { AuthSession, AuthUser } from '@/lib/auth';
+import type { AuthUser } from '@/lib/auth';
 
 // Extended user type that includes our custom fields
 export type ExtendedUser = AuthUser;

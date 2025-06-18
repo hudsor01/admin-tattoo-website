@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
 
 describe('Google OAuth Debug', () => {
   it('should log the actual OAuth request being made', async () => {

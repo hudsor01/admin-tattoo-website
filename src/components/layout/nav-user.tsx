@@ -92,12 +92,13 @@ export function NavUser({ user: propUser }: NavUserProps) {
 
   return (
     <SidebarMenu>
+      {/* User Profile Only */}
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 transition-colors"
+              className="h-12 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 transition-colors"
             >
               <Avatar className="h-8 w-8 rounded-lg ring-2 ring-border">
                 {imageSrc ? <AvatarImage src={imageSrc} alt={displayName} /> : null}

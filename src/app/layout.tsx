@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Providers } from "@/components/providers";
-// import { ErrorBoundary } from "@/components/error/error-boundary";
+import { Providers } from "./providers";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -27,7 +26,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        {/* Temporarily removed ErrorBoundary to troubleshoot ChunkLoadError */}
         <Providers>
           {children}
         </Providers>

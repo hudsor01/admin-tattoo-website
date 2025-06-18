@@ -41,9 +41,7 @@
     "noUnusedParameters": false,
     "types": [
       "node",
-      "next",
-      "vitest/globals",
-      "@testing-library/jest-dom"
+      "next"
     ],
     "plugins": [
       {
@@ -116,7 +114,9 @@
     "tmp",
     "html",
     ".turbo",
-    ".vercel"
+    ".vercel",
+    "tests/**",
+    "src/test/**"
   ],
   "ts-node": {
     "compilerOptions": {

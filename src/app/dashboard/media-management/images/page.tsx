@@ -1,15 +1,9 @@
 "use client"
 
-import { AppSidebar } from "@/components/layout/app-sidebar"
-import { SiteHeader } from "@/components/layout/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Edit, ExternalLink, Eye, ImageIcon, RefreshCw, Trash2, Upload } from "lucide-react"
+import { Edit, ExternalLink, Eye, ImageIcon, RefreshCw, Trash2 } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import Image from "next/image"
@@ -65,114 +59,101 @@ export default function ImagesPage() {
   const unsyncedImages = imageItems.filter(item => !item.syncedToWebsite)
 
   return (
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 72)",
-            "--header-height": "5rem",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
-          <div className="flex flex-1 flex-col">
-            <div className="@container/main flex flex-1 flex-col gap-2">
-              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                {/* Page Header */}
-                <div className="px-6 lg:px-8">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-brand-gradient">
-                          <ImageIcon className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                          <h1 className="text-3xl font-black text-foreground tracking-tight">Images</h1>
-                          <p className="text-muted-foreground">
-                            Manage photo uploads that sync to ink37tattoos.com/gallery
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Button
-                        onClick={() => setUploadDialogOpen(true)}
-                        className="bg-brand-gradient-hover"
-                      >
-                        <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
-                        Upload Image
-                      </Button>
-                    </div>
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-2">
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          {/* Page Header */}
+          <div className="px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-r from-red-500 to-orange-500">
+                    <ImageIcon className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-black text-foreground tracking-tight">Images</h1>
+                    <p className="text-muted-foreground">
+                      Manage photo uploads that sync to ink37tattoos.com/gallery
+                    </p>
                   </div>
                 </div>
-
-                {/* Images Sections */}
-                <div className="px-6 lg:px-8 space-y-8">
-                  {isLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {[...Array(8)].map((_, i) => (
-                        <Card key={i} className="overflow-hidden">
-                          <Skeleton className="h-48 w-full" />
-                          <CardHeader>
-                            <Skeleton className="h-5 w-32" />
-                            <Skeleton className="h-4 w-24" />
-                          </CardHeader>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : imageItems?.length > 0 ? (
-                    <>
-                      {/* Images on Website */}
-                      <MediaSection 
-                        title="Images on Website" 
-                        items={syncedImages} 
-                        icon={<ImageIcon className="h-5 w-5" />}
-                        badge="✓ Synced"
-                        badgeVariant="default"
-                      />
-                      
-                      {/* Images not on Website */}
-                      <MediaSection 
-                        title="Images not on Website" 
-                        items={unsyncedImages} 
-                        icon={<ImageIcon className="h-5 w-5" />}
-                        badge="⚠ Not Synced"
-                        badgeVariant="destructive"
-                      />
-                    </>
-                  ) : (
-                    <Card>
-                      <CardContent className="flex items-center justify-center h-48">
-                        <div className="text-center">
-                          <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
-                          <h3 className="text-lg font-semibold">No images found</h3>
-                          <p className="text-muted-foreground mb-4">
-                            Start by uploading your first image.
-                          </p>
-                          <Button 
-                            onClick={() => setUploadDialogOpen(true)}
-                            className="bg-brand-gradient-hover"
-                          >
-                            <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
-                            Upload Image
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => setUploadDialogOpen(true)}
+                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                >
+                  <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Upload Image
+                </Button>
               </div>
             </div>
           </div>
-        </SidebarInset>
-        
-        <MediaUploadDialog
-          open={uploadDialogOpen}
-          onOpenChange={setUploadDialogOpen}
-          uploadType="photo"
-        />
-      </SidebarProvider>
+
+          {/* Images Sections */}
+          <div className="px-6 lg:px-8 space-y-8">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {['image-1', 'image-2', 'image-3', 'image-4', 'image-5', 'image-6', 'image-7', 'image-8'].map((imageKey) => (
+                  <Card key={`image-skeleton-${imageKey}`} className="overflow-hidden">
+                    <Skeleton className="h-48 w-full" />
+                    <CardHeader>
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-4 w-24" />
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            ) : imageItems?.length > 0 ? (
+              <>
+                {/* Images on Website */}
+                <MediaSection 
+                  title="Images on Website" 
+                  items={syncedImages} 
+                  icon={<ImageIcon className="h-5 w-5" />}
+                  badge="✓ Synced"
+                  badgeVariant="default"
+                />
+                
+                {/* Images not on Website */}
+                <MediaSection 
+                  title="Images not on Website" 
+                  items={unsyncedImages} 
+                  icon={<ImageIcon className="h-5 w-5" />}
+                  badge="⚠ Not Synced"
+                  badgeVariant="destructive"
+                />
+              </>
+            ) : (
+              <Card>
+                <CardContent className="flex items-center justify-center h-48">
+                  <div className="text-center">
+                    <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
+                    <h3 className="text-lg font-semibold">No images found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Start by uploading your first image.
+                    </p>
+                    <Button 
+                      onClick={() => setUploadDialogOpen(true)}
+                      className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                    >
+                      <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Upload Image
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      <MediaUploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        uploadType="photo"
+      />
+    </div>
   )
 }
 
@@ -246,9 +227,39 @@ function MediaItemCard({ item }: { item: MediaItem }) {
     }
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/admin/media?id=${item.id}`, {
+        method: 'DELETE',
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error?.message || 'Delete failed')
+      }
+      
+      return response.json()
+    },
+    onSuccess: () => {
+      toast.success('Image deleted successfully!')
+      queryClient.invalidateQueries({ queryKey: ['media'] })
+    },
+    onError: (error: Error) => {
+      toast.error(`Delete failed: ${error.message}`)
+    }
+  })
+
   const handleSync = () => {
     const action = item.syncedToWebsite ? 'unsync' : 'sync'
     syncMutation.mutate(action)
+  }
+
+  const handleDelete = () => {
+    // Note: In production, replace with a proper confirmation dialog
+    // eslint-disable-next-line no-alert
+    if (confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
+      deleteMutation.mutate()
+    }
   }
 
   // Helper to check if URL is valid (not a relative path without host)
@@ -328,6 +339,8 @@ function MediaItemCard({ item }: { item: MediaItem }) {
               size="sm" 
               variant="destructive" 
               className="h-8 w-8 p-0"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
               title="Delete"
             >
               <Trash2 className="h-3 w-3" />
@@ -345,8 +358,8 @@ function MediaItemCard({ item }: { item: MediaItem }) {
       </CardHeader>
       <CardContent className="pt-0">
         <div className="flex flex-wrap gap-1 mb-2">
-          {item.tags?.slice(0, 3).map((tag: string, index: number) => (
-            <Badge key={index} variant="secondary" className="text-xs">
+          {item.tags?.slice(0, 3).map((tag: string) => (
+            <Badge key={`image-${item.id}-tag-${tag.replace(/\s+/g, '-')}-${tag.length}`} variant="secondary" className="text-xs">
               {tag}
             </Badge>
           ))}

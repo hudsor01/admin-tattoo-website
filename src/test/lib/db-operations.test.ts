@@ -5,7 +5,6 @@ import {
   createCustomer,
   deleteAppointment,
   deleteCustomer,
-  getAppointmentById,
   getAppointments,
   getCustomerById,
   getCustomers,
@@ -145,7 +144,7 @@ describe('Database Operations', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     clearCache() // Clear cache between tests
-    const { prisma, getPrismaClient } = await import('@/lib/prisma')
+    const { prisma } = await import('@/lib/prisma')
     mockPrisma = prisma
     
     // Set up default mock return values

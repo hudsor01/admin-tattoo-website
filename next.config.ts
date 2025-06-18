@@ -10,9 +10,31 @@ const nextConfig: NextConfig = {
   output: isProd ? 'standalone' : undefined,
   poweredByHeader: false,
   experimental: {
-    optimizePackageImports: ['lucide-react', '@tabler/icons-react', 'recharts'],
+    optimizePackageImports: [
+      'lucide-react', 
+      '@tabler/icons-react', 
+      'recharts',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      'date-fns',
+      '@tanstack/react-query'
+    ],
     optimizeCss: isProd,
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
+  compiler: {
+    removeConsole: isProd ? { exclude: ['error'] } : false,
+  },
+  swcMinify: true,
   typescript: { ignoreBuildErrors: false },
   eslint: { ignoreDuringBuilds: false },
   async headers() {
@@ -53,7 +75,6 @@ const nextConfig: NextConfig = {
 
   async redirects() {
     return [
-      { source: '/', destination: '/dashboard', permanent: false },
       { source: '/admin/:path*', destination: '/dashboard/:path*', permanent: true },
     ];
   },

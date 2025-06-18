@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, invalidateQueries, queryKeys } from '@/lib/api/client';
-import { buildQueryString, createOptimisticDelete, createOptimisticUpdate } from '@/lib/api/utils';
-import { showErrorToast, showSuccessToast } from '@/lib/api/utils';
+import { buildQueryString, createOptimisticDelete, showErrorToast, showSuccessToast } from '@/lib/api/utils';
+// import { createOptimisticUpdate } from '@/lib/api/utils'; // Available if needed
 import type { tattoo_designs } from '@prisma/client';
 
 // Media specific types
@@ -82,10 +82,10 @@ export function useMediaItem(id: string, enabled: boolean = true) {
 
 // Upload media mutation
 export function useUploadMedia() {
-  const queryClient = useQueryClient();
+  const _queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (formData: FormData) => {
+    mutationFn: (formData: FormData) => {
       // Use apiFetch but override content type for file upload
       return apiFetch<UploadResult>('/api/admin/media/upload', {
         method: 'POST',
@@ -93,7 +93,7 @@ export function useUploadMedia() {
         headers: {}, // Remove Content-Type to let browser set it for FormData
       });
     },
-    onSuccess: (uploadResult) => {
+    onSuccess: (_uploadResult) => {
       // Invalidate media lists
       invalidateQueries(queryKeys.media.lists());
       
@@ -162,7 +162,7 @@ export function useUpdateMedia() {
       
       return { previousMedia };
     },
-    onSuccess: (updatedMedia) => {
+    onSuccess: (_updatedMedia) => {
       // Invalidate related queries
       invalidateQueries(queryKeys.media.lists());
       
@@ -300,7 +300,7 @@ export function useBulkDeleteMedia() {
 }
 
 export function useBulkSyncMedia() {
-  const queryClient = useQueryClient();
+  const _queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: (data: { mediaIds: string[]; action: 'sync' | 'unsync' }) =>

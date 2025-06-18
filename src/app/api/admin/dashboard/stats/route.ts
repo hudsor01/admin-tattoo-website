@@ -1,9 +1,9 @@
-import type { NextRequest } from 'next/server'
+import { type NextRequest, type NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { errorResponse, getRequestId, successResponse } from '@/lib/api-core'
 import { logger } from '@/lib/logger'
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const requestId = getRequestId(request)
   try {
     // Get current month and last month dates

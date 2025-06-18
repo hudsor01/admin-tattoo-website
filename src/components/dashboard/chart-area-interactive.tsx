@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+const { memo, useMemo } = React
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useChartData } from "@/hooks/use-chart-data"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -12,9 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import type {
-  ChartConfig} from "@/components/ui/chart";
 import {
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -48,7 +48,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ChartAreaInteractive() {
+export const ChartAreaInteractive = memo(function ChartAreaInteractive() {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("30d")
   const { data: chartData, isLoading, error } = useChartData()
@@ -58,6 +58,15 @@ export function ChartAreaInteractive() {
       setTimeRange("7d")
     }
   }, [isMobile])
+
+  // Memoize chart config to prevent re-creation
+  const memoizedChartConfig = useMemo(() => chartConfig, [])
+
+  // Memoize filtered data calculation
+  const filteredData = useMemo(() => {
+    const safeChartData = Array.isArray(chartData) ? chartData : []
+    return safeChartData.slice(timeRange === "7d" ? -7 : timeRange === "30d" ? -30 : -90)
+  }, [chartData, timeRange])
 
   if (isLoading) {
     return (
@@ -88,10 +97,6 @@ export function ChartAreaInteractive() {
     )
   }
 
-  // Filter data based on time range
-  const safeChartData = Array.isArray(chartData) ? chartData : []
-  const filteredData = safeChartData.slice(timeRange === "7d" ? -7 : timeRange === "30d" ? -30 : -90)
-
   return (
     <Card className="@container/card bg-card border-border/30 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-300">
       <CardHeader className="pb-6 flex flex-row items-center justify-between space-y-0">
@@ -112,9 +117,9 @@ export function ChartAreaInteractive() {
             variant="outline"
             className="hidden @[767px]/card:flex bg-muted/50 rounded-xl p-2 shadow-sm border border-border/30"
           >
-            <ToggleGroupItem value="90d" className="px-8 py-4 text-lg font-semibold rounded-lg data-[state=on]:bg-brand-gradient data-[state=on]:text-white data-[state=on]:shadow-sm hover:bg-brand-gradient-soft hover:text-orange-700 dark:hover:text-orange-300 transition-all duration-200">Last 3 months</ToggleGroupItem>
-            <ToggleGroupItem value="30d" className="px-8 py-4 text-lg font-semibold rounded-lg data-[state=on]:bg-brand-gradient data-[state=on]:text-white data-[state=on]:shadow-sm hover:bg-brand-gradient-soft hover:text-orange-700 dark:hover:text-orange-300 transition-all duration-200">Last 30 days</ToggleGroupItem>
-            <ToggleGroupItem value="7d" className="px-8 py-4 text-lg font-semibold rounded-lg data-[state=on]:bg-brand-gradient data-[state=on]:text-white data-[state=on]:shadow-sm hover:bg-brand-gradient-soft hover:text-orange-700 dark:hover:text-orange-300 transition-all duration-200">Last 7 days</ToggleGroupItem>
+            <ToggleGroupItem value="90d" className="px-8 py-4 text-lg font-semibold rounded-lg data-[state=on]:!bg-brand-gradient data-[state=on]:!text-white data-[state=on]:shadow-sm hover:bg-brand-gradient-soft hover:text-orange-700 dark:hover:text-orange-300 transition-all duration-200">Last 3 months</ToggleGroupItem>
+            <ToggleGroupItem value="30d" className="px-8 py-4 text-lg font-semibold rounded-lg data-[state=on]:!bg-brand-gradient data-[state=on]:!text-white data-[state=on]:shadow-sm hover:bg-brand-gradient-soft hover:text-orange-700 dark:hover:text-orange-300 transition-all duration-200">Last 30 days</ToggleGroupItem>
+            <ToggleGroupItem value="7d" className="px-8 py-4 text-lg font-semibold rounded-lg data-[state=on]:!bg-brand-gradient data-[state=on]:!text-white data-[state=on]:shadow-sm hover:bg-brand-gradient-soft hover:text-orange-700 dark:hover:text-orange-300 transition-all duration-200">Last 7 days</ToggleGroupItem>
           </ToggleGroup>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger
@@ -139,7 +144,7 @@ export function ChartAreaInteractive() {
       </CardHeader>
       <CardContent className="px-6 pt-2 pb-6 sm:px-8 sm:pt-4">
         <ChartContainer
-          config={chartConfig}
+          config={memoizedChartConfig}
           className="aspect-auto h-[320px] w-full rounded-xl shadow-inner bg-gradient-to-br from-muted/30 to-muted/10 border border-border/20"
         >
           <AreaChart data={filteredData} className="w-full h-full">
@@ -198,4 +203,4 @@ export function ChartAreaInteractive() {
       </CardContent>
     </Card>
   )
-}
+})

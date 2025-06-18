@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 // Simple liveness check - just confirms the application is running
-export async function GET() {
+export function GET(): NextResponse {
   return NextResponse.json({
     status: 'alive',
     timestamp: new Date().toISOString(),

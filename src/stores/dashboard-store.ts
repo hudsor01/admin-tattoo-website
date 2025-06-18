@@ -403,6 +403,7 @@ export const useDashboardStore = create<DashboardStore>()(
                 ...state.tablePreferences,
                 columnVisibility: {
                   ...state.tablePreferences.columnVisibility,
+                  // eslint-disable-next-line security/detect-object-injection
                   [column]: !state.tablePreferences.columnVisibility[column],
                 },
               },

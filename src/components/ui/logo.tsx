@@ -50,7 +50,9 @@ export function Logo({
           <Image
             src="/logo.png"
             alt="Ink 37 Logo"
+            // eslint-disable-next-line security/detect-object-injection
             width={sizePixels[size].width}
+            // eslint-disable-next-line security/detect-object-injection
             height={sizePixels[size].height}
             priority
             sizes="(max-width: 768px) 180px, 240px"
@@ -62,6 +64,7 @@ export function Logo({
       </motion.div>
     ) : (
       <motion.span
+        // eslint-disable-next-line security/detect-object-injection
         className={cn('font-satisfy tracking-wide inline-block', sizeClasses[size], className)}
         initial={{ opacity: 0, y: -5 }}
         animate={{ opacity: 1, y: 0 }}

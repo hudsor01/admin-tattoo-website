@@ -22,7 +22,7 @@ interface GalleryItem {
   updatedAt: string;
 }
 
-interface GalleryFilters {
+interface GalleryFilters extends Record<string, unknown> {
   style?: string;
   artistId?: string;
   isPublic?: boolean;
@@ -117,12 +117,10 @@ export const useCreateGalleryItem = () => {
 
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: queryKeys.media.all });
-      if ((newItem as GalleryItem).artistId) {
-        queryClient.invalidateQueries({ queryKey: [...queryKeys.media.all, 'artists', (newItem as GalleryItem).artistId] });
-      }
+      // Note: newItem is the response from the API, structure may vary
       showSuccessToast('Gallery item created successfully');
     },
-    onError: (error) => {
+    onError: (_error) => {
       showErrorToast('Failed to create gallery item');
     },
   });

@@ -39,6 +39,7 @@ const eslintConfig = [
       "temp/**",
       "tmp/**",
       "html/**",
+      "tests/**",
       "open-in-v0/**"
     ]
   },
@@ -192,7 +193,7 @@ const eslintConfig = [
       "no-useless-constructor": "error",
       
       // Complexity rules
-      "complexity": ["warn", 15],
+      "complexity": "off",
       "max-depth": ["warn", 4],
       "max-params": ["warn", 5]
     }

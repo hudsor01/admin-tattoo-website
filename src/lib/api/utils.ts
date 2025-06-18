@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 import type { ApiError } from './client';
 
 // Toast utilities for API responses
-export function showErrorToast(error: ApiError | Error | string) {
+export function showErrorToast(error: ApiError | Error | string): void {
   const message = typeof error === 'string' 
     ? error 
     : error instanceof Error 
@@ -12,11 +12,11 @@ export function showErrorToast(error: ApiError | Error | string) {
   toast.error(message);
 }
 
-export function showSuccessToast(message: string) {
+export function showSuccessToast(message: string): void {
   toast.success(message);
 }
 
-export function showLoadingToast(message: string) {
+export function showLoadingToast(message: string): string | number {
   return toast.loading(message);
 }
 

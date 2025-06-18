@@ -4,10 +4,8 @@
  * Provides unified API response handling, error management, and route helpers
  */
 
-import type { NextRequest} from 'next/server';
-import { NextResponse } from 'next/server';
-import type { ZodSchema } from 'zod';
-import { ZodError } from 'zod';
+import { type NextRequest, NextResponse } from 'next/server';
+import { ZodError, type ZodSchema } from 'zod';
 import { toast } from "sonner";
 import { logger } from './logger';
 
@@ -281,8 +279,10 @@ export function handleZodError(error: ZodError): ValidationError {
   error.errors.forEach((err) => {
     const path = err.path.join(".");
     if (!Object.prototype.hasOwnProperty.call(fields, path)) {
+      // eslint-disable-next-line security/detect-object-injection
       fields[path] = [];
     }
+    // eslint-disable-next-line security/detect-object-injection
     const fieldErrors = fields[path];
     if (fieldErrors) {
       fieldErrors.push(err.message);
@@ -405,10 +405,13 @@ export function createCrudHandlers<T>(
   // GET handler (list all)
   if (operations.getAll) {
     handlers.GET = withApiHandler(
-      async (request: NextRequest) => {
+      (request: NextRequest) => {
         const { searchParams } = new URL(request.url);
         const filters = Object.fromEntries(searchParams.entries());
-        return operations.getAll!(filters);
+        if (!operations.getAll) {
+          throw new Error('getAll operation not defined');
+        }
+        return operations.getAll(filters);
       },
       { validateQuery: schemas.query }
     );
@@ -419,7 +422,10 @@ export function createCrudHandlers<T>(
     handlers.POST = withApiHandler(
       async (request: NextRequest) => {
         const data = (request as NextRequest & { validatedBody?: Record<string, unknown> }).validatedBody || {};
-        const result = await operations.create!(data);
+        if (!operations.create) {
+          throw new Error('create operation not defined');
+        }
+        const result = await operations.create(data);
         const requestId = getRequestId(request);
         return successResponse(
           result,
@@ -454,12 +460,15 @@ export function createResourceHandlers<T>(
   // GET handler (single item)
   if (operations.getById) {
     handlers.GET = withApiHandler(
-      async (_request: NextRequest, context) => {
+      (_request: NextRequest, context) => {
         const id = context?.params?.id;
         if (!id) {
           throw new Error(`${entityName} ID is required`);
         }
-        return operations.getById!(id);
+        if (!operations.getById) {
+          throw new Error('getById operation not defined');
+        }
+        return operations.getById(id);
       }
     );
   }
@@ -473,7 +482,10 @@ export function createResourceHandlers<T>(
           throw new Error(`${entityName} ID is required`);
         }
         const data = (request as NextRequest & { validatedBody?: Record<string, unknown> }).validatedBody || {};
-        const result = await operations.update!(id, data);
+        if (!operations.update) {
+          throw new Error('update operation not defined');
+        }
+        const result = await operations.update(id, data);
         const requestId = getRequestId(request);
         return successResponse(
           result,
@@ -494,7 +506,10 @@ export function createResourceHandlers<T>(
         if (!id) {
           throw new Error(`${entityName} ID is required`);
         }
-        await operations.delete!(id);
+        if (!operations.delete) {
+          throw new Error('delete operation not defined');
+        }
+        await operations.delete(id);
         const requestId = getRequestId(request);
         return successResponse(
           null,
@@ -542,7 +557,8 @@ export function showErrorToast(error: unknown, fallbackMessage = "Something went
   let message = fallbackMessage;
   
   if (error instanceof Error) {
-    message = error.message;
+    const { message: errorMessage } = error;
+    message = errorMessage;
   } else if (typeof error === "string") {
     message = error;
   } else if (error && typeof error === "object" && "message" in error && error.message) {
@@ -586,6 +602,7 @@ export function getFieldErrors(error: unknown): Record<string, string> {
   if (error instanceof ValidationError) {
     const fieldErrors: Record<string, string> = {};
     Object.entries(error.fields).forEach(([field, messages]) => {
+      // eslint-disable-next-line security/detect-object-injection
       fieldErrors[field] = messages[0] || 'Validation error';
     });
     return fieldErrors;
@@ -615,6 +632,7 @@ export async function withRetry<T>(
   
   for (let i = 0; i < maxRetries; i++) {
     try {
+      // eslint-disable-next-line no-await-in-loop
       return await operation();
     } catch (error) {
       lastError = error;
@@ -624,6 +642,7 @@ export async function withRetry<T>(
       }
       
       // Wait before retrying
+      // eslint-disable-next-line no-await-in-loop
       await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
     }
   }

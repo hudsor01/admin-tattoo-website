@@ -91,7 +91,7 @@ export class GenericRepository<
   /**
    * Find many records with filters
    */
-  async findMany(options: {
+  findMany(options: {
     where?: TWhereInput;
     orderBy?: TOrderByInput;
     include?: Record<string, unknown>;
@@ -109,7 +109,7 @@ export class GenericRepository<
   /**
    * Find unique record
    */
-  async findUnique(
+  findUnique(
     where: TWhereUniqueInput,
     options: {
       include?: Record<string, unknown>;
@@ -126,7 +126,7 @@ export class GenericRepository<
   /**
    * Create new record
    */
-  async create(
+  create(
     data: TCreateInput,
     options: {
       include?: Record<string, unknown>;
@@ -143,7 +143,7 @@ export class GenericRepository<
   /**
    * Update record
    */
-  async update(
+  update(
     where: TWhereUniqueInput,
     data: TUpdateInput,
     options: {
@@ -162,14 +162,14 @@ export class GenericRepository<
   /**
    * Delete record
    */
-  async delete(where: TWhereUniqueInput) {
+  delete(where: TWhereUniqueInput) {
     return this.model.delete({ where });
   }
 
   /**
    * Count records
    */
-  async count(where?: TWhereInput) {
+  count(where?: TWhereInput) {
     return this.model.count({ where });
   }
 
@@ -208,7 +208,7 @@ export class GenericRepository<
   /**
    * Soft delete (if deletedAt field exists)
    */
-  async softDelete(where: TWhereUniqueInput) {
+  softDelete(where: TWhereUniqueInput) {
     return this.model.update({
       where,
       data: { deletedAt: new Date() },
@@ -284,7 +284,7 @@ export const dbUtils = {
   /**
    * Execute multiple operations in a transaction
    */
-  async transaction<T>(operations: (tx: Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => Promise<T>): Promise<T> {
+  transaction<T>(operations: (tx: Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => Promise<T>): Promise<T> {
     return prisma.$transaction(operations);
   },
 
@@ -298,7 +298,7 @@ export const dbUtils = {
   /**
    * Execute raw query
    */
-  async queryRaw<T = unknown>(query: string, values?: unknown[]): Promise<T> {
+  queryRaw<T = unknown>(query: string, values?: unknown[]): Promise<T> {
     return prisma.$queryRawUnsafe(query, ...(values || []));
   },
 
@@ -320,7 +320,7 @@ export const dbUtils = {
  */
 export const repositories = {
   clients: createRepository(
-    'Client',
+    'clients',
     {
       appointments: {
         select: {
@@ -346,7 +346,7 @@ export const repositories = {
   ),
 
   appointments: createRepository(
-    'Appointment',
+    'appointments',
     {
       client: {
         select: {
@@ -367,7 +367,7 @@ export const repositories = {
   ),
 
   sessions: createRepository(
-    'TattooSession',
+    'tattoo_sessions',
     {
       client: {
         select: {
@@ -388,7 +388,7 @@ export const repositories = {
   ),
 
   artists: createRepository(
-    'TattooArtist',
+    'tattoo_artists',
     {
       _count: {
         select: {

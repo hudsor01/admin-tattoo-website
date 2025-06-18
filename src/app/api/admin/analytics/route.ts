@@ -1,12 +1,10 @@
-import type { NextRequest} from "next/server";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import type { Prisma } from '@prisma/client';
 import { SecurityPresets, withSecurityValidation } from '@/lib/api-validation';
 import { createErrorResponse, createSuccessResponse } from '@/lib/api-core';
 import { logger } from '@/lib/logger';
 
-const getAnalyticsHandler = async (_request: NextRequest) => {
+const getAnalyticsHandler = async (_request: NextRequest): Promise<NextResponse> => {
   try {
 
     // Calculate date ranges
@@ -21,7 +19,7 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
       prisma.tattoo_sessions.aggregate({
         where: {
           status: 'COMPLETED',
-          updatedAt: { gte: firstDayThisMonth }
+          updatedAt: { gte: firstDayThisMonth, lte: now }
         },
         _sum: { totalCost: true }
       }),
@@ -70,7 +68,7 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
     const [currentMonthSessions, lastMonthSessions] = await Promise.all([
       prisma.tattoo_sessions.count({
         where: {
-          appointmentDate: { gte: firstDayThisMonth }
+          appointmentDate: { gte: firstDayThisMonth, lte: now }
         }
       }),
       prisma.tattoo_sessions.count({
@@ -91,31 +89,49 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
       ? ((avgSessionValue - lastMonthAvgValue) / lastMonthAvgValue) * 100 
       : 0;
 
-    // 5. Top Performing Artists
-    const topArtists = await prisma.tattoo_artists.findMany({
-      include: {
-        tattoo_sessions: {
-          where: {
-            status: 'COMPLETED',
-            appointmentDate: { gte: firstDayThisMonth }
-          }
+    // 5. Top Performing Artists (limit to top 5, aggregate in DB)
+    const artistsWithRevenue = await prisma.tattoo_sessions.groupBy({
+      by: ['artistId'],
+      where: {
+        status: 'COMPLETED',
+        appointmentDate: { gte: firstDayThisMonth }
+      },
+      _sum: { totalCost: true },
+      _count: { id: true },
+      orderBy: {
+        _sum: {
+          totalCost: 'desc'
         }
-      }
+      },
+      take: 5
     });
 
-    const artistsWithRevenue = topArtists.map(artist => ({
-      id: artist.id,
-      name: artist.name,
-      revenue: artist.tattoo_sessions.reduce((sum: number, session: { totalCost: Prisma.Decimal | number | null }) => sum + Number(session.totalCost), 0)
-    })).sort((a, b) => b.revenue - a.revenue);
+    // Fetch artist names for the top artists
+    const artistIds = artistsWithRevenue.map(a => a.artistId);
+    const artistNames = await prisma.tattoo_artists.findMany({
+      where: { id: { in: artistIds } },
+      select: { id: true, name: true }
+    });
+    const artistNameMap = Object.fromEntries(artistNames.map(a => [a.id, a.name]));
+
+    const topArtists = artistsWithRevenue.map(a => ({
+      id: a.artistId,
+      name: artistNameMap[a.artistId] || 'Unknown',
+      revenue: Number(a._sum.totalCost || 0),
+      sessionCount: a._count.id
+    }));
 
     // 6. Session Types Breakdown
     const sessionsByStyle = await prisma.tattoo_sessions.groupBy({
       by: ['style'],
       where: {
-        appointmentDate: { gte: firstDayThisMonth }
+        appointmentDate: {
+          gte: firstDayThisMonth
+        }
       },
-      _count: { style: true }
+      _count: {
+        style: true
+      }
     });
 
     const totalSessionsForTypes = sessionsByStyle.reduce((sum, item) => sum + item._count.style, 0);
@@ -124,35 +140,80 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
       count: item._count.style,
       percentage: totalSessionsForTypes > 0 ? (item._count.style / totalSessionsForTypes) * 100 : 0
     }));
-
     // 7. Client Acquisition (last 6 months)
-    const clientAcquisition: Array<{ month: string; newClients: number }> = [];
+    const clientAcquisition: Array < {
+      month: string;
+      newClients: number
+    } > = [];
+    const acquisitionPromises: Array < Promise < number >> = [];
+    const months: Array < {
+      monthStart: Date;
+      monthEnd: Date;
+      label: string
+    } > = [];
+
     for (let i = 5; i >= 0; i--) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-      
-      const newClients = await prisma.clients.count({
-        where: {
-          createdAt: { gte: monthStart, lte: monthEnd }
-        }
+      months.push({
+        monthStart,
+        monthEnd,
+        label: monthStart.toLocaleDateString('en-US', {
+          month: 'short',
+          year: 'numeric'
+        })
       });
-
-      clientAcquisition.push({
-        month: monthStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        newClients
-      });
+      acquisitionPromises.push(
+        prisma.clients.count({
+          where: {
+            createdAt: {
+              gte: monthStart,
+              lte: monthEnd
+            }
+          }
+        })
+      );
     }
+
+    const newClientsCounts = await Promise.all(acquisitionPromises);
+
+    // Use map and zip pattern to avoid direct array indexing
+    const clientAcquisitionData = months.map((monthObj, index) => {
+      let label = '';
+
+      // Ensure monthObj.label is a string before attempting to sanitize
+      if (typeof monthObj.label === 'string') {
+        // Option 1: Allow only letters, numbers, spaces, and hyphens (common for labels)
+        // This is generally a safe and robust approach for display labels.
+        label = monthObj.label.replace(/[^a-zA-Z0-9\s-]/g, '');
+      } else {
+        // Handle cases where monthObj.label is not a string (e.g., null, undefined, number)
+        // Set a default value or handle as appropriate for your application.
+        label = 'Unknown Month'; // Default value
+      }
+
+      // Use Array.at() which is safer than bracket notation
+      const countValue = newClientsCounts.at(index);
+      const newClients = typeof countValue === 'number' && Number.isFinite(countValue) ? countValue : 0;
+      
+      return {
+        month: label,
+        newClients
+      };
+    });
+
+    clientAcquisition.push(...clientAcquisitionData);
 
     const analyticsData = {
       totalRevenue,
       revenueChange,
       activeClients: activeClientsCount,
       clientsChange,
-      monthlySessions: currentMonthSessions, // Fixed typo from "monthySessions"
+      monthlySessions: currentMonthSessions,
       sessionsChange,
       avgSessionValue,
       avgValueChange,
-      topArtists: artistsWithRevenue,
+      topArtists,
       sessionTypes,
       clientAcquisition
     };
@@ -161,14 +222,11 @@ const getAnalyticsHandler = async (_request: NextRequest) => {
 
   } catch (error) {
     logger.error('Analytics API error', error);
-    return NextResponse.json(
-      createErrorResponse('Failed to fetch analytics data'),
-      { status: 500 }
-    );
+    return NextResponse.json(createErrorResponse('Failed to fetch analytics data', 500), {
+      status: 500
+    });
   }
 }
-
-// Apply security validation with analytics read preset
 export const GET = withSecurityValidation({
   ...SecurityPresets.ANALYTICS_READ
 })(getAnalyticsHandler);

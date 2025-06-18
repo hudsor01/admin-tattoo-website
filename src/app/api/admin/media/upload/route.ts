@@ -1,11 +1,10 @@
-import type { NextRequest} from 'next/server';
-import { NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob'
 import { SecurityPresets, validateFileContent, validateFileUpload, withSecurityValidation } from '@/lib/api-validation'
 import { sanitizeFilename } from '@/lib/sanitization'
 import { createErrorResponse, createSuccessResponse } from '@/lib/api-core'
 
-const uploadHandler = async (request: NextRequest) => {
+const uploadHandler = async (request: NextRequest): Promise<NextResponse> => {
   const formData = await request.formData()
   const file = formData.get('file') as File
   const metadataString = formData.get('metadata') as string
@@ -36,13 +35,13 @@ const uploadHandler = async (request: NextRequest) => {
   });
   
   if (!fileValidation.isValid) {
-    return NextResponse.json(createErrorResponse(fileValidation.error!), { status: 400 })
+    return NextResponse.json(createErrorResponse(fileValidation.error || 'File validation failed'), { status: 400 })
   }
 
   // Validate file content (magic numbers)
   const contentValidation = await validateFileContent(file);
   if (!contentValidation.isValid) {
-    return NextResponse.json(createErrorResponse(contentValidation.error!), { status: 400 })
+    return NextResponse.json(createErrorResponse(contentValidation.error || 'File content validation failed'), { status: 400 })
   }
 
   // Additional file type and size validation

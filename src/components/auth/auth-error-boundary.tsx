@@ -42,7 +42,7 @@ export class AuthErrorBoundary extends React.Component<
         const FallbackComponent = this.props.fallback;
         return (
           <FallbackComponent 
-            error={this.state.error!} 
+            error={this.state.error || new Error('Unknown error')} 
             retry={this.retry} 
           />
         );

@@ -331,6 +331,7 @@ describe('Server Actions', () => {
       for (const email of specialEmails) {
         vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ id: '1', email, name: 'User' })
         
+        // eslint-disable-next-line no-await-in-loop
         const result = await searchAccount(email)
         
         expect(result).toBe(true)

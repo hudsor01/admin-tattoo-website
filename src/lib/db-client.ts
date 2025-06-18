@@ -4,7 +4,7 @@ declare global {
   var __prisma: PrismaClient | undefined;
 }
 
-// Optimized Prisma client configuration
+// High-performance Prisma client configuration
 function createPrismaClient() {
   return new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
@@ -13,6 +13,13 @@ function createPrismaClient() {
         url: process.env.DATABASE_URL,
       },
     },
+    // Performance optimizations
+    transactionOptions: {
+      timeout: 5000, // 5 second timeout
+      maxWait: 2000,  // Max 2 seconds to acquire connection
+    },
+    // Connection pool optimization
+    // engineType: 'binary', // Faster than wasm - removed as it's not a valid option
   });
 }
 

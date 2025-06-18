@@ -13,7 +13,7 @@ interface ModalState {
   };
   appointmentCreate: {
     open: boolean;
-    prefillData?: Record<string, any>;
+    prefillData?: Record<string, unknown>;
   };
   appointmentEdit: {
     open: boolean;
@@ -26,7 +26,7 @@ interface SidebarState {
   collapsed: boolean;
 }
 
-interface NotificationState {
+interface _NotificationState {
   toasts: Array<{
     id: string;
     message: string;
@@ -135,7 +135,7 @@ const initialState = {
 export const useUIStore = create<UIStore>()(
   devtools(
     persist(
-      (set, get) => ({
+      (set, _get) => ({
         ...initialState,
         
         // Sidebar actions
@@ -172,6 +172,7 @@ export const useUIStore = create<UIStore>()(
             (state) => ({
               modals: {
                 ...state.modals,
+                // eslint-disable-next-line security/detect-object-injection
                 [modal]: { ...state.modals[modal], open: true, ...data },
               },
             }),
@@ -184,6 +185,7 @@ export const useUIStore = create<UIStore>()(
             (state) => ({
               modals: {
                 ...state.modals,
+                // eslint-disable-next-line security/detect-object-injection
                 [modal]: { ...initialState.modals[modal] },
               },
             }),
@@ -263,9 +265,9 @@ export const useUIStore = create<UIStore>()(
           ),
         
         // Time range actions
-        setTimeRange: (start, end, preset = null) =>
+        setTimeRange: (start, end, preset) =>
           set(
-            { timeRange: { start, end, preset } },
+            { timeRange: { start, end, preset: preset || null } },
             false,
             'setTimeRange'
           ),

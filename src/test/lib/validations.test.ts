@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { z } from 'zod'
 import {
   analyticsFilterSchema,
   apiResponseSchema,
@@ -9,7 +8,6 @@ import {
   createCustomerSchema,
   createGalleryItemSchema,
   createPaymentSchema,
-  customerFilterSchema,
   dateRangeSchema,
   fileUploadSchema,
   loginSchema,
@@ -21,10 +19,6 @@ import {
   securePasswordSchema,
   securePhoneSchema,
   signupSchema,
-  updateAppointmentSchema,
-  updateCustomerSchema,
-  updateGalleryItemSchema,
-  updatePaymentSchema
 } from '@/lib/validations'
 
 // Mock sanitization functions

@@ -82,8 +82,8 @@ export default function RecentActivityCard() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 border rounded-lg animate-pulse">
+        {['activity-1', 'activity-2', 'activity-3', 'activity-4', 'activity-5'].map((activityId) => (
+          <div key={`activity-skeleton-${activityId}`} className="flex items-center gap-3 p-3 border rounded-lg animate-pulse">
             <div className="h-8 w-8 rounded-full bg-muted" />
             <div className="flex-1 space-y-1">
               <div className="h-4 w-48 bg-muted rounded" />

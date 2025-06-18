@@ -1,28 +1,58 @@
-"use client";
+"use client"
 
-import * as React from "react";
-
-import { MoonIcon, SunIcon } from "lucide-react";
-import { useTheme } from "next-themes";
-
-import { Button } from "@/components/ui/button";
+import * as React from "react"
+import { Moon, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
+import { Button } from "@/components/ui/button"
 
 export function ModeSwitcher() {
-  const { setTheme, resolvedTheme } = useTheme();
+  const { setTheme, theme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
 
-  const toggleTheme = React.useCallback(() => {
-    setTheme(resolvedTheme === "dark" ? "light" : "dark");
-  }, [resolvedTheme, setTheme]);
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const handleToggle = React.useCallback(() => {
+    const currentTheme = theme || resolvedTheme
+    const newTheme = currentTheme === "dark" ? "light" : "dark"
+    
+    
+    setTheme(newTheme)
+    
+    // Force immediate DOM update
+    setTimeout(() => {
+      const html = document.documentElement
+      html.classList.remove('light', 'dark')
+      html.classList.add(newTheme)
+      html.setAttribute('data-theme', newTheme)
+      
+    }, 0)
+  }, [theme, resolvedTheme, setTheme])
+
+  if (!mounted) {
+    return (
+      <Button variant="outline" size="icon">
+        <span className="sr-only">Loading...</span>
+      </Button>
+    )
+  }
+
+  const currentTheme = theme || resolvedTheme
+  const isDark = currentTheme === "dark"
 
   return (
     <Button
-      variant="ghost"
-      className="group/toggle size-8 px-0"
-      onClick={toggleTheme}
+      variant="outline" 
+      size="icon"
+      onClick={handleToggle}
     >
-      <SunIcon className="hidden [html.dark_&]:block" />
-      <MoonIcon className="hidden [html.light_&]:block" />
+      {isDark ? (
+        <Sun className="h-[1.2rem] w-[1.2rem]" />
+      ) : (
+        <Moon className="h-[1.2rem] w-[1.2rem]" />
+      )}
       <span className="sr-only">Toggle theme</span>
     </Button>
-  );
+  )
 }

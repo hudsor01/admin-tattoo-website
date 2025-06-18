@@ -5,8 +5,7 @@
  * specifically for the tattoo admin system.
  */
 
-import type { NextRequest} from 'next/server';
-import { NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server';
 
 /**
  * Security-focused logger with structured output
@@ -56,6 +55,7 @@ export class SecurityLogger {
 
   info(message: string, metadata?: Record<string, unknown>) {
     if (!this.shouldLog('info')) return
+    // eslint-disable-next-line no-console
     console.info('Security Info:', message, metadata)
   }
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { type AuthUser, auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
 export const getSessionAction = async () => {
@@ -31,7 +31,7 @@ export const validateAdminAction = async () => {
     
     // Use RBAC system for admin validation
     const { isAdmin, canAccessDashboard } = await import("@/lib/authorization");
-    const user = session.user as any;
+    const user = session.user as AuthUser;
     
     // Convert to AuthorizedUser format and check permissions
     const authorizedUser = {

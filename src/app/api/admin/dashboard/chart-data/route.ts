@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { SecurityPresets, withSecurityValidation } from '@/lib/api-validation'
 import { createErrorResponse, createSuccessResponse } from '@/lib/api-core'
 import { logger } from '@/lib/logger'
 import type { SpecificChartDataPoint } from '@/types/dashboard' // Import SpecificChartDataPoint
 
-const getChartDataHandler = async () => {
+const getChartDataHandler = async (_request: NextRequest): Promise<NextResponse> => {
   try {
     // Get last 30 days of data
     const thirtyDaysAgo = new Date()
@@ -99,4 +99,4 @@ const getChartDataHandler = async () => {
 // Apply security validation with dashboard read preset
 export const GET = withSecurityValidation({
   ...SecurityPresets.DASHBOARD_READ
-})(getChartDataHandler);
+})((request: NextRequest) => getChartDataHandler(request));

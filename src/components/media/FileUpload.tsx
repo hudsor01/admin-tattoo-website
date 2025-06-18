@@ -168,11 +168,19 @@ export function FileUpload({
               ${selectedFile ? 'border-green-500 bg-green-50' : ''}
               ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary hover:bg-primary/5'}
             `}
+            role="button"
+            tabIndex={0}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
             onClick={() => !isUploading && inputFileRef.current?.click()}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ' ') && !isUploading) {
+                e.preventDefault()
+                inputFileRef.current?.click()
+              }
+            }}
           >
             {selectedFile ? (
               <div className="space-y-2">

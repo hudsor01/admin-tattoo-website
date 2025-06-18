@@ -29,7 +29,6 @@ const LogIn = () => {
             if (result.error) {
               toast.error(result.error.message || "Invalid credentials");
             } else if (result.data) {
-              // Success - redirect will be handled by middleware
               window.location.href = "/dashboard";
             }
           } catch (error) {

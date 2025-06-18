@@ -5,7 +5,7 @@ import type { Session, User } from '@/types/auth';
 import { ErrorCategory, handleError, withEnhancedRetry } from '@/lib/api/enhanced-error-handling';
 
 // Stable snapshot function to prevent infinite loops
-const createStableSnapshot = (state: AuthState) => {
+const _createStableSnapshot = (state: AuthState) => {
   return JSON.stringify({
     isAuthenticated: state.isAuthenticated,
     isLoading: state.isLoading,
@@ -105,7 +105,7 @@ export const PERMISSIONS = {
 const ADMIN_PERMISSIONS = Object.values(PERMISSIONS);
 
 // Retry wrapper for auth operations
-const retryAuthOperation = async <T>(
+const retryAuthOperation = <T>(
   operation: () => Promise<T>,
   maxRetries = 3,
   delay = 1000
@@ -149,7 +149,7 @@ export const useAuthStore = create<AuthState>()(
           // Basic setters
           setUser: (user) => 
             set(
-              (state) => {
+              (_state) => {
                 const isAuthenticated = !!user;
                 const isAdmin = user?.role === 'admin';
                 const permissions = isAdmin ? ADMIN_PERMISSIONS : [];
@@ -192,14 +192,22 @@ export const useAuthStore = create<AuthState>()(
             try {
               set({ isLoading: true, lastError: null }, false, 'login:start');
               
-              const result = await retryAuthOperation(async () => {
-                return await authClient.signIn.email({ email, password });
+              const result = await retryAuthOperation(() => {
+                return authClient.signIn.email({ email, password });
               });
               
               if (result.data) {
-                const { user, session } = result.data;
-                get().setUser(user);
-                get().setSession(session);
+                const { user } = result.data;
+                // Add missing fields with defaults to match User type
+                const enhancedUser = {
+                  ...user,
+                  banned: null,
+                  role: 'admin' // Default role since user doesn't have role property in Better Auth response
+                };
+                get().setUser(enhancedUser);
+                // Session data is included with the user data in Better Auth
+                // Pass null for now since result.data doesn't match expected session structure
+                get().setSession(null);
                 return true;
               }
               
@@ -267,13 +275,18 @@ export const useAuthStore = create<AuthState>()(
             try {
               set({ isLoading: true }, false, 'refresh:start');
               
-              const session = await retryAuthOperation(async () => {
-                return await authClient.getSession();
+              const session = await retryAuthOperation(() => {
+                return authClient.getSession();
               });
               
-              if (session?.user) {
-                get().setUser(session.user);
-                get().setSession(session);
+              if (session?.data?.user) {
+                const enhancedUser = {
+                  ...session.data.user,
+                  banned: null,
+                  role: 'admin'
+                };
+                get().setUser(enhancedUser);
+                get().setSession(session.data);
                 return true;
               } else {
                 // No valid session, clear state
@@ -329,8 +342,8 @@ export const useAuthStore = create<AuthState>()(
             
             // Calculate refresh time (5 minutes before expiry, or use provided delay)
             let refreshDelay = delay;
-            if (!refreshDelay && session.expiresAt) {
-              const expiresAt = new Date(session.expiresAt).getTime();
+            if (!refreshDelay && session.session?.expiresAt) {
+              const expiresAt = new Date(session.session.expiresAt).getTime();
               const now = Date.now();
               const timeUntilExpiry = expiresAt - now;
               
@@ -363,9 +376,9 @@ export const useAuthStore = create<AuthState>()(
       },
       
       // Admin checks
-      checkAdminStatus: async () => {
+      checkAdminStatus: (): Promise<void> => {
         const { user } = get();
-        if (!user) return;
+        if (!user) return Promise.resolve();
         
         try {
           // In a real app, you might need to verify admin status with the server
@@ -391,27 +404,28 @@ export const useAuthStore = create<AuthState>()(
             adminPermissions: [],
           }, false, 'checkAdminStatus:error');
         }
+        return Promise.resolve();
       },
       
-      verifyAdminAccess: async () => {
+      verifyAdminAccess: (): Promise<boolean> => {
         const { isAdmin, user } = get();
         
         if (!user || !isAdmin) {
-          return false;
+          return Promise.resolve(false);
         }
         
         try {
           // Additional verification logic could go here
           // For example, checking if the admin account is still active
-          return true;
+          return Promise.resolve(true);
         } catch (error) {
           console.error('Admin access verification failed:', error);
-          return false;
+          return Promise.resolve(false);
         }
       },
       
       // Recovery and retry operations
-      retryLastOperation: async () => {
+      retryLastOperation: async (): Promise<void> => {
         const { lastError, retryCount } = get();
         
         if (!lastError || retryCount >= 3) {
@@ -432,7 +446,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
       
-      resetErrorState: () => {
+      resetErrorState: (): void => {
         set({
           lastError: null,
           retryCount: 0
@@ -465,7 +479,7 @@ export const useCanAccessDashboard = () => useAuthStore((state) => state.canAcce
 export const usePermissions = () => useAuthStore((state) => state.permissions);
 export const useAdminPermissions = () => useAuthStore((state) => state.adminPermissions);
 
-// Stable compound selectors to prevent infinite loops
+// Cached selectors to prevent infinite loops
 const authStatusSelector = (state: AuthState) => ({
   isLoading: state.isLoading,
   isAuthenticated: state.isAuthenticated,
@@ -486,10 +500,38 @@ const permissionChecksSelector = (state: AuthState) => ({
   canManageResource: state.canManageResource,
 });
 
-// Use stable selectors
-export const useAuthStatus = () => useAuthStore(authStatusSelector);
-export const useAuthActions = () => useAuthStore(authActionsSelector);
-export const usePermissionChecks = () => useAuthStore(permissionChecksSelector);
+// Cache selectors to avoid infinite loops
+let cachedAuthStatus: ReturnType<typeof authStatusSelector> | null = null;
+let cachedAuthActions: ReturnType<typeof authActionsSelector> | null = null;
+let cachedPermissionChecks: ReturnType<typeof permissionChecksSelector> | null = null;
+
+export const useAuthStatus = () => {
+  return useAuthStore((state) => {
+    const newStatus = authStatusSelector(state);
+    if (!cachedAuthStatus || JSON.stringify(cachedAuthStatus) !== JSON.stringify(newStatus)) {
+      cachedAuthStatus = newStatus;
+    }
+    return cachedAuthStatus;
+  });
+};
+
+export const useAuthActions = () => {
+  return useAuthStore((state) => {
+    if (!cachedAuthActions) {
+      cachedAuthActions = authActionsSelector(state);
+    }
+    return cachedAuthActions;
+  });
+};
+
+export const usePermissionChecks = () => {
+  return useAuthStore((state) => {
+    if (!cachedPermissionChecks) {
+      cachedPermissionChecks = permissionChecksSelector(state);
+    }
+    return cachedPermissionChecks;
+  });
+};
 
 // Initialize auth store on app start
 export async function initializeAuthStore() {

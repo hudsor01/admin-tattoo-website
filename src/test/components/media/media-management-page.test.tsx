@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import MediaManagementPage from '@/app/dashboard/media-management/page'
-import { toast } from 'sonner'
+// import { toast } from 'sonner' // Mocked in test setup
 
 // Mock dependencies
 vi.mock('sonner', () => ({
@@ -85,9 +85,13 @@ const createWrapper = () => {
     },
   })
   
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
+  
+  Wrapper.displayName = 'QueryWrapper'
+  
+  return Wrapper
 }
 
 describe('MediaManagementPage', () => {
@@ -95,18 +99,18 @@ describe('MediaManagementPage', () => {
     vi.clearAllMocks()
     ;(global.fetch as any).mockResolvedValue({
       ok: true,
-      json: async () => ({ success: true, data: mockMediaItems }),
+      json: () => Promise.resolve({ success: true, data: mockMediaItems }),
     })
   })
 
-  it('renders page header with correct title and description', async () => {
+  it('renders page header with correct title and description', () => {
     render(<MediaManagementPage />, { wrapper: createWrapper() })
     
     expect(screen.getByText('Media Management')).toBeInTheDocument()
     expect(screen.getByText('Upload photos and videos that sync to ink37tattoos.com/gallery')).toBeInTheDocument()
   })
 
-  it('displays upload buttons for photo and video', async () => {
+  it('displays upload buttons for photo and video', () => {
     render(<MediaManagementPage />, { wrapper: createWrapper() })
     
     const uploadPhotoBtn = screen.getByRole('button', { name: /Upload Photo/i })
@@ -153,11 +157,11 @@ describe('MediaManagementPage', () => {
     })
   })
 
-  it('shows skeleton loaders while fetching media', async () => {
+  it('shows skeleton loaders while fetching media', () => {
     ;(global.fetch as any).mockImplementationOnce(() => 
       new Promise(resolve => setTimeout(() => resolve({
         ok: true,
-        json: async () => ({ success: true, data: mockMediaItems }),
+        json: () => Promise.resolve({ success: true, data: mockMediaItems }),
       }), 100))
     )
     
@@ -170,7 +174,7 @@ describe('MediaManagementPage', () => {
   it('displays empty state when no media items exist', async () => {
     ;(global.fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ success: true, data: [] }),
+      json: () => Promise.resolve({ success: true, data: [] }),
     })
     
     render(<MediaManagementPage />, { wrapper: createWrapper() })

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 // Simple readiness check for container orchestration
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   try {
     // Quick database connectivity check
     await prisma.$queryRaw`SELECT 1`;

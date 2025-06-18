@@ -1,24 +1,23 @@
 "use client"
 
 import * as React from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { Minus, Plus } from "lucide-react"
 import {
   IconCamera,
   IconChartBar,
   IconDashboard,
   IconListDetails,
+  IconPhoto,
   IconReport,
   IconSettings,
   IconUsers,
   IconVideo,
-  IconPhoto,
-  IconPlus,
 } from "@tabler/icons-react"
-import { Minus, Plus } from "lucide-react"
+import { usePathname } from "next/navigation"
+import Link from "next/link"
 
 import { SearchForm } from "@/components/search-form"
+import { NavUser } from "@/components/layout/nav-user"
 import {
   Collapsible,
   CollapsibleContent,
@@ -27,7 +26,6 @@ import {
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarHeader,
   SidebarMenu,
@@ -38,15 +36,9 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { NavUser } from "@/components/layout/nav-user"
-import { Button } from "@/components/ui/button"
 
+// Ink 37 Tattoos navigation data
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "https://github.com/shadcn.png",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -64,7 +56,7 @@ const data = {
           icon: IconPhoto,
         },
         {
-          title: "Videos", 
+          title: "Videos",
           url: "/dashboard/media-management/videos",
           icon: IconVideo,
         },
@@ -79,17 +71,11 @@ const data = {
           title: "Appointments",
           url: "/dashboard/appointments",
           icon: IconListDetails,
-          hasQuickAction: true,
-          quickActionLabel: "New Appointment",
-          quickActionUrl: "/dashboard/appointments?action=create",
         },
         {
           title: "Customers",
-          url: "/dashboard/customers", 
+          url: "/dashboard/customers",
           icon: IconUsers,
-          hasQuickAction: true,
-          quickActionLabel: "New Customer",
-          quickActionUrl: "/dashboard/customers?action=create",
         },
       ],
     },
@@ -110,11 +96,6 @@ const data = {
         },
       ],
     },
-    {
-      title: "Settings",
-      url: "/dashboard/settings",
-      icon: IconSettings,
-    },
   ],
 }
 
@@ -123,43 +104,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard">
-                <div className="bg-brand-gradient text-white flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Image
-                    src="/logo.png"
-                    alt="Ink 37"
-                    width={24}
-                    height={24}
-                    className="object-contain"
-                  />
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-medium">Ink 37 Tattoos</span>
-                  <span className="text-xs">Admin Dashboard</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarHeader className="space-y-4 p-4">
+        <div className="pb-2 border-b border-sidebar-border">
+          <NavUser />
+        </div>
         <SearchForm />
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            {data.navMain.map((item, index) => {
-              const isActive = pathname === item.url || pathname.startsWith(item.url + "/")
+      <SidebarContent className="px-2">
+        <SidebarGroup className="py-4">
+          <SidebarMenu className="space-y-3">
+            {data.navMain.map((item, _index) => {
+              const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`)
               
               if (!item.items) {
                 // Single item without dropdown
                 return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive}>
+                  <SidebarMenuItem key={item.title} className="mb-1">
+                    <SidebarMenuButton asChild isActive={isActive} className="h-10 px-3 rounded-lg hover:bg-sidebar-accent/70 transition-colors">
                       <Link href={item.url} className="flex items-center gap-3">
-                        {item.icon && <item.icon className="w-4 h-4" />}
+                        {item.icon ? <item.icon className="w-4 h-4" /> : null}
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -172,43 +135,33 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <Collapsible
                   key={item.title}
                   defaultOpen={isActive}
-                  className="group/collapsible"
+                  className="group/collapsible mb-2"
                 >
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton>
-                        {item.icon && <item.icon className="w-4 h-4" />}
+                      <SidebarMenuButton className="h-10 px-3 rounded-lg hover:bg-sidebar-accent/70 transition-colors">
+                        {item.icon ? <item.icon className="w-4 h-4" /> : null}
                         {item.title}
                         <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
                         <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
+                    <CollapsibleContent className="pt-2">
+                      <SidebarMenuSub className="ml-4 space-y-1 border-l border-sidebar-border/50 pl-4">
                         {item.items.map((subItem) => {
                           const isSubActive = pathname === subItem.url
                           return (
-                            <SidebarMenuSubItem key={subItem.title}>
-                              <div className="flex items-center justify-between w-full">
-                                <SidebarMenuSubButton asChild isActive={isSubActive} className="flex-1">
-                                  <Link href={subItem.url} className="flex items-center gap-3">
-                                    {subItem.icon && <subItem.icon className="w-4 h-4" />}
-                                    <span>{subItem.title}</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                                {subItem.hasQuickAction && subItem.quickActionUrl && (
-                                  <Button
-                                    asChild
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-6 w-6 p-0 ml-2 transition-colors hover:bg-brand-gradient hover:text-white"
-                                  >
-                                    <Link href={subItem.quickActionUrl}>
-                                      <IconPlus className="h-3 w-3" />
-                                    </Link>
-                                  </Button>
-                                )}
-                              </div>
+                            <SidebarMenuSubItem key={subItem.title} className="py-0.5">
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={isSubActive}
+                                className="h-8 px-3 rounded-md hover:bg-sidebar-accent/50 transition-colors"
+                              >
+                                <Link href={subItem.url} className="flex items-center gap-3">
+                                  {subItem.icon ? <subItem.icon className="w-4 h-4 text-sidebar-foreground/70" /> : null}
+                                  <span>{subItem.title}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
                           )
                         })}
@@ -220,10 +173,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             })}
           </SidebarMenu>
         </SidebarGroup>
+        
+        {/* Settings at the bottom */}
+        <SidebarGroup className="mt-auto px-2 py-4 border-t border-sidebar-border/50">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="h-10 px-3 rounded-lg hover:bg-sidebar-accent/70 transition-colors">
+                <Link href="/dashboard/settings" className="flex items-center gap-3">
+                  <IconSettings className="w-4 h-4" />
+                  <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={data.user} />
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

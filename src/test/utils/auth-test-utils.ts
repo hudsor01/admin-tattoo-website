@@ -1,4 +1,4 @@
-import { type Mock, vi } from 'vitest';
+import { vi } from 'vitest';
 import type { Session, User } from '@/types/auth';
 
 /**
@@ -364,7 +364,7 @@ export function createMockRequest(
       'Content-Type': 'application/json',
       ...headers
     }),
-    json: async () => body || {}
+    json: () => Promise.resolve(body || {})
   };
 }
 
@@ -374,7 +374,7 @@ export function createMockRequest(
 export function createMockResponse(data: Record<string, unknown>, status: number = 200) {
   return {
     status,
-    json: async () => data,
+    json: () => Promise.resolve(data),
     headers: new Headers({
       'Content-Type': 'application/json'
     })
@@ -422,7 +422,7 @@ export const dbTestHelpers = {
    */
   async createTestUser(userData: Partial<User>) {
     const { prisma } = await import('@/lib/prisma');
-    return await prisma.user.create({
+    return prisma.user.create({
       data: {
         email: userData.email || 'test@example.com',
         name: userData.name || 'Test User',
@@ -439,7 +439,7 @@ export const dbTestHelpers = {
    */
   async createTestSession(userId: string, sessionData?: Partial<Session>) {
     const { prisma } = await import('@/lib/prisma');
-    return await prisma.session.create({
+    return prisma.session.create({
       data: {
         userId,
         token: sessionData?.token || `test-token-${Date.now()}`,
@@ -469,7 +469,7 @@ export const performanceHelpers = {
   /**
    * Create large dataset for performance testing
    */
-  async createLargeUserDataset(count: number = 100) {
+  createLargeUserDataset(count: number = 100) {
     const users: User[] = [];
     for (let i = 0; i < count; i++) {
       users.push({

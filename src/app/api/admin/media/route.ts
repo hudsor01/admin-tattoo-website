@@ -1,5 +1,4 @@
-import type { NextRequest} from 'next/server';
-import { NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client' // Import Prisma from @prisma/client
 import { SecurityPresets, withSecurityValidation } from '@/lib/api-validation'
@@ -41,7 +40,7 @@ interface SyncMediaItemPayload {
 }
 // End TODO
 
-const getMediaHandler = async (_request: NextRequest) => {
+const getMediaHandler = async (_request: NextRequest): Promise<NextResponse> => {
   try {
 
     // Get media items from TattooDesign table
@@ -87,7 +86,7 @@ const getMediaHandler = async (_request: NextRequest) => {
   }
 }
 
-const createMediaHandler = async (request: NextRequest) => {
+const createMediaHandler = async (request: NextRequest): Promise<NextResponse> => {
   try {
 
     const body = await request.json()
@@ -224,6 +223,33 @@ const createMediaHandler = async (request: NextRequest) => {
   }
 }
 
+const deleteMediaHandler = async (request: NextRequest): Promise<NextResponse> => {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json(
+        createErrorResponse('Media item ID is required'),
+        { status: 400 }
+      )
+    }
+
+    // Delete the media item from database
+    await prisma.tattoo_designs.delete({
+      where: { id }
+    })
+
+    return NextResponse.json(createSuccessResponse({ message: 'Media item deleted successfully' }))
+  } catch (error) {
+    logger.error('Delete media error', error)
+    return NextResponse.json(
+      createErrorResponse('Failed to delete media item'),
+      { status: 500 }
+    )
+  }
+}
+
 // Apply security validation
 export const GET = withSecurityValidation({
   ...SecurityPresets.MEDIA_READ
@@ -233,8 +259,12 @@ export const POST = withSecurityValidation({
   ...SecurityPresets.MEDIA_UPLOAD
 })(createMediaHandler)
 
+export const DELETE = withSecurityValidation({
+  ...SecurityPresets.MEDIA_DELETE
+})(deleteMediaHandler)
+
 // Function to sync media to main website
-async function syncToMainWebsite(mediaItem: SyncMediaItemPayload, type: string) {
+async function syncToMainWebsite(mediaItem: SyncMediaItemPayload, type: string): Promise<{ success: boolean; data?: unknown }> {
   const mainWebsiteApiUrl = process.env.MAIN_WEBSITE_API_URL || 'https://ink37tattoos.com/api'
   const syncEndpoint = `${mainWebsiteApiUrl}/gallery/sync`
 
@@ -267,5 +297,5 @@ async function syncToMainWebsite(mediaItem: SyncMediaItemPayload, type: string) 
     throw new Error(`Failed to sync to main website: ${response.status} ${response.statusText}`)
   }
 
-  return await response.json()
+  return response.json()
 }

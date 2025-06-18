@@ -61,9 +61,9 @@ export default function QuickActionsCard() {
 
   return (
     <div className="space-y-3">
-      {quickActions.map((action, index) => (
+      {quickActions.map((action) => (
         <Button
-          key={index}
+          key={`action-${action.title.toLowerCase().replace(/\s+/g, '-')}`}
           asChild
           variant={action.variant}
           className="w-full justify-start h-auto p-4"

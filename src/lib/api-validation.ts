@@ -1,7 +1,5 @@
-import type { NextRequest} from 'next/server';
-import { NextResponse } from 'next/server';
-import type { ZodSchema } from 'zod';
-import { z } from 'zod';
+import { type NextRequest, NextResponse } from 'next/server';
+import { type ZodSchema, z } from 'zod';
 import { createErrorResponse } from './api-core';
 
 export interface ValidationConfig {
@@ -167,9 +165,26 @@ export const ValidationPresets = {
     maxBodySize: 10 * 1024 * 1024 // 10MB
   },
 
+  MEDIA_DELETE: {
+    allowedMethods: ['DELETE'] as const,
+  },
+
   SYSTEM_ADMIN: {
     allowedMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const,
     maxBodySize: 10 * 1024 * 1024 // 10MB
+  },
+
+  REPORTS_READ: {
+    allowedMethods: ['GET'] as const,
+  },
+
+  SETTINGS_READ: {
+    allowedMethods: ['GET'] as const,
+  },
+
+  SETTINGS_WRITE: {
+    allowedMethods: ['PUT'] as const,
+    maxBodySize: 1 * 1024 * 1024 // 1MB
   }
 } as const;
 
@@ -212,7 +227,7 @@ export async function validateFileContent(file: File): Promise<{ isValid: boolea
     }
 
     return { isValid: true };
-  } catch (error) {
+  } catch {
     return { isValid: false, error: 'Failed to validate file content' };
   }
 }

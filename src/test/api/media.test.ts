@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/admin/media/route'
 import { POST as syncPOST } from '@/app/api/admin/media/sync/route'
 import { prisma } from '@/lib/prisma'
-import { toast } from 'sonner'
+import { toast as _toast } from 'sonner'
 
 // Mock dependencies
 vi.mock('@/lib/prisma', () => ({
@@ -242,7 +242,7 @@ describe('Media API Routes', () => {
       
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ success: true }),
+        json: () => Promise.resolve({ success: true }),
       })
       
       const body = {
@@ -396,7 +396,7 @@ describe('Media API Routes', () => {
       })
       
       const response = await POST(request)
-      const data = await response.json()
+      const _data = await response.json()
       
       expect(response.status).toBe(201)
       

@@ -1,17 +1,21 @@
 "use client"
 
-import { useRef, useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useEffect, useRef, useState } from "react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { ImageIcon, Upload, Video, X } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Progress } from "@/components/ui/progress"
+import { Checkbox } from "@/components/ui/checkbox"
+import { CheckCircle2, FileImage, FileVideo, ImageIcon, Loader2, Upload, Video, X } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { PutBlobResult } from '@vercel/blob'
 import { useUIStore } from "@/stores/ui-store"
+import { cn } from "@/lib/utils"
 
 interface MediaUploadDialogProps {
   // Legacy props for backward compatibility - now optional
@@ -55,6 +59,7 @@ export function MediaUploadDialog({
 
   const [uploadedBlob, setUploadedBlob] = useState<PutBlobResult | null>(null)
   const [dragActive, setDragActive] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [metadata, setMetadata] = useState<MediaMetadata>({
     title: '',
     description: '',
@@ -108,6 +113,7 @@ export function MediaUploadDialog({
   const resetForm = () => {
     setUploadedBlob(null)
     setDragActive(false)
+    setUploadProgress(0)
     setComponentLoading('media-upload', false)
     setMetadata({
       title: '',
@@ -181,15 +187,23 @@ export function MediaUploadDialog({
     }
 
     setComponentLoading('media-upload', true)
+    setUploadProgress(0)
 
+    // Use AbortController for better cleanup
+    const controller = new AbortController()
+    
     try {
+      // Start the actual upload
       const response = await fetch(
         `/api/upload?filename=${encodeURIComponent(file.name)}&type=media`,
         {
           method: 'POST',
           body: file,
+          signal: controller.signal,
         }
       )
+
+      setUploadProgress(100)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -201,19 +215,60 @@ export function MediaUploadDialog({
       
       // Auto-fill title with filename (without extension)
       if (!metadata.title) {
-        const titleFromFile = file.name.replace(/\.[^/.]+$/, "")
+        const titleFromFile = file.name.replace(/\.[^/.]+$/, '')
         setMetadata(prev => ({ ...prev, title: titleFromFile }))
       }
       
       toast.success('File uploaded successfully!')
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload failed'
-      toast.error(`Upload failed: ${errorMessage}`)
+      if (controller.signal.aborted) {
+        toast.error('Upload cancelled')
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+        toast.error(`Upload failed: ${errorMessage}`)
+      }
+      setUploadProgress(0)
     } finally {
       setComponentLoading('media-upload', false)
     }
   }
+
+  // Use useEffect for upload progress simulation with AbortController
+  useEffect(() => {
+    if (!isUploading) return undefined
+
+    const controller = new AbortController()
+    let rafId: number
+
+    const simulateProgress = () => {
+      if (controller.signal.aborted) return
+
+      setUploadProgress(prev => {
+        if (prev >= 90) return prev
+        return prev + Math.random() * 15
+      })
+
+      // Continue animation if not aborted
+      if (!controller.signal.aborted) {
+        rafId = requestAnimationFrame(() => {
+          setTimeout(simulateProgress, 200)
+        })
+      }
+    }
+
+    // Start the simulation
+    rafId = requestAnimationFrame(() => {
+      setTimeout(simulateProgress, 200)
+    })
+
+    return () => {
+      controller.abort()
+      if (rafId) {
+        cancelAnimationFrame(rafId)
+      }
+    }
+  }, [isUploading])
 
   const addTag = () => {
     if (tagInput.trim() && !metadata.tags.includes(tagInput.trim())) {
@@ -238,201 +293,285 @@ export function MediaUploadDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-background text-foreground">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {currentUploadType === 'photo' ? (
-              <ImageIcon className="h-5 w-5" />
-            ) : (
-              <Video className="h-5 w-5" />
-            )}
-            Upload {currentUploadType === 'photo' ? 'Photo' : 'Video'}
+      <DialogContent className={cn(
+        "sm:max-w-2xl max-h-[90vh] overflow-hidden p-0",
+        "bg-white dark:bg-card text-gray-900 dark:text-card-foreground",
+        "shadow-2xl border border-gray-200 dark:border-border"
+      )}>
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-border/50">
+          <DialogTitle className="flex items-center gap-3 text-lg font-semibold">
+            <div className={cn(
+              "p-2 rounded-md",
+              "bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-sm"
+            )}>
+              {currentUploadType === 'photo' ? (
+                <ImageIcon className="h-4 w-4" />
+              ) : (
+                <Video className="h-4 w-4" />
+              )}
+            </div>
+            Add {currentUploadType === 'photo' ? 'Photo' : 'Video'} to Gallery
           </DialogTitle>
-          <DialogDescription>
-            Upload {currentUploadType === 'photo' ? 'photos' : 'videos'} that will sync to ink37tattoos.com/gallery
+          <DialogDescription className="text-sm text-muted-foreground">
+            Upload high-quality {currentUploadType === 'photo' ? 'photos' : 'videos'} to showcase on ink37tattoos.com
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Custom Drag & Drop Upload Zone */}
-          <div
-            className={`
-              border-2 border-dashed rounded-lg p-6 text-center transition-colors
-              ${dragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
-              ${uploadedBlob ? 'border-green-500 bg-green-50' : ''}
-              ${isUploading ? 'opacity-50' : 'hover:border-primary hover:bg-primary/5 cursor-pointer'}
-            `}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            onClick={() => !isUploading && fileInputRef.current?.click()}
-          >
-            {uploadedBlob ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-center gap-2">
-                  {currentUploadType === 'photo' ? (
-                    <ImageIcon className="h-8 w-8 text-green-600" />
-                  ) : (
-                    <Video className="h-8 w-8 text-green-600" />
-                  )}
-                  <span className="font-medium text-green-700">File uploaded successfully!</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {uploadedBlob.pathname}
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setUploadedBlob(null);
-                  }}
-                >
-                  <X className="h-4 w-4 mr-1" />
-                  Remove
-                </Button>
-              </div>
-            ) : isUploading ? (
-              <div className="space-y-2">
-                <Upload className="mx-auto h-12 w-12 text-muted-foreground animate-pulse" />
-                <p className="text-lg font-medium">Uploading...</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
-                <div>
-                  <p className="text-lg font-medium">
-                    Drop your {currentUploadType} here, or{' '}
-                    <span className="text-primary hover:underline">browse</span>
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {currentUploadType === 'photo' 
-                      ? 'JPEG, PNG, WebP up to 4.5MB'
-                      : 'MP4, MOV, WebM up to 4.5MB'
-                    }
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            accept={acceptedTypes}
-            onChange={handleFileUpload}
-          />
-
-          {/* Metadata Form */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                value={metadata.title}
-                onChange={(e) => setMetadata(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Enter title"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="style">Style</Label>
-              <Input
-                id="style"
-                value={metadata.style}
-                onChange={(e) => setMetadata(prev => ({ ...prev, style: e.target.value }))}
-                placeholder="e.g. Traditional, Realism, Blackwork"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={metadata.description}
-              onChange={(e) => setMetadata(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Describe the tattoo work..."
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="tags">Tags</Label>
-            <div className="flex gap-2">
-              <Input
-                id="tags"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="Add tags..."
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6">
+            {/* Upload Zone */}
+            <div className={cn(
+              "border-2 border-dashed rounded-lg transition-all duration-200",
+              dragActive && "border-primary bg-primary/5",
+              uploadedBlob && "border-green-500 bg-green-50 dark:bg-green-950/20",
+              !uploadedBlob && !dragActive && "border-gray-300 dark:border-gray-600 hover:border-primary",
+              isUploading && "border-orange-400 bg-orange-50 dark:bg-orange-950/20"
+            )}>
+              <div 
+                className={cn(
+                  "p-8 text-center cursor-pointer transition-colors",
+                  !isUploading && "hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                )}
+                role="button"
+                tabIndex={0}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => !isUploading && fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if ((e.key === 'Enter' || e.key === ' ') && !isUploading) {
                     e.preventDefault()
-                    addTag()
+                    fileInputRef.current?.click()
                   }
                 }}
-              />
-              <Button type="button" onClick={addTag} variant="outline">
-                Add
-              </Button>
+              >
+                {uploadedBlob ? (
+                  <div className="space-y-3">
+                    <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
+                    <div>
+                      <p className="font-medium text-green-700 dark:text-green-300">
+                        File uploaded successfully
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {uploadedBlob.pathname}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setUploadedBlob(null);
+                        setUploadProgress(0);
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Remove
+                    </Button>
+                  </div>
+                ) : isUploading ? (
+                  <div className="space-y-4">
+                    <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto" />
+                    <div>
+                      <p className="font-medium">Uploading...</p>
+                      <div className="mt-3 max-w-xs mx-auto">
+                        <Progress value={uploadProgress} className="h-2" />
+                        <p className="text-xs text-muted-foreground text-center mt-1">
+                          {uploadProgress.toFixed(0)}% complete
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {currentUploadType === 'photo' ? (
+                      <FileImage className="h-12 w-12 text-muted-foreground mx-auto" />
+                    ) : (
+                      <FileVideo className="h-12 w-12 text-muted-foreground mx-auto" />
+                    )}
+                    <div>
+                      <p className="font-medium text-foreground">
+                        Drop your {currentUploadType} here, or{' '}
+                        <span className="text-primary underline cursor-pointer">browse files</span>
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {currentUploadType === 'photo' 
+                          ? 'JPEG, PNG, WebP • Max 4.5MB'
+                          : 'MP4, MOV, WebM • Max 4.5MB'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            {metadata.tags.length > 0 ? <div className="flex flex-wrap gap-2 mt-2">
-                {metadata.tags.map((tag, index) => (
-                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                    {tag}
-                    <X
-                      className="h-3 w-3 cursor-pointer"
-                      onClick={() => removeTag(tag)}
-                    />
-                  </Badge>
-                ))}
-              </div> : null}
-          </div>
 
-          <div className="flex items-center space-x-2">
             <input
-              type="checkbox"
-              id="sync"
-              checked={metadata.syncToWebsite}
-              onChange={(e) => setMetadata(prev => ({ ...prev, syncToWebsite: e.target.checked }))}
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept={acceptedTypes}
+              onChange={handleFileUpload}
             />
-            <Label htmlFor="sync">
-              Sync to ink37tattoos.com gallery (recommended)
-            </Label>
-          </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={saveMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSave}
-              disabled={!uploadedBlob || !metadata.title.trim() || saveMutation.isPending}
-              className="bg-brand-gradient-hover"
-            >
-              {saveMutation.isPending ? (
-                <>
-                  <Upload className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Save {currentUploadType === 'photo' ? 'Photo' : 'Video'}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
+            {/* Form Section */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-base mb-1">Media Details</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add information to help showcase your work
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title" className="text-sm font-medium">
+                    Title <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="title"
+                    value={metadata.title}
+                    onChange={(e) => setMetadata(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder={currentUploadType === 'photo' ? "Dragon sleeve tattoo" : "Tattoo process video"}
+                    required
+                    className="h-9"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="style" className="text-sm font-medium">
+                    Style
+                  </Label>
+                  <Select value={metadata.style} onValueChange={(value) => setMetadata(prev => ({ ...prev, style: value }))}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Select style" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200 shadow-lg">
+                      <SelectItem value="traditional" className="hover:bg-gray-50 cursor-pointer">Traditional</SelectItem>
+                      <SelectItem value="realism" className="hover:bg-gray-50 cursor-pointer">Realism</SelectItem>
+                      <SelectItem value="blackwork" className="hover:bg-gray-50 cursor-pointer">Blackwork</SelectItem>
+                      <SelectItem value="watercolor" className="hover:bg-gray-50 cursor-pointer">Watercolor</SelectItem>
+                      <SelectItem value="neo-traditional" className="hover:bg-gray-50 cursor-pointer">Neo-Traditional</SelectItem>
+                      <SelectItem value="japanese" className="hover:bg-gray-50 cursor-pointer">Japanese</SelectItem>
+                      <SelectItem value="tribal" className="hover:bg-gray-50 cursor-pointer">Tribal</SelectItem>
+                      <SelectItem value="geometric" className="hover:bg-gray-50 cursor-pointer">Geometric</SelectItem>
+                      <SelectItem value="dotwork" className="hover:bg-gray-50 cursor-pointer">Dotwork</SelectItem>
+                      <SelectItem value="minimalist" className="hover:bg-gray-50 cursor-pointer">Minimalist</SelectItem>
+                      <SelectItem value="portrait" className="hover:bg-gray-50 cursor-pointer">Portrait</SelectItem>
+                      <SelectItem value="biomechanical" className="hover:bg-gray-50 cursor-pointer">Biomechanical</SelectItem>
+                      <SelectItem value="other" className="hover:bg-gray-50 cursor-pointer">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-sm font-medium">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    value={metadata.description}
+                    onChange={(e) => setMetadata(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Brief description..."
+                    rows={3}
+                    className="resize-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tags" className="text-sm font-medium">
+                    Tags
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="tags"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      placeholder="Add tags..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          addTag()
+                        }
+                      }}
+                      className="h-9 flex-1"
+                    />
+                    <Button 
+                      type="button" 
+                      onClick={addTag} 
+                      variant="outline"
+                      size="sm"
+                      className="h-9 px-3"
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  {metadata.tags.length > 0 ? <div className="flex flex-wrap gap-1 mt-2">
+                      {metadata.tags.map((tag) => (
+                        <Badge 
+                          key={`upload-tag-${tag.replace(/\s+/g, '-')}-${tag.length}`} 
+                          variant="secondary" 
+                          className="text-xs"
+                        >
+                          {tag}
+                          <X
+                            className="h-3 w-3 ml-1 cursor-pointer hover:text-destructive"
+                            onClick={() => removeTag(tag)}
+                          />
+                        </Badge>
+                      ))}
+                    </div> : null}
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border">
+                <Checkbox
+                  id="sync"
+                  checked={metadata.syncToWebsite}
+                  onCheckedChange={(checked) => setMetadata(prev => ({ ...prev, syncToWebsite: !!checked }))}
+                />
+                <Label htmlFor="sync" className="text-sm font-medium cursor-pointer flex-1">
+                  Publish to ink37tattoos.com gallery
+                  <span className="text-xs text-muted-foreground block font-normal">
+                    Make this {currentUploadType} visible on the public website
+                  </span>
+                </Label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between p-6 border-t border-gray-100 dark:border-border/50 bg-gray-50/50 dark:bg-gray-800/20">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => handleOpenChange(false)}
+            disabled={saveMutation.isPending}
+            className="px-4"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={!uploadedBlob || !metadata.title.trim() || saveMutation.isPending}
+            className="px-6"
+          >
+            {saveMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Save {currentUploadType === 'photo' ? 'Photo' : 'Video'}
+              </>
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

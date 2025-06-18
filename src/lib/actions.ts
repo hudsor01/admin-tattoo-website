@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "./auth";
 import { prisma } from "./prisma";
 import { APIError } from "better-auth/api";
+import { logger } from "./logger";
 
 interface State {
   errorMessage?: string | null;
@@ -24,7 +25,7 @@ export async function signIn(prevState: State, formData: FormData) {
         password,
       },
     });
-    console.log("Signed in");
+    logger.info("User signed in successfully");
   } catch (error) {
     if (error instanceof APIError) {
       switch (error.status) {

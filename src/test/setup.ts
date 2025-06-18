@@ -43,7 +43,7 @@ Object.defineProperty(global, 'crypto', {
 })
 
 // Mock fetch with proper API responses
-global.fetch = vi.fn((url: string | URL, options?: RequestInit) => {
+global.fetch = vi.fn((url: string | URL, _options?: RequestInit) => {
   const urlStr = typeof url === 'string' ? url : url.toString()
   
   // Create standard API response format

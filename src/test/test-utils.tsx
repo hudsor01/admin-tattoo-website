@@ -1,6 +1,5 @@
 import React, { type ReactElement } from 'react';
-import type { RenderOptions } from '@testing-library/react';
-import { render } from '@testing-library/react'
+import { type RenderOptions, render } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthUIProvider } from '@daveyplate/better-auth-ui'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -184,7 +183,7 @@ export function mockFetchResponse(data: Record<string, unknown>, ok = true, stat
 }
 
 // Helper to mock fetch error
-export function mockFetchError(message = 'Network error', status = 500) {
+export function mockFetchError(message = 'Network error', _status = 500) {
   return vi.fn().mockRejectedValue(new Error(message))
 }
 

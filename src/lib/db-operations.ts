@@ -1,18 +1,12 @@
 import { prisma } from './prisma'
 import type { Prisma } from '@prisma/client'
 import type {
-  AppointmentFilters,
-  AppointmentResponse,
-  AppointmentWithClient,
   ClientFilters,
   ClientResponse,
-  CreateAppointmentData,
-  CreateClientData,
   PaginatedResponse
 } from '@/types/database'
-import type { DashboardStats } from '@/types/dashboard'
 import { ApiError } from './api-core'
-// Production-ready LRU cache implementation
+
 interface CacheEntry<T> {
   data: T
   timestamp: number
@@ -24,7 +18,7 @@ class ProductionCache<T> {
   private cache = new Map<string, CacheEntry<T>>()
   private readonly maxSize: number
   private readonly defaultTtl: number
-  
+
   constructor(maxSize: number = 1000, defaultTtl: number = 5 * 60 * 1000) {
     this.maxSize = maxSize
     this.defaultTtl = defaultTtl
@@ -40,7 +34,6 @@ class ProductionCache<T> {
       return null
     }
 
-    // Update access tracking for LRU
     entry.lastAccessed = now
     entry.accessCount++
     return entry.data
@@ -48,12 +41,9 @@ class ProductionCache<T> {
 
   set(key: string, data: T): void {
     const now = Date.now()
-    
-    // Evict old entries if at capacity
     if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
       this.evictLeastRecentlyUsed()
     }
-
     this.cache.set(key, {
       data,
       timestamp: now,
@@ -65,14 +55,12 @@ class ProductionCache<T> {
   private evictLeastRecentlyUsed(): void {
     let oldestKey: string | null = null
     let oldestTime = Date.now()
-
     for (const [key, entry] of this.cache.entries()) {
       if (entry.lastAccessed < oldestTime) {
         oldestTime = entry.lastAccessed
         oldestKey = key
       }
     }
-
     if (oldestKey) {
       this.cache.delete(oldestKey)
     }
@@ -86,7 +74,6 @@ class ProductionCache<T> {
     return this.cache.size
   }
 
-  // Cleanup expired entries
   cleanup(): void {
     const now = Date.now()
     for (const [key, entry] of this.cache.entries()) {
@@ -97,53 +84,30 @@ class ProductionCache<T> {
   }
 }
 
-// Global cache instance with production settings  
-const dbCache = new ProductionCache<Record<string, unknown>>(1000, 5 * 60 * 1000) // 1000 entries, 5 min TTL
-
-// Export for testing
+const dbCache = new ProductionCache<Record<string, unknown>>(1000, 5 * 60 * 1000)
 export const clearCache = () => dbCache.clear()
 
-// Cache TTL constants
 const CACHE_TTL = {
-  DASHBOARD_STATS: 5 * 60 * 1000, // 5 minutes
-  RECENT_APPOINTMENTS: 2 * 60 * 1000, // 2 minutes
-  CUSTOMER_LIST: 3 * 60 * 1000, // 3 minutes
-  APPOINTMENT_LIST: 2 * 60 * 1000, // 2 minutes
+  DASHBOARD_STATS: 5 * 60 * 1000,
+  RECENT_APPOINTMENTS: 2 * 60 * 1000,
+  CUSTOMER_LIST: 3 * 60 * 1000,
+  APPOINTMENT_LIST: 2 * 60 * 1000,
 } as const
 
-function withCache<T>(
-  fn: () => Promise<T>, 
-  keyFn: () => string, 
+async function _withCache<T extends Record<string, unknown>>(
+  fn: () => Promise<T>,
+  keyFn: () => string,
   ttl: number = CACHE_TTL.DASHBOARD_STATS
 ): Promise<T> {
   const key = keyFn()
-  const cached = dbCache.get(key, ttl)
-  
+  const cached = dbCache.get(key, ttl) as T | null
   if (cached !== null) {
-    return Promise.resolve(cached)
+    return cached
   }
-  
-  return fn().then(data => {
-    dbCache.set(key, data)
-    return data
-  }).catch(error => {
-    // Don't cache errors
-    throw error
-  })
+  const data = await fn()
+  dbCache.set(key, data)
+  return data
 }
-
-// Periodic cleanup to prevent memory leaks
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    dbCache.cleanup()
-  }, 10 * 60 * 1000) // Cleanup every 10 minutes
-}
-
-// Legacy type aliases for backward compatibility
-type CreateCustomer = CreateClientData
-type CustomerFilter = ClientFilters
-type CreateAppointment = CreateAppointmentData
-type AppointmentFilter = AppointmentFilters
 
 // Input sanitization helper
 function sanitizeSearchInput(input: string): string {
@@ -155,13 +119,100 @@ function sanitizeSearchInput(input: string): string {
     .trim()
 }
 
+// Customer creation function
+export async function createCustomer(customerData: {
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string
+  dateOfBirth?: string
+  address?: string
+  emergencyContact?: string
+  medicalConditions?: string
+  allergies?: string
+  notes?: string
+}): Promise<{
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  dateOfBirth: Date
+  emergencyName: string
+  emergencyPhone: string
+  emergencyRel: string
+  allergies: string[]
+  medicalConds: string[]
+  preferredArtist: string | null
+  createdAt: Date
+  updatedAt: Date
+}> {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      dateOfBirth,
+      emergencyContact,
+      medicalConditions,
+      allergies
+    } = customerData
+
+    // Check if customer already exists
+    const existingCustomer = await prisma.clients.findUnique({
+      where: { email }
+    })
+
+    if (existingCustomer) {
+      throw new ApiError('Customer with this email already exists', 400)
+    }
+
+    // Create new customer
+    const customer = await prisma.clients.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        phone: phone || '',
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : new Date('1990-01-01'),
+        emergencyName: emergencyContact || '',
+        emergencyPhone: '',
+        emergencyRel: '',
+        allergies: allergies ? [allergies] : [],
+        medicalConds: medicalConditions ? [medicalConditions] : [],
+        preferredArtist: null
+      }
+    })
+
+    return {
+      id: customer.id,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      email: customer.email,
+      phone: customer.phone,
+      dateOfBirth: customer.dateOfBirth,
+      emergencyName: customer.emergencyName,
+      emergencyPhone: customer.emergencyPhone,
+      emergencyRel: customer.emergencyRel,
+      allergies: customer.allergies,
+      medicalConds: customer.medicalConds,
+      preferredArtist: customer.preferredArtist,
+      createdAt: customer.createdAt,
+      updatedAt: customer.updatedAt
+    }
+  } catch (err) {
+    console.error('createCustomer error:', err)
+    if (err instanceof ApiError) throw err
+    throw new ApiError('Failed to create customer', 500)
+  }
+}
 
 // Customer operations
-export async function getCustomers(filters: CustomerFilter): Promise<PaginatedResponse<ClientResponse>> {
+export async function getCustomers(filters: ClientFilters): Promise<PaginatedResponse<ClientResponse>> {
   try {
     const { search, hasAppointments, limit, offset } = filters
-
-    const where: Prisma.ClientWhereInput = {}
+    const where: Prisma.clientsWhereInput = {}
 
     if (search) {
       const sanitizedSearch = sanitizeSearchInput(search)
@@ -176,15 +227,11 @@ export async function getCustomers(filters: CustomerFilter): Promise<PaginatedRe
     }
 
     if (hasAppointments !== undefined) {
-      if (hasAppointments) {
-        where.appointments = { some: {} }
-      } else {
-        where.appointments = { none: {} }
-      }
+      where.appointments = hasAppointments ? { some: {} } : { none: {} }
     }
 
     const [customers, total] = await Promise.all([
-      prisma.client.findMany({
+      prisma.clients.findMany({
         where,
         select: {
           id: true,
@@ -202,23 +249,22 @@ export async function getCustomers(filters: CustomerFilter): Promise<PaginatedRe
           createdAt: true,
           updatedAt: true,
           _count: {
-            select: { 
+            select: {
               appointments: true,
-              sessions: true 
+              tattoo_sessions: true
             }
           }
         },
         orderBy: [
           { createdAt: 'desc' },
-          { id: 'desc' } // Secondary sort for consistency
+          { id: 'desc' }
         ],
         take: limit,
         skip: offset
       }),
-      prisma.client.count({ where })
+      prisma.clients.count({ where })
     ])
 
-    // Transform the data to match expected format (optimized for list view)
     const transformedCustomers: ClientResponse[] = customers.map(client => ({
       id: client.id,
       firstName: client.firstName,
@@ -235,7 +281,7 @@ export async function getCustomers(filters: CustomerFilter): Promise<PaginatedRe
       createdAt: client.createdAt,
       updatedAt: client.updatedAt,
       appointments: [],
-      sessions: []
+      tattoo_sessions: []
     }))
 
     return {
@@ -248,254 +294,67 @@ export async function getCustomers(filters: CustomerFilter): Promise<PaginatedRe
         hasMore: (offset || 0) + (limit || 20) < total
       }
     }
-  } catch {
-    // Database error logged
+  } catch (err) {
+    console.error('getCustomers error:', err)
     throw new ApiError('Failed to fetch customers', 500)
   }
 }
 
-export async function getCustomerById(id: string) {
-  try {
-    const client = await prisma.client.findUnique({
-      where: { id },
-      include: {
-        appointments: {
-          include: {
-            artist: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
-          },
-          orderBy: { scheduledDate: 'desc' }
-        },
-        sessions: {
-          include: {
-            artist: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
-          },
-          orderBy: { appointmentDate: 'desc' }
-        },
-        _count: {
-          select: {
-            appointments: true,
-            sessions: true
-          }
-        }
-      }
-    })
-
-    if (!client) {
-      throw new ApiError('Customer not found', 404)
-    }
-
-    // Transform the data to match expected format
-    return {
-      id: client.id,
-      name: `${client.firstName} ${client.lastName}`,
-      firstName: client.firstName,
-      lastName: client.lastName,
-      email: client.email,
-      phone: client.phone,
-      dateOfBirth: client.dateOfBirth,
-      emergencyName: client.emergencyName,
-      emergencyPhone: client.emergencyPhone,
-      emergencyRel: client.emergencyRel,
-      allergies: client.allergies,
-      medicalConds: client.medicalConds,
-      preferredArtist: client.preferredArtist,
-      appointments: client.appointments,
-      sessions: client.sessions,
-      appointmentCount: client._count.appointments,
-      sessionCount: client._count.sessions,
-      createdAt: client.createdAt,
-      updatedAt: client.updatedAt
-    }
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError('Failed to fetch customer', 500)
-  }
-}
-
-export async function createCustomer(data: CreateCustomer) {
-  try {
-    const client = await prisma.client.create({
-      data: {
-        firstName: data.firstName || data.name?.split(' ')[0] || '',
-        lastName: data.lastName || data.name?.split(' ').slice(1).join(' ') || '',
-        email: data.email || '',
-        phone: data.phone || '',
-        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : data.birthDate ? new Date(data.birthDate) : new Date(),
-        emergencyName: data.emergencyName || '',
-        emergencyPhone: data.emergencyPhone || '',
-        emergencyRel: data.emergencyRel || '',
-        allergies: Array.isArray(data.allergies) ? data.allergies : data.allergies ? [data.allergies] : [],
-        medicalConds: data.medicalConds || [],
-        preferredArtist: data.preferredArtist
-      },
-      include: {
-        _count: {
-          select: {
-            appointments: true,
-            sessions: true
-          }
-        }
-      }
-    })
-
-    // Transform the data to match expected format
-    return {
-      id: client.id,
-      name: `${client.firstName} ${client.lastName}`,
-      firstName: client.firstName,
-      lastName: client.lastName,
-      email: client.email,
-      phone: client.phone,
-      dateOfBirth: client.dateOfBirth,
-      emergencyName: client.emergencyName,
-      emergencyPhone: client.emergencyPhone,
-      emergencyRel: client.emergencyRel,
-      allergies: client.allergies,
-      medicalConds: client.medicalConds,
-      preferredArtist: client.preferredArtist,
-      appointmentCount: client._count.appointments,
-      sessionCount: client._count.sessions,
-      createdAt: client.createdAt,
-      updatedAt: client.updatedAt
-    }
-  } catch {
-    // Database error logged
-    throw new ApiError('Failed to create customer', 500)
-  }
-}
-
-export async function updateCustomer(id: string, data: Partial<CreateCustomer>) {
-  try {
-    const updateData: Prisma.ClientUpdateInput = {}
-
-    if (data.firstName) updateData.firstName = data.firstName
-    if (data.lastName) updateData.lastName = data.lastName
-    if (data.name && !data.firstName && !data.lastName) {
-      updateData.firstName = data.name.split(' ')[0] || ''
-      updateData.lastName = data.name.split(' ').slice(1).join(' ') || ''
-    }
-    if (data.email) updateData.email = data.email
-    if (data.phone) updateData.phone = data.phone
-    if (data.dateOfBirth) updateData.dateOfBirth = new Date(data.dateOfBirth)
-    if (data.emergencyName !== undefined) updateData.emergencyName = data.emergencyName
-    if (data.emergencyPhone !== undefined) updateData.emergencyPhone = data.emergencyPhone
-    if (data.emergencyRel !== undefined) updateData.emergencyRel = data.emergencyRel
-    if (data.allergies !== undefined) {
-      updateData.allergies = Array.isArray(data.allergies) ? data.allergies : [data.allergies]
-    }
-    if (data.medicalConds !== undefined) updateData.medicalConds = data.medicalConds
-    if (data.preferredArtist !== undefined) updateData.preferredArtist = data.preferredArtist
-
-    const client = await prisma.client.update({
-      where: { id },
-      data: updateData,
-      include: {
-        _count: {
-          select: {
-            appointments: true,
-            sessions: true
-          }
-        }
-      }
-    })
-
-    // Transform the data to match expected format
-    return {
-      id: client.id,
-      name: `${client.firstName} ${client.lastName}`,
-      firstName: client.firstName,
-      lastName: client.lastName,
-      email: client.email,
-      phone: client.phone,
-      dateOfBirth: client.dateOfBirth,
-      emergencyName: client.emergencyName,
-      emergencyPhone: client.emergencyPhone,
-      emergencyRel: client.emergencyRel,
-      allergies: client.allergies,
-      medicalConds: client.medicalConds,
-      preferredArtist: client.preferredArtist,
-      appointmentCount: client._count.appointments,
-      sessionCount: client._count.sessions,
-      createdAt: client.createdAt,
-      updatedAt: client.updatedAt
-    }
-  } catch {
-    // Database error logged
-    throw new ApiError('Failed to update customer', 500)
-  }
-}
-
-export async function deleteCustomer(id: string): Promise<void> {
-  try {
-    // Check if customer has appointments
-    const appointmentCount = await prisma.appointment.count({
-      where: { clientId: id }
-    })
-
-    if (appointmentCount > 0) {
-      throw new ApiError('Cannot delete customer with existing appointments', 400)
-    }
-
-    // Check if customer has sessions
-    const sessionCount = await prisma.tattoo_sessions.count({
-      where: { clientId: id }
-    })
-
-    if (sessionCount > 0) {
-      throw new ApiError('Cannot delete customer with existing sessions', 400)
-    }
-
-    await prisma.client.delete({
-      where: { id }
-    })
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError('Failed to delete customer', 500)
-  }
-}
-
 // Appointment operations
-export async function getAppointments(filters: AppointmentFilter): Promise<PaginatedResponse<Record<string, unknown>>> {
+export async function getAppointments(filters: {
+  status?: string[]
+  startDate?: string
+  endDate?: string
+  customerId?: string
+  limit?: number
+  offset?: number
+}): Promise<PaginatedResponse<{
+  id: string
+  clientId: string
+  customerId: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  type: string
+  status: string
+  appointmentDate: Date
+  startDate: Date
+  duration: number
+  estimatedDuration: number
+  notes: string | null
+  artistId: string
+  artistName: string
+  createdAt: Date
+  updatedAt: Date
+}>> {
   try {
-    const { status, dateFrom, dateTo, clientId, limit = 20, page = 1 } = filters
-    const offset = (page - 1) * limit
-
-    const where: Prisma.AppointmentWhereInput = {}
+    const { status, startDate, endDate, customerId, limit = 20, offset = 0 } = filters
+    const where: Prisma.appointmentsWhereInput = {}
 
     if (status && status.length > 0) {
-      where.status = { in: status }
+      where.status = { in: status as Prisma.EnumAppointmentStatusFilter['in'] }
     }
 
-    if (dateFrom) {
-      where.scheduledDate = { gte: new Date(dateFrom) }
-    }
-
-    if (dateTo) {
-      where.scheduledDate = {
-        ...(where.scheduledDate as Prisma.DateTimeFilter || {}),
-        lte: new Date(dateTo)
+    if (startDate || endDate) {
+      where.scheduledDate = {}
+      if (startDate) {
+        where.scheduledDate.gte = new Date(startDate)
+      }
+      if (endDate) {
+        where.scheduledDate.lte = new Date(endDate)
       }
     }
 
-    if (clientId) {
-      where.clientId = clientId
+    if (customerId) {
+      where.clientId = customerId
     }
 
     const [appointments, total] = await Promise.all([
-      prisma.appointment.findMany({
+      prisma.appointments.findMany({
         where,
         include: {
-          client: {
+          clients: {
             select: {
               id: true,
               firstName: true,
@@ -504,7 +363,7 @@ export async function getAppointments(filters: AppointmentFilter): Promise<Pagin
               phone: true
             }
           },
-          artist: {
+          tattoo_artists: {
             select: {
               id: true,
               name: true,
@@ -512,33 +371,38 @@ export async function getAppointments(filters: AppointmentFilter): Promise<Pagin
             }
           }
         },
-        orderBy: { scheduledDate: 'desc' },
+        orderBy: [
+          { scheduledDate: 'desc' },
+          { id: 'desc' }
+        ],
         take: limit,
         skip: offset
       }),
-      prisma.appointment.count({ where })
+      prisma.appointments.count({ where })
     ])
-
-    // Transform the data to match expected format
-    const transformedAppointments = appointments.map(appointment => ({
-      id: appointment.id,
-      clientId: appointment.clientId,
-      artistId: appointment.artistId,
-      scheduledDate: appointment.scheduledDate,
-      duration: appointment.duration,
-      status: appointment.status,
-      type: appointment.type,
-      notes: appointment.notes,
-      reminderSent: appointment.reminderSent,
-      createdAt: appointment.createdAt,
-      updatedAt: appointment.updatedAt,
-      client: appointment.client,
-      artist: appointment.artist
-    }))
 
     return {
       success: true,
-      data: transformedAppointments,
+      data: appointments.map(appointment => ({
+        id: appointment.id,
+        clientId: appointment.clientId,
+        customerId: appointment.clientId, // alias for compatibility
+        firstName: appointment.clients.firstName,
+        lastName: appointment.clients.lastName,
+        email: appointment.clients.email,
+        phone: appointment.clients.phone,
+        type: appointment.type,
+        status: appointment.status,
+        appointmentDate: appointment.scheduledDate,
+        startDate: appointment.scheduledDate, // alias for compatibility
+        duration: appointment.duration,
+        estimatedDuration: appointment.duration, // alias for compatibility
+        notes: appointment.notes,
+        artistId: appointment.artistId,
+        artistName: appointment.tattoo_artists.name,
+        createdAt: appointment.createdAt,
+        updatedAt: appointment.updatedAt
+      })),
       pagination: {
         total,
         limit,
@@ -546,116 +410,123 @@ export async function getAppointments(filters: AppointmentFilter): Promise<Pagin
         hasMore: offset + limit < total
       }
     }
-  } catch {
-    // Database error logged
+  } catch (err) {
+    console.error('getAppointments error:', err)
     throw new ApiError('Failed to fetch appointments', 500)
   }
 }
 
-export async function getAppointmentById(id: string) {
+export async function createAppointment(appointmentData: {
+  clientId?: string
+  customerId?: string
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string
+  type: 'CONSULTATION' | 'TATTOO_SESSION' | 'TOUCH_UP' | 'REMOVAL'
+  description?: string
+  appointmentDate: Date
+  startDate?: Date
+  notes?: string
+  estimatedDuration?: number
+  duration?: number
+  artistId?: string
+  status?: 'SCHEDULED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+}): Promise<{
+  id: string
+  clientId: string
+  customerId: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  type: string
+  status: string
+  appointmentDate: Date
+  startDate: Date
+  duration: number
+  estimatedDuration: number
+  notes: string | null
+  artistId: string
+  artistName: string
+  createdAt: Date
+  updatedAt: Date
+}> {
   try {
-    const appointment = await prisma.appointment.findUnique({
-      where: { id },
-      include: {
-        client: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true
+    const {
+      clientId: providedClientId,
+      customerId,
+      firstName,
+      lastName,
+      email,
+      phone,
+      type,
+      appointmentDate,
+      startDate,
+      notes,
+      description,
+      estimatedDuration,
+      duration,
+      artistId: providedArtistId,
+      status
+    } = appointmentData
+
+    let clientId = providedClientId || customerId
+
+    // If no client ID provided, try to find existing client by email
+    if (!clientId) {
+      const existingClient = await prisma.clients.findUnique({
+        where: { email }
+      })
+      
+      if (existingClient) {
+        clientId = existingClient.id
+      } else {
+        // Create new client
+        const newClient = await prisma.clients.create({
+          data: {
+            firstName,
+            lastName,
+            email,
+            phone: phone || '',
+            dateOfBirth: new Date('1990-01-01'), // Default date, should be updated
+            emergencyName: '',
+            emergencyPhone: '',
+            emergencyRel: '',
+            allergies: [],
+            medicalConds: [],
+            preferredArtist: providedArtistId
           }
-        },
-        artist: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
+        })
+        clientId = newClient.id
       }
-    })
-
-    if (!appointment) {
-      throw new ApiError('Appointment not found', 404)
     }
 
-    // Transform the data to match expected format
-    return {
-      id: appointment.id,
-      title: `${appointment.type} - ${appointment.client.firstName} ${appointment.client.lastName}`,
-      status: appointment.status.toLowerCase(),
-      scheduledDate: appointment.scheduledDate,
-      duration: appointment.duration,
-      type: appointment.type,
-      notes: appointment.notes,
-      customer: {
-        id: appointment.client.id,
-        name: `${appointment.client.firstName} ${appointment.client.lastName}`,
-        email: appointment.client.email,
-        phone: appointment.client.phone
-      },
-      artist: appointment.artist,
-      createdAt: appointment.createdAt,
-      updatedAt: appointment.updatedAt
-    }
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError('Failed to fetch appointment', 500)
-  }
-}
-
-export async function createAppointment(data: CreateAppointment) {
-  try {
-    // Verify client exists
-    const client = await prisma.client.findUnique({
-      where: { id: data.clientId || data.customerId }
-    })
-
-    if (!client) {
-      throw new ApiError('Client not found', 404)
-    }
-
-    // Get Fernando's artist ID (only one artist in the system)
-    const artist = await prisma.tattoo_artists.findFirst({
-      where: { name: 'Fernando Govea' }
-    })
-
-    if (!artist) {
-      throw new ApiError('Artist not found', 404)
-    }
-
-    // Check for scheduling conflicts
-    const scheduledDate = new Date(data.appointmentDate)
-    const endDate = new Date(scheduledDate.getTime() + (data.estimatedDuration || 60) * 60 * 1000)
-
-    const conflictingAppointment = await prisma.appointment.findFirst({
-      where: {
-        artistId: artist.id,
-        status: { notIn: ['CANCELLED', 'COMPLETED'] },
-        scheduledDate: {
-          gte: scheduledDate,
-          lt: endDate
-        }
+    // Get a default artist if none provided
+    let artistId = providedArtistId
+    if (!artistId) {
+      const firstArtist = await prisma.tattoo_artists.findFirst({
+        where: { isActive: true }
+      })
+      if (!firstArtist) {
+        throw new ApiError('No active artists available', 400)
       }
-    })
-
-    if (conflictingAppointment) {
-      throw new ApiError('Time slot is already booked', 400)
+      artistId = firstArtist.id
     }
 
-    const appointment = await prisma.appointment.create({
+    const appointment = await prisma.appointments.create({
       data: {
-        clientId: data.clientId || data.customerId!,
-        artistId: artist.id,
-        scheduledDate,
-        duration: data.estimatedDuration || 60,
-        status: 'SCHEDULED',
-        type: data.type,
-        notes: data.notes
+        clientId,
+        artistId,
+        scheduledDate: appointmentDate || startDate || new Date(),
+        duration: duration || estimatedDuration || 60,
+        type,
+        status: status || 'SCHEDULED',
+        notes: notes || description,
+        reminderSent: false
       },
       include: {
-        client: {
+        clients: {
           select: {
             id: true,
             firstName: true,
@@ -664,7 +535,7 @@ export async function createAppointment(data: CreateAppointment) {
             phone: true
           }
         },
-        artist: {
+        tattoo_artists: {
           select: {
             id: true,
             name: true,
@@ -674,218 +545,319 @@ export async function createAppointment(data: CreateAppointment) {
       }
     })
 
-    // Transform the data to match expected format
     return {
       id: appointment.id,
-      title: `${appointment.type} - ${appointment.client.firstName} ${appointment.client.lastName}`,
-      status: appointment.status.toLowerCase(),
-      scheduledDate: appointment.scheduledDate,
-      duration: appointment.duration,
+      clientId: appointment.clientId,
+      customerId: appointment.clientId,
+      firstName: appointment.clients.firstName,
+      lastName: appointment.clients.lastName,
+      email: appointment.clients.email,
+      phone: appointment.clients.phone,
       type: appointment.type,
+      status: appointment.status,
+      appointmentDate: appointment.scheduledDate,
+      startDate: appointment.scheduledDate,
+      duration: appointment.duration,
+      estimatedDuration: appointment.duration,
       notes: appointment.notes,
-      customer: {
-        id: appointment.client.id,
-        name: `${appointment.client.firstName} ${appointment.client.lastName}`,
-        email: appointment.client.email,
-        phone: appointment.client.phone
-      },
-      artist: appointment.artist,
+      artistId: appointment.artistId,
+      artistName: appointment.tattoo_artists.name,
       createdAt: appointment.createdAt,
       updatedAt: appointment.updatedAt
     }
-  } catch (error) {
-    if (error instanceof ApiError) throw error
+  } catch (err) {
+    console.error('createAppointment error:', err)
+    if (err instanceof ApiError) throw err
     throw new ApiError('Failed to create appointment', 500)
   }
 }
 
-export async function updateAppointment(id: string, data: Partial<CreateAppointment>) {
+export async function updateAppointment(
+  id: string, 
+  updateData: {
+    clientId?: string
+    customerId?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+    phone?: string
+    type?: 'CONSULTATION' | 'TATTOO_SESSION' | 'TOUCH_UP' | 'REMOVAL'
+    description?: string
+    appointmentDate?: Date
+    startDate?: Date
+    notes?: string
+    estimatedDuration?: number
+    duration?: number
+    artistId?: string
+    status?: 'SCHEDULED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+  }
+): Promise<{
+  id: string
+  clientId: string
+  customerId: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  type: string
+  status: string
+  appointmentDate: Date
+  startDate: Date
+  duration: number
+  estimatedDuration: number
+  notes: string | null
+  artistId: string
+  artistName: string
+  createdAt: Date
+  updatedAt: Date
+}> {
   try {
-    const updateData: Prisma.AppointmentUpdateInput = {}
-
-    if (data.appointmentDate) {
-      updateData.scheduledDate = new Date(data.appointmentDate)
-    }
-
-    if (data.estimatedDuration) {
-      updateData.duration = data.estimatedDuration
-    }
-
-    if (data.status) {
-      updateData.status = data.status
-    }
-
-    if (data.notes !== undefined) {
-      updateData.notes = data.notes
-    }
-
-    if (data.type) {
-      updateData.type = data.type
-    }
-
-    const appointment = await prisma.appointment.update({
+    // First check if appointment exists
+    const existingAppointment = await prisma.appointments.findUnique({
       where: { id },
-      data: updateData,
       include: {
-        client: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true
-          }
-        },
-        artist: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
+        clients: true
       }
     })
 
-    // Transform the data to match expected format
-    return {
-      id: appointment.id,
-      title: `${appointment.type} - ${appointment.client.firstName} ${appointment.client.lastName}`,
-      status: appointment.status.toLowerCase(),
-      scheduledDate: appointment.scheduledDate,
-      duration: appointment.duration,
-      type: appointment.type,
-      notes: appointment.notes,
-      customer: {
-        id: appointment.client.id,
-        name: `${appointment.client.firstName} ${appointment.client.lastName}`,
-        email: appointment.client.email,
-        phone: appointment.client.phone
-      },
-      artist: appointment.artist,
-      createdAt: appointment.createdAt,
-      updatedAt: appointment.updatedAt
+    if (!existingAppointment) {
+      throw new ApiError('Appointment not found', 404)
     }
-  } catch {
+
+    // Prepare appointment update data
+    const appointmentUpdateData: Partial<Prisma.appointmentsUpdateInput> = {}
+    
+    const {
+      appointmentDate,
+      startDate,
+      duration,
+      estimatedDuration,
+      type,
+      status,
+      notes,
+      description,
+      artistId,
+      firstName,
+      lastName,
+      email,
+      phone
+    } = updateData
+
+    if (appointmentDate || startDate) {
+      appointmentUpdateData.scheduledDate = appointmentDate || startDate
+    }
+    
+    if (duration || estimatedDuration) {
+      appointmentUpdateData.duration = duration || estimatedDuration
+    }
+    
+    if (type) {
+      appointmentUpdateData.type = type
+    }
+    
+    if (status) {
+      appointmentUpdateData.status = status
+    }
+    
+    if (notes || description) {
+      appointmentUpdateData.notes = notes || description
+    }
+    
+    if (artistId) {
+      appointmentUpdateData.tattoo_artists = { connect: { id: artistId } }
+    }
+
+    // Prepare client update data if any client fields are provided
+    const clientUpdateData: Partial<Prisma.clientsUpdateInput> = {}
+    
+    if (firstName) clientUpdateData.firstName = firstName
+    if (lastName) clientUpdateData.lastName = lastName
+    if (email) clientUpdateData.email = email
+    if (phone) clientUpdateData.phone = phone
+
+    // Use transaction to update both appointment and client data
+    const result = await prisma.$transaction(async (tx) => {
+      // Update client data if needed
+      if (Object.keys(clientUpdateData).length > 0) {
+        await tx.clients.update({
+          where: { id: existingAppointment.clientId },
+          data: clientUpdateData
+        })
+      }
+
+      // Update appointment
+      const updatedAppointment = await tx.appointments.update({
+        where: { id },
+        data: appointmentUpdateData,
+        include: {
+          clients: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true
+            }
+          },
+          tattoo_artists: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          }
+        }
+      })
+
+      return updatedAppointment
+    })
+
+    return {
+      id: result.id,
+      clientId: result.clientId,
+      customerId: result.clientId,
+      firstName: result.clients.firstName,
+      lastName: result.clients.lastName,
+      email: result.clients.email,
+      phone: result.clients.phone,
+      type: result.type,
+      status: result.status,
+      appointmentDate: result.scheduledDate,
+      startDate: result.scheduledDate,
+      duration: result.duration,
+      estimatedDuration: result.duration,
+      notes: result.notes,
+      artistId: result.artistId,
+      artistName: result.tattoo_artists.name,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt
+    }
+  } catch (err) {
+    console.error('updateAppointment error:', err)
+    if (err instanceof ApiError) throw err
     throw new ApiError('Failed to update appointment', 500)
   }
 }
 
-export async function deleteAppointment(id: string) {
+// Customer management functions for the customers API
+export async function getCustomerById(id: string): Promise<ClientResponse | null> {
   try {
-    await prisma.appointment.delete({
-      where: { id }
-    })
-
-    return { success: true }
-  } catch {
-    throw new ApiError('Failed to delete appointment', 500)
-  }
-}
-
-
-// Dashboard analytics with caching
-const _getDashboardStatsUncached = async () => {
-  try {
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const [totalCustomers, totalAppointments, totalSessions, totalRevenue] = await Promise.all([
-      prisma.client.count(),
-      prisma.appointment.count({
-        where: {
-          createdAt: { gte: thirtyDaysAgo }
-        }
-      }),
-      prisma.tattoo_sessions.count({
-        where: {
-          createdAt: { gte: thirtyDaysAgo }
-        }
-      }),
-      prisma.tattoo_sessions.aggregate({
-        _sum: { totalCost: true },
-        where: {
-          status: 'COMPLETED',
-          createdAt: { gte: thirtyDaysAgo }
-        }
-      })
-    ])
-
-    return {
-      totalCustomers,
-      monthlyAppointments: totalAppointments,
-      monthlySessions: totalSessions,
-      monthlyRevenue: totalRevenue._sum.totalCost || 0,
-      averageRating: 4.9 // Default rating until we implement reviews
-    }
-  } catch {
-    // Database error logged
-    throw new ApiError('Failed to fetch dashboard stats', 500)
-  }
-}
-
-export const getDashboardStats = () => withCache(
-  _getDashboardStatsUncached,
-  () => 'dashboard:stats',
-  CACHE_TTL.DASHBOARD_STATS
-);
-
-const _getRecentAppointmentsUncached = async (limit: number = 5) => {
-  try {
-    const appointments = await prisma.appointment.findMany({
-      take: limit,
-      orderBy: { createdAt: 'desc' },
+    const customer = await prisma.clients.findUnique({
+      where: { id },
       include: {
-        client: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true
-          }
-        },
-        artist: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      },
-      where: {
-        scheduledDate: {
-          gte: new Date()
-        }
+        appointments: true,
+        tattoo_sessions: true
       }
     })
 
-    // Transform the data to match expected format
-    return appointments.map(appointment => ({
-      id: appointment.id,
-      title: `${appointment.type} - ${appointment.client.firstName} ${appointment.client.lastName}`,
-      status: appointment.status.toLowerCase(),
-      scheduledDate: appointment.scheduledDate,
-      duration: appointment.duration,
-      type: appointment.type,
-      notes: appointment.notes,
-      customer: {
-        id: appointment.client.id,
-        name: `${appointment.client.firstName} ${appointment.client.lastName}`,
-        email: appointment.client.email,
-        phone: appointment.client.phone
-      },
-      artist: appointment.artist,
-      createdAt: appointment.createdAt,
-      updatedAt: appointment.updatedAt
-    }))
-  } catch {
-    // Database error logged
-    throw new ApiError('Failed to fetch recent appointments', 500)
+    if (!customer) {
+      return null
+    }
+
+    return {
+      id: customer.id,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      email: customer.email,
+      phone: customer.phone,
+      dateOfBirth: customer.dateOfBirth,
+      emergencyName: customer.emergencyName,
+      emergencyPhone: customer.emergencyPhone,
+      emergencyRel: customer.emergencyRel,
+      allergies: customer.allergies,
+      medicalConds: customer.medicalConds,
+      preferredArtist: customer.preferredArtist,
+      createdAt: customer.createdAt,
+      updatedAt: customer.updatedAt,
+      appointments: customer.appointments,
+      sessions: customer.tattoo_sessions
+    }
+  } catch (err) {
+    console.error('getCustomerById error:', err)
+    throw new ApiError('Failed to fetch customer', 500)
   }
 }
 
-export const getRecentAppointments = (limit: number = 5) => withCache(
-  () => _getRecentAppointmentsUncached(limit),
-  () => `recent:appointments:${limit}`,
-  CACHE_TTL.RECENT_APPOINTMENTS
-);
+export async function updateCustomer(id: string, updateData: {
+  firstName?: string
+  lastName?: string
+  email?: string
+  phone?: string
+  dateOfBirth?: Date | string
+  emergencyName?: string
+  emergencyPhone?: string
+  emergencyRel?: string
+  allergies?: string[]
+  medicalConds?: string[]
+  preferredArtist?: string | null
+}): Promise<ClientResponse> {
+  try {
+    const customer = await prisma.clients.update({
+      where: { id },
+      data: {
+        ...updateData,
+        ...(updateData.dateOfBirth && {
+          dateOfBirth: typeof updateData.dateOfBirth === 'string' 
+            ? new Date(updateData.dateOfBirth) 
+            : updateData.dateOfBirth
+        })
+      },
+      include: {
+        appointments: true,
+        tattoo_sessions: true
+      }
+    })
+
+    return {
+      id: customer.id,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      email: customer.email,
+      phone: customer.phone,
+      dateOfBirth: customer.dateOfBirth,
+      emergencyName: customer.emergencyName,
+      emergencyPhone: customer.emergencyPhone,
+      emergencyRel: customer.emergencyRel,
+      allergies: customer.allergies,
+      medicalConds: customer.medicalConds,
+      preferredArtist: customer.preferredArtist,
+      createdAt: customer.createdAt,
+      updatedAt: customer.updatedAt,
+      appointments: customer.appointments,
+      sessions: customer.tattoo_sessions
+    }
+  } catch (err) {
+    console.error('updateCustomer error:', err)
+    if (err instanceof ApiError) throw err
+    throw new ApiError('Failed to update customer', 500)
+  }
+}
+
+export async function deleteCustomer(id: string): Promise<void> {
+  try {
+    // Check if customer has any appointments or sessions
+    const customer = await prisma.clients.findUnique({
+      where: { id },
+      include: {
+        appointments: { take: 1 },
+        tattoo_sessions: { take: 1 }
+      }
+    })
+
+    if (!customer) {
+      throw new ApiError('Customer not found', 404)
+    }
+
+    if (customer.appointments.length > 0 || customer.tattoo_sessions.length > 0) {
+      throw new ApiError('Cannot delete customer with existing appointments or sessions', 400)
+    }
+
+    await prisma.clients.delete({
+      where: { id }
+    })
+  } catch (err) {
+    console.error('deleteCustomer error:', err)
+    if (err instanceof ApiError) throw err
+    throw new ApiError('Failed to delete customer', 500)
+  }
+}

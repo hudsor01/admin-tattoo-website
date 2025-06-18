@@ -56,8 +56,8 @@ export function DashboardStatsCards({ data }: DashboardStatsCardsProps) {
   if (!data) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, index) => (
-          <Card key={index} className="bg-card border-border group hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10">
+        {['revenue', 'customers', 'appointments', 'rating'].map((statType) => (
+          <Card key={`stats-skeleton-${statType}`} className="bg-card border-border group hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-4" />
@@ -74,8 +74,8 @@ export function DashboardStatsCards({ data }: DashboardStatsCardsProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat, index) => (
-        <Card key={index} className="bg-card border-border group hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10 hover:scale-105">
+      {stats.map((stat) => (
+        <Card key={`stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`} className="bg-card border-border group hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10 hover:scale-105">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-normal text-muted-foreground">
               {stat.title}

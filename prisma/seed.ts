@@ -31,7 +31,7 @@ async function main() {
   // Admin users created
 
   // Create tattoo artists
-  const fernando = await prisma.tattooArtist.create({
+  const fernando = await prisma.tattoo_artists.create({
     data: {
       name: 'Fernando Govea',
       email: 'fernando@ink37tattoos.com',
@@ -48,7 +48,7 @@ async function main() {
     }
   })
 
-  const maya = await prisma.tattooArtist.create({
+  const maya = await prisma.tattoo_artists.create({
     data: {
       name: 'Maya Rodriguez',
       email: 'maya@ink37tattoos.com',
@@ -135,7 +135,8 @@ async function main() {
 
   const createdClients = []
   for (const clientData of clients) {
-    const client = await prisma.client.create({ data: clientData })
+    // eslint-disable-next-line no-await-in-loop
+    const client = await prisma.clients.create({ data: clientData })
     createdClients.push(client)
   }
 
@@ -244,7 +245,8 @@ async function main() {
   ]
 
   for (const sessionData of sessions) {
-    await prisma.tattooSession.create({ data: sessionData })
+    // eslint-disable-next-line no-await-in-loop
+    await prisma.tattoo_sessions.create({ data: sessionData })
   }
 
   // Create upcoming appointments
@@ -270,7 +272,8 @@ async function main() {
   ]
 
   for (const appointmentData of appointments) {
-    await prisma.appointment.create({ data: appointmentData })
+    // eslint-disable-next-line no-await-in-loop
+    await prisma.appointments.create({ data: appointmentData })
   }
 
   // Create some tattoo designs in portfolio
@@ -311,7 +314,8 @@ async function main() {
   ]
 
   for (const designData of designs) {
-    await prisma.tattooDesign.create({ data: designData })
+    // eslint-disable-next-line no-await-in-loop
+    await prisma.tattoo_designs.create({ data: designData })
   }
 
   // Database seeded successfully

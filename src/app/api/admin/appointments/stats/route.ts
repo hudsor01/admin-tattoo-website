@@ -1,5 +1,4 @@
-import type { NextRequest} from 'next/server';
-import { NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { SecurityPresets, withSecurityValidation } from '@/lib/api-validation'
 import { createErrorResponse, createSuccessResponse } from '@/lib/api-core'
 import { prisma } from '@/lib/prisma'
@@ -7,7 +6,7 @@ import { AppointmentStatus } from '@prisma/client'
 import { logger } from '@/lib/logger'
 import type { AppointmentStats } from '@/types/dashboard'
 
-const statsHandler = async (_request: NextRequest) => {
+const statsHandler = async (_request: NextRequest): Promise<NextResponse> => {
   try {
     
     // Get current period (last 30 days)

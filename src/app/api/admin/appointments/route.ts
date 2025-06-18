@@ -3,7 +3,7 @@ import { createAppointment, getAppointments, updateAppointment } from '@/lib/db-
 import { appointmentFilterSchema, createAppointmentSchema, updateAppointmentSchema } from '@/lib/validations';
 import { withApiHandler } from '@/lib/api-core';
 
-export const GET = withApiHandler(async (request: NextRequest) => {
+export const GET = withApiHandler((request: NextRequest) => {
   const { searchParams } = new URL(request.url);
 
   // Parse and validate query parameters
@@ -17,7 +17,7 @@ export const GET = withApiHandler(async (request: NextRequest) => {
     offset: parseInt(searchParams.get('offset') || '0')
   });
 
-  return await getAppointments(filters);
+  return getAppointments(filters);
 });
 
 export const POST = withApiHandler(async (request: NextRequest) => {

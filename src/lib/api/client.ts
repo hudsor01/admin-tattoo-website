@@ -1,10 +1,9 @@
 import { QueryClient } from '@tanstack/react-query';
 import { authClient } from '@/lib/auth-client';
-import type { 
-  FetchConfig} from '@/lib/api/enhanced-error-handling';
 import { 
   ErrorCategory, 
-  categorizeError, 
+  type FetchConfig, 
+  categorizeError,
   getCircuitBreaker,
   handleError,
   resilientFetch
@@ -12,24 +11,28 @@ import {
 import { z } from 'zod';
 
 // Create a singleton query client instance
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: (failureCount, error: Error | ApiError) => {
-        // Don't retry on 4xx errors
-        if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
-          return false;
-        }
-        return failureCount < 3;
+function createQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        retry: (failureCount: number, error: Error | ApiError): boolean => {
+          // Don't retry on 4xx errors
+          if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
+            return false;
+          }
+          return failureCount < 3;
+        },
+        refetchOnWindowFocus: false,
       },
-      refetchOnWindowFocus: false,
+      mutations: {
+        retry: false, // Don't retry mutations by default
+      },
     },
-    mutations: {
-      retry: false, // Don't retry mutations by default
-    },
-  },
-});
+  });
+}
+
+export const queryClient = createQueryClient();
 
 // Enhanced fetch wrapper with Better Auth integration and resilience features
 export interface EnhancedFetchOptions extends RequestInit, FetchConfig {
@@ -190,6 +193,7 @@ export const queryKeys = {
     all: ['api', 'media'] as const,
     lists: () => [...queryKeys.media.all, 'list'] as const,
     list: (filters?: Record<string, unknown>) => [...queryKeys.media.lists(), filters] as const,
+    detail: (id: string) => [...queryKeys.media.all, 'detail', id] as const,
   },
   analytics: {
     all: ['api', 'analytics'] as const,
@@ -198,7 +202,7 @@ export const queryKeys = {
 } as const;
 
 // Utility functions for common patterns
-export function invalidateQueries(keys: readonly unknown[]) {
+export function invalidateQueries(keys: readonly unknown[]): Promise<void> {
   return queryClient.invalidateQueries({ queryKey: keys });
 }
 
@@ -206,7 +210,7 @@ export function prefetchQuery<T = unknown>(
   key: readonly unknown[],
   fetcher: () => Promise<T>,
   options?: { staleTime?: number }
-) {
+): Promise<void> {
   return queryClient.prefetchQuery({
     queryKey: key,
     queryFn: fetcher,
@@ -218,7 +222,7 @@ export function prefetchQuery<T = unknown>(
 export function createApiCall<T = unknown>(
   endpoint: string,
   defaultOptions: Partial<EnhancedFetchOptions> = {}
-) {
+): (options?: Partial<EnhancedFetchOptions>) => Promise<T> {
   return (options: Partial<EnhancedFetchOptions> = {}) => 
     apiFetch<T>(endpoint, { ...defaultOptions, ...options });
 }
@@ -229,8 +233,8 @@ export function createTypedApiCall<TRequest, TResponse>(
   requestSchema?: z.ZodSchema<TRequest>,
   responseSchema?: z.ZodSchema<TResponse>,
   defaultOptions: Partial<EnhancedFetchOptions> = {}
-) {
-  return async (data?: TRequest, options: Partial<EnhancedFetchOptions> = {}): Promise<TResponse> => {
+): (data?: TRequest, options?: Partial<EnhancedFetchOptions>) => Promise<TResponse> {
+  return (data?: TRequest, options: Partial<EnhancedFetchOptions> = {}): Promise<TResponse> => {
     // Validate request data if schema provided
     if (requestSchema && data) {
       try {
@@ -259,7 +263,7 @@ export function createTypedApiCall<TRequest, TResponse>(
 }
 
 // Circuit breaker monitoring utilities
-export function getApiHealthStatus() {
+export function getApiHealthStatus(): { circuitBreakers: Record<string, ReturnType<ReturnType<typeof getCircuitBreaker>['getStatus']>>; timestamp: string } {
   return {
     circuitBreakers: Object.fromEntries(
       Array.from(new Set(['api', 'auth', 'dashboard', 'customers', 'appointments']))
@@ -285,13 +289,16 @@ export async function batchApiCalls<T extends Record<string, () => Promise<unkno
     
     const batchPromises = batch.map(async ([key, call]) => {
       try {
+        // eslint-disable-next-line security/detect-object-injection
         results[key] = await call();
       } catch (error) {
+        // eslint-disable-next-line security/detect-object-injection
         errors[key] = error instanceof Error ? error : new Error(String(error));
         if (failFast) throw error;
       }
     });
 
+    // eslint-disable-next-line no-await-in-loop
     await Promise.all(batchPromises);
   }
 

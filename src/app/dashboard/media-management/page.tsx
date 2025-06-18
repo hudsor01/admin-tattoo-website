@@ -1,11 +1,5 @@
 "use client"
 
-import { AppSidebar } from "@/components/layout/app-sidebar"
-import { SiteHeader } from "@/components/layout/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -80,22 +74,10 @@ export default function MediaManagementPage() {
   )
 
   return (
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 72)",
-            "--header-height": "5rem",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
-          <div className="flex flex-1 flex-col">
-            <div className="@container/main flex flex-1 flex-col gap-2">
-              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                {/* Page Header */}
-                <div className="px-6 lg:px-8">
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-2">
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">{/* Page Header */}
+          <div className="px-6 lg:px-8">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-3">
@@ -139,8 +121,8 @@ export default function MediaManagementPage() {
                 <div className="px-6 lg:px-8 space-y-8">
                   {isLoading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {[...Array(8)].map((_, i) => (
-                        <Card key={i} className="overflow-hidden">
+                      {['media-1', 'media-2', 'media-3', 'media-4', 'media-5', 'media-6', 'media-7', 'media-8'].map((mediaKey) => (
+                        <Card key={`media-skeleton-${mediaKey}`} className="overflow-hidden">
                           <Skeleton className="h-48 w-full" />
                           <CardHeader>
                             <Skeleton className="h-5 w-32" />
@@ -225,15 +207,13 @@ export default function MediaManagementPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </SidebarInset>
-        
-        <MediaUploadDialog
-          open={uploadDialogOpen}
-          onOpenChange={setUploadDialogOpen}
-          uploadType={uploadType}
-        />
-      </SidebarProvider>
+      
+      <MediaUploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        uploadType={uploadType}
+      />
+    </div>
   )
 }
 
@@ -423,8 +403,8 @@ function MediaItemCard({ item }: { item: MediaItem }) {
       </CardHeader>
       <CardContent className="pt-0">
         <div className="flex flex-wrap gap-1 mb-2">
-          {item.tags?.slice(0, 3).map((tag: string, index: number) => (
-            <Badge key={index} variant="secondary" className="text-xs">
+          {item.tags?.slice(0, 3).map((tag: string) => (
+            <Badge key={`media-${item.id}-tag-${tag.replace(/\s+/g, '-')}-${tag.length}`} variant="secondary" className="text-xs">
               {tag}
             </Badge>
           ))}

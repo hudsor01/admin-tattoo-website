@@ -1,15 +1,16 @@
 import { authClient } from '@/lib/auth-client';
 import { authOperations, logAuthEvent } from '@/lib/auth';
-import type { 
-  AdminUserData, 
-  AdminUserFilters, 
-  AuthResponse, 
-  LoginRequest, 
-  Permission,
-  Role,
-  SignUpRequest 
+import { 
+  type AdminUserData, 
+  type AdminUserFilters, 
+  type AuthResponse, 
+  type LoginRequest, 
+  type Permission,
+  type Role,
+  type SignUpRequest,
+  loginSchema, 
+  signUpSchema 
 } from '@/types/auth';
-import { loginSchema, signUpSchema } from '@/types/auth';
 import { extractSessionData, getUserRole } from '@/types/better-auth';
 import { z } from 'zod';
 
@@ -199,7 +200,11 @@ export async function loginUser(credentials: LoginRequest): Promise<AuthResponse
         error: {
           message: 'Invalid input data',
           code: 'VALIDATION_ERROR',
-          details: error.errors
+          details: error.errors.reduce((acc, err) => {
+            const path = err.path.join('.');
+            acc[path || 'unknown'] = err.message;
+            return acc;
+          }, {} as Record<string, string>)
         }
       };
     }
@@ -309,7 +314,11 @@ export async function signUpUser(userData: SignUpRequest): Promise<AuthResponse>
         error: {
           message: 'Invalid input data',
           code: 'VALIDATION_ERROR',
-          details: error.errors
+          details: error.errors.reduce((acc, err) => {
+            const path = err.path.join('.');
+            acc[path || 'unknown'] = err.message;
+            return acc;
+          }, {} as Record<string, string>)
         }
       };
     }

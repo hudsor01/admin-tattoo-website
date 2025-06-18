@@ -1,18 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, invalidateQueries, queryKeys } from '@/lib/api/client';
-import { buildQueryString, createOptimisticDelete, createOptimisticUpdate } from '@/lib/api/utils';
-import { showErrorToast, showSuccessToast } from '@/lib/api/utils';
-import type { Client } from '@prisma/client';
+import { buildQueryString, createOptimisticDelete, showErrorToast, showSuccessToast } from '@/lib/api/utils';
+// import { createOptimisticUpdate } from '@/lib/api/utils'; // Available if needed
+import type { clients } from '@prisma/client';
 
 // Customer specific types
-export interface CustomerFilters {
+export interface CustomerFilters extends Record<string, unknown> {
   search?: string;
   hasAppointments?: boolean;
   limit?: number;
   offset?: number;
 }
 
-export interface CustomerResponse extends Client {
+export interface CustomerResponse extends clients {
   appointmentCount: number;
   totalSpent: number;
   lastAppointment?: Date;

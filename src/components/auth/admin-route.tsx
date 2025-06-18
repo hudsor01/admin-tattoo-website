@@ -1,7 +1,6 @@
 'use client';
 
-import type { ReactNode} from 'react';
-import { useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStatus, useUser } from '@/stores/auth-store';
 

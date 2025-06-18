@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MediaUploadDialog } from '@/components/media/media-upload-dialog'
-import { toast } from 'sonner'
+// import { toast } from 'sonner' // Mocked in test setup
 import { useUIStore } from '@/stores/ui-store'
 
 // Mock dependencies
@@ -29,9 +29,13 @@ const createWrapper = () => {
     },
   })
   
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
+  
+  Wrapper.displayName = 'QueryWrapper'
+  
+  return Wrapper
 }
 
 const mockUIStore = {

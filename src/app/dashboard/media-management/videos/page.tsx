@@ -1,11 +1,5 @@
 "use client"
 
-import { AppSidebar } from "@/components/layout/app-sidebar"
-import { SiteHeader } from "@/components/layout/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -56,7 +50,7 @@ export default function VideosPage() {
   // Ensure mediaItems is always an array and filter for videos only
   const safeMediaItems: MediaItem[] = Array.isArray(mediaItems) ? mediaItems : []
   const videoItems = safeMediaItems.filter(item => 
-    item.type === 'video' || item.mediaUrl?.includes('.mp4') || item.mediaUrl?.includes('.mov') || item.mediaUrl?.includes('.webm')
+    item.type === 'video' || (item.mediaUrl && (item.mediaUrl.includes('.mp4') || item.mediaUrl.includes('.mov') || item.mediaUrl.includes('.webm')))
   )
   
   // Separate by sync status
@@ -64,114 +58,101 @@ export default function VideosPage() {
   const unsyncedVideos = videoItems.filter(item => !item.syncedToWebsite)
 
   return (
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 72)",
-            "--header-height": "5rem",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
-          <div className="flex flex-1 flex-col">
-            <div className="@container/main flex flex-1 flex-col gap-2">
-              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                {/* Page Header */}
-                <div className="px-6 lg:px-8">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-brand-gradient">
-                          <Video className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                          <h1 className="text-3xl font-black text-foreground tracking-tight">Videos</h1>
-                          <p className="text-muted-foreground">
-                            Manage video uploads that sync to ink37tattoos.com/gallery
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Button
-                        onClick={() => setUploadDialogOpen(true)}
-                        className="bg-brand-gradient-hover"
-                      >
-                        <Video className="mr-2 h-4 w-4" />
-                        Upload Video
-                      </Button>
-                    </div>
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-2">
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          {/* Page Header */}
+          <div className="px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-r from-red-500 to-orange-500">
+                    <Video className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-black text-foreground tracking-tight">Videos</h1>
+                    <p className="text-muted-foreground">
+                      Manage video uploads that sync to ink37tattoos.com/gallery
+                    </p>
                   </div>
                 </div>
-
-                {/* Videos Sections */}
-                <div className="px-6 lg:px-8 space-y-8">
-                  {isLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {[...Array(8)].map((_, i) => (
-                        <Card key={i} className="overflow-hidden">
-                          <Skeleton className="h-48 w-full" />
-                          <CardHeader>
-                            <Skeleton className="h-5 w-32" />
-                            <Skeleton className="h-4 w-24" />
-                          </CardHeader>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : videoItems?.length > 0 ? (
-                    <>
-                      {/* Videos on Website */}
-                      <MediaSection 
-                        title="Videos on Website" 
-                        items={syncedVideos} 
-                        icon={<Video className="h-5 w-5" />}
-                        badge="✓ Synced"
-                        badgeVariant="default"
-                      />
-                      
-                      {/* Videos not on Website */}
-                      <MediaSection 
-                        title="Videos not on Website" 
-                        items={unsyncedVideos} 
-                        icon={<Video className="h-5 w-5" />}
-                        badge="⚠ Not Synced"
-                        badgeVariant="destructive"
-                      />
-                    </>
-                  ) : (
-                    <Card>
-                      <CardContent className="flex items-center justify-center h-48">
-                        <div className="text-center">
-                          <Video className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                          <h3 className="text-lg font-semibold">No videos found</h3>
-                          <p className="text-muted-foreground mb-4">
-                            Start by uploading your first video.
-                          </p>
-                          <Button 
-                            onClick={() => setUploadDialogOpen(true)}
-                            className="bg-brand-gradient-hover"
-                          >
-                            <Video className="mr-2 h-4 w-4" />
-                            Upload Video
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => setUploadDialogOpen(true)}
+                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                >
+                  <Video className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Upload Video
+                </Button>
               </div>
             </div>
           </div>
-        </SidebarInset>
-        
-        <MediaUploadDialog
-          open={uploadDialogOpen}
-          onOpenChange={setUploadDialogOpen}
-          uploadType="video"
-        />
-      </SidebarProvider>
+
+          {/* Videos Sections */}
+          <div className="px-6 lg:px-8 space-y-8">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {['video-1', 'video-2', 'video-3', 'video-4', 'video-5', 'video-6', 'video-7', 'video-8'].map((videoKey) => (
+                  <Card key={`video-skeleton-${videoKey}`} className="overflow-hidden">
+                    <Skeleton className="h-48 w-full" />
+                    <CardHeader>
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-4 w-24" />
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            ) : videoItems?.length > 0 ? (
+              <>
+                {/* Videos on Website */}
+                <MediaSection 
+                  title="Videos on Website" 
+                  items={syncedVideos} 
+                  icon={<Video className="h-5 w-5" />}
+                  badge="✓ Synced"
+                  badgeVariant="default"
+                />
+                
+                {/* Videos not on Website */}
+                <MediaSection 
+                  title="Videos not on Website" 
+                  items={unsyncedVideos} 
+                  icon={<Video className="h-5 w-5" />}
+                  badge="⚠ Not Synced"
+                  badgeVariant="destructive"
+                />
+              </>
+            ) : (
+              <Card>
+                <CardContent className="flex items-center justify-center h-48">
+                  <div className="text-center">
+                    <Video className="mx-auto h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
+                    <h3 className="text-lg font-semibold">No videos found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Start by uploading your first video.
+                    </p>
+                    <Button 
+                      onClick={() => setUploadDialogOpen(true)}
+                      className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                    >
+                      <Video className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Upload Video
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      <MediaUploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        uploadType="video"
+      />
+    </div>
   )
 }
 
@@ -245,9 +226,39 @@ function MediaItemCard({ item }: { item: MediaItem }) {
     }
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/admin/media?id=${item.id}`, {
+        method: 'DELETE',
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error?.message || 'Delete failed')
+      }
+      
+      return response.json()
+    },
+    onSuccess: () => {
+      toast.success('Video deleted successfully!')
+      queryClient.invalidateQueries({ queryKey: ['media'] })
+    },
+    onError: (error: Error) => {
+      toast.error(`Delete failed: ${error.message}`)
+    }
+  })
+
   const handleSync = () => {
     const action = item.syncedToWebsite ? 'unsync' : 'sync'
     syncMutation.mutate(action)
+  }
+
+  const handleDelete = () => {
+    // Note: In production, replace with a proper confirmation dialog
+    // eslint-disable-next-line no-alert
+    if (confirm('Are you sure you want to delete this video? This action cannot be undone.')) {
+      deleteMutation.mutate()
+    }
   }
 
   // Helper to check if URL is valid (not a relative path without host)
@@ -264,23 +275,23 @@ function MediaItemCard({ item }: { item: MediaItem }) {
         <div className="relative h-48 bg-gray-100 flex items-center justify-center">
           {hasValidUrl ? (
             <video
-              src={item.mediaUrl || item.imageUrl}
+              src={item.mediaUrl}
+              poster={item.imageUrl}
               className="w-full h-full object-cover"
               controls={false}
               muted
-              poster={item.imageUrl}
+              preload="metadata"
+              onError={(e) => {
+                // Hide video on error and show placeholder
+                const target = e.target as HTMLVideoElement
+                target.style.display = 'none'
+              }}
             />
           ) : (
             <div className="flex flex-col items-center gap-2">
-              <Video className="h-16 w-16 text-muted-foreground" />
+              <Video className="h-16 w-16 text-muted-foreground" aria-hidden="true" />
             </div>
           )}
-        </div>
-        <div className="absolute bottom-2 left-2">
-          <Badge variant="secondary" className="text-xs bg-black/50 text-white">
-            <Video className="h-3 w-3 mr-1" />
-            Video
-          </Badge>
         </div>
         <div className="absolute top-2 left-2">
           <Badge variant={item.syncedToWebsite ? 'default' : 'destructive'} className="text-xs">
@@ -328,6 +339,8 @@ function MediaItemCard({ item }: { item: MediaItem }) {
               size="sm" 
               variant="destructive" 
               className="h-8 w-8 p-0"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
               title="Delete"
             >
               <Trash2 className="h-3 w-3" />
@@ -345,8 +358,8 @@ function MediaItemCard({ item }: { item: MediaItem }) {
       </CardHeader>
       <CardContent className="pt-0">
         <div className="flex flex-wrap gap-1 mb-2">
-          {item.tags?.slice(0, 3).map((tag: string, index: number) => (
-            <Badge key={index} variant="secondary" className="text-xs">
+          {item.tags?.slice(0, 3).map((tag: string) => (
+            <Badge key={`video-${item.id}-tag-${tag.replace(/\s+/g, '-')}-${tag.length}`} variant="secondary" className="text-xs">
               {tag}
             </Badge>
           ))}

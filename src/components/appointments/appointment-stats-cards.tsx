@@ -42,8 +42,8 @@ export function AppointmentStatsCards() {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-8 px-6 lg:px-8 md:grid-cols-2 xl:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i} className="bg-card border-border/30">
+        {['total', 'pending', 'confirmed', 'completed'].map((statType) => (
+          <Card key={`appointment-stats-skeleton-${statType}`} className="bg-card border-border/30">
             <CardHeader className="pb-4 space-y-3">
               <Skeleton className="h-5 w-32" />
               <Skeleton className="h-12 w-40" />

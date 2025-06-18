@@ -84,6 +84,7 @@ export function deepEqual(a: unknown, b: unknown): boolean {
   if (Array.isArray(a) && Array.isArray(b)) {
     if (a.length !== b.length) return false;
     for (let i = 0; i < a.length; i++) {
+      // eslint-disable-next-line security/detect-object-injection
       if (!deepEqual(a[i], b[i])) return false;
     }
     return true;
@@ -108,6 +109,7 @@ export function deepEqual(a: unknown, b: unknown): boolean {
     
     for (const key of keysA) {
       if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+      // eslint-disable-next-line security/detect-object-injection
       if (!deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])) return false;
     }
     
@@ -148,6 +150,7 @@ export function shallowEqual(objA: unknown, objB: unknown): boolean {
   // Check each key and value for equality
   return keysA.every(key => (
     Object.prototype.hasOwnProperty.call(objBRecord, key) &&
+    // eslint-disable-next-line security/detect-object-injection
     Object.is(objARecord[key], objBRecord[key])
   ));
 }

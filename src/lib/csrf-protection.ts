@@ -69,6 +69,7 @@ export function validateCSRFToken(
     if (!providedSignature || !timestampStr) {
       return { valid: false, error: 'Invalid token format' };
     }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const timestamp = parseInt(timestampStr!, 10);
     
     if (isNaN(timestamp)) {
@@ -136,10 +137,10 @@ export function extractCSRFToken(request: NextRequest): string | null {
 /**
  * Validate CSRF token from request
  */
-export async function validateRequestCSRF(
+export function validateRequestCSRF(
   request: NextRequest,
   sessionId?: string
-): Promise<{ valid: boolean; error?: string }> {
+): { valid: boolean; error?: string } {
   // Skip CSRF validation for safe methods
   if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
     return { valid: true };

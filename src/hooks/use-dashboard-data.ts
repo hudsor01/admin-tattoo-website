@@ -3,11 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch, queryKeys } from '@/lib/api/client'
 import type { 
-  ChartDataPoint, 
-  DashboardData, 
-  DashboardStats, 
-  RecentClient, 
-  RecentSession 
+  DashboardData
 } from '@/types/dashboard'
 
 export function useDashboardData() {

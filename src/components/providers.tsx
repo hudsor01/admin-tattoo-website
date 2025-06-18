@@ -1,9 +1,8 @@
 "use client"
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { ReactNode } from 'react';
-import { useState } from 'react'
-import { ThemeProvider } from '@/components/theme-provider'
+import { type ReactNode, useState } from 'react'
+import { ThemeProvider } from '@/components/providers/theme-provider'
 import { AuthUIProvider } from '@daveyplate/better-auth-ui'
 import { authClient } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
@@ -50,7 +49,7 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="dark"
+      defaultTheme="system"
       enableSystem
       disableTransitionOnChange
     >

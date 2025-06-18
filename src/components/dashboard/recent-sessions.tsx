@@ -1,5 +1,6 @@
 "use client"
 
+import { memo, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -14,11 +15,15 @@ const fetchRecentSessions = async () => {
   return response.json()
 }
 
-export function RecentSessions() {
+export const RecentSessions = memo(function RecentSessions() {
   const { data: sessions, isLoading, error } = useQuery({
     queryKey: ['recent-sessions'],
     queryFn: fetchRecentSessions,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: () => {
+      // Smart refetching - only if tab is visible and data exists
+      return document.visibilityState === 'visible' ? 60000 : false // 1 minute when visible
+    },
+    staleTime: 30000, // Consider data fresh for 30 seconds
   })
 
   if (error) {
@@ -46,8 +51,8 @@ export function RecentSessions() {
       <CardContent>
         {isLoading ? (
           <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center space-x-4">
+            {['session-1', 'session-2', 'session-3', 'session-4', 'session-5'].map((sessionId) => (
+              <div key={`session-skeleton-${sessionId}`} className="flex items-center space-x-4">
                 <Skeleton className="h-12 w-12 rounded-full" />
                 <div className="space-y-2 flex-1">
                   <Skeleton className="h-4 w-[250px]" />
@@ -57,9 +62,9 @@ export function RecentSessions() {
               </div>
             ))}
           </div>
-        ) : sessions?.data?.length > 0 ? (
+        ) : (sessions as any)?.data?.length > 0 ? (
           <div className="space-y-4">
-            {sessions.data.slice(0, 10).map((session: TattooSessionWithClient) => (
+            {(sessions as any).data.slice(0, 10).map((session: TattooSessionWithClient) => (
               <SessionCard key={session.id} session={session} />
             ))}
           </div>
@@ -71,9 +76,9 @@ export function RecentSessions() {
       </CardContent>
     </Card>
   )
-}
+})
 
-function SessionCard({ session }: { session: TattooSessionWithClient }) {
+const SessionCard = memo(function SessionCard({ session }: { session: TattooSessionWithClient }) {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'completed':
@@ -157,4 +162,4 @@ function SessionCard({ session }: { session: TattooSessionWithClient }) {
       </div>
     </div>
   )
-}
+})

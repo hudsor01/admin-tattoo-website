@@ -8,18 +8,18 @@ export const createApiMockResponse = <T>(data: T, options: { status?: number; de
     ok: status >= 200 && status < 300,
     status,
     statusText: status >= 200 && status < 300 ? 'OK' : 'Error',
-    json: async () => ({
+    json: () => Promise.resolve({
       success: status >= 200 && status < 300,
       data,
       status,
       timestamp: new Date().toISOString(),
     }),
-    text: async () => JSON.stringify({
+    text: () => Promise.resolve(JSON.stringify({
       success: status >= 200 && status < 300,
       data,
       status,
       timestamp: new Date().toISOString(),
-    }),
+    })),
     headers: new Headers({
       'Content-Type': 'application/json',
     }),
@@ -93,7 +93,7 @@ export const apiMocks = {
 export const setupMockResponses = () => {
   const mockFetch = setupApiMocks()
   
-  mockFetch.mockImplementation((url: string, options?: RequestInit) => {
+  mockFetch.mockImplementation((url: string, _options?: RequestInit) => {
     const urlStr = typeof url === 'string' ? url : url.toString()
     
     // Handle query parameters

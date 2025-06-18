@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Calendar, Mail, Phone, Search, User, Eye, Edit, Trash2 } from "lucide-react"
+import { Calendar, Edit, Eye, Mail, Phone, Search, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
@@ -17,7 +17,12 @@ const fetchCustomers = async () => {
   return response.json()
 }
 
-export function CustomersList() {
+interface CustomersListProps {
+  onView: (customer: ClientResponse) => void
+  onEdit: (customer: ClientResponse) => void
+}
+
+export function CustomersList({ onView, onEdit }: CustomersListProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const { data: customers, isLoading, error } = useQuery({
     queryKey: ['customers'],
@@ -77,8 +82,8 @@ export function CustomersList() {
         <div className="h-[600px] overflow-y-auto">
           {isLoading ? (
             <div className="space-y-4">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+              {['customer-1', 'customer-2', 'customer-3', 'customer-4', 'customer-5', 'customer-6', 'customer-7', 'customer-8'].map((customerId) => (
+                <div key={`customer-skeleton-${customerId}`} className="flex items-center space-x-4 p-4 border rounded-lg">
                   <Skeleton className="h-12 w-12 rounded-full" />
                   <div className="space-y-2 flex-1">
                     <Skeleton className="h-4 w-[200px]" />
@@ -91,7 +96,12 @@ export function CustomersList() {
           ) : filteredCustomers.length > 0 ? (
             <div className="space-y-3">
               {filteredCustomers.map((customer: ClientResponse) => (
-                <CustomerCard key={customer.id} customer={customer} />
+                <CustomerCard 
+                  key={customer.id} 
+                  customer={customer}
+                  onView={() => onView(customer)}
+                  onEdit={() => onEdit(customer)}
+                />
               ))}
             </div>
           ) : (
@@ -117,7 +127,15 @@ export function CustomersList() {
   )
 }
 
-function CustomerCard({ customer }: { customer: ClientResponse }) {
+function CustomerCard({ 
+  customer, 
+  onView, 
+  onEdit 
+}: { 
+  customer: ClientResponse
+  onView: () => void
+  onEdit: () => void
+}) {
   const formatDate = (dateString: string | Date) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -199,14 +217,11 @@ function CustomerCard({ customer }: { customer: ClientResponse }) {
         </div>
         
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="View Customer Details">
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="View Customer Details" onClick={onView}>
             <Eye className="h-3 w-3" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Edit Customer">
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Edit Customer" onClick={onEdit}>
             <Edit className="h-3 w-3" />
-          </Button>
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Delete Customer">
-            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       </div>

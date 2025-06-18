@@ -4,19 +4,14 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowDownRight, ArrowUpRight, Calendar, DollarSign, Star, Users } from "lucide-react"
-import { AppSidebar } from "@/components/layout/app-sidebar"
+import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive"
+import { RecentSessions } from "@/components/dashboard/recent-sessions"
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
 
 const fetchDashboardStats = async () => {
   const response = await fetch('/api/admin/dashboard/stats')
@@ -71,7 +66,7 @@ export default function DashboardPage() {
       description: "Appointments this month",
       subtitle: "Scheduled sessions",
       icon: Calendar,
-      color: "text-purple-500"
+      color: "text-blue-500"
     },
     {
       title: "Average Rating",
@@ -81,36 +76,31 @@ export default function DashboardPage() {
       description: "Customer satisfaction",
       subtitle: "Based on completed sessions",
       icon: Star,
-      color: "text-yellow-500"
+      color: "text-blue-500"
     }
   ]
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-        
-        <div className="flex flex-1 flex-col gap-4 p-4">
+    <>
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border dark:border-border bg-background dark:bg-background px-4">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbPage className="text-foreground dark:text-foreground">Dashboard</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </header>
+      
+      <div className="flex flex-1 flex-col gap-4 p-4 bg-background dark:bg-background">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold tracking-tight">Welcome back, Fernando!</h1>
-            <p className="text-muted-foreground mt-1">Here&apos;s what&apos;s happening with your tattoo studio today.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground dark:text-foreground">Welcome back, Fernando!</h1>
           </div>
           
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {isLoading ? (
-              Array.from({ length: 4 }, (_, i) => (
-                <Card key={`skeleton-${i}`}>
+              ['revenue', 'customers', 'appointments', 'rating'].map((statType) => (
+                <Card key={`skeleton-stat-${statType}`}>
                   <CardHeader className="pb-2">
                     <Skeleton className="h-4 w-24" />
                   </CardHeader>
@@ -122,21 +112,21 @@ export default function DashboardPage() {
               ))
             ) : (
               stats.map((stat) => (
-                <Card key={stat.title} className="relative overflow-hidden">
+                <Card key={stat.title} className="relative overflow-hidden bg-card dark:bg-card border border-border dark:border-border">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
+                    <CardTitle className="text-sm font-medium text-card-foreground dark:text-card-foreground">
                       {stat.title}
                     </CardTitle>
                     <stat.icon className={`h-4 w-4 ${stat.color}`} />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{stat.value}</div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <div className="text-2xl font-bold text-card-foreground dark:text-card-foreground">{stat.value}</div>
+                    <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1">
                       {stat.description}
                     </p>
                     <div className="flex items-center gap-2 mt-4">
                       <div className={`flex items-center text-xs font-medium ${
-                        stat.trend === "up" ? "text-green-500" : "text-red-500"
+                        stat.trend === "up" ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"
                       }`}>
                         {stat.trend === "up" ? (
                           <ArrowUpRight className="mr-1 h-3 w-3" />
@@ -145,7 +135,7 @@ export default function DashboardPage() {
                         )}
                         {stat.change}
                       </div>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground dark:text-muted-foreground">
                         {stat.subtitle}
                       </span>
                     </div>
@@ -155,8 +145,17 @@ export default function DashboardPage() {
             )}
           </div>
 
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+          {/* Charts and Data Section */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <div className="col-span-4">
+              <ChartAreaInteractive />
+            </div>
+            <div className="col-span-3">
+              <RecentSessions />
+            </div>
+          </div>
+
+      </div>
+    </>
   )
 }

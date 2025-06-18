@@ -264,3 +264,16 @@ pnpm-lock.yaml
 !.prettierrc*
 !.nvmrc
 !.node-version
+.claude.json
+vitest.config.ts
+vitest.auth.config.ts
+tailwind-urls.md
+llms.txt
+cookies.txt
+html/*
+scripts/*
+tests/*
+/tests/
+/test/
+*/test/*
+*/tests/*

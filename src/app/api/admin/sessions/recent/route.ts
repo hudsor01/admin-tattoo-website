@@ -1,5 +1,4 @@
-import type { NextRequest} from "next/server";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 import { SecurityPresets, withSecurityValidation } from '@/lib/api-validation';
@@ -7,7 +6,7 @@ import { createErrorResponse, createSuccessResponse } from '@/lib/api-core';
 import { logger } from '@/lib/logger';
 import type { RecentSessionDTO } from '@/types/database';
 
-const getRecentSessionsHandler = async (_request: NextRequest) => {
+const getRecentSessionsHandler = async (_request: NextRequest): Promise<NextResponse> => {
   try {
 
     // Fetch recent sessions with related data

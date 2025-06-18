@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, queryKeys } from '@/lib/api/client';
 import { showErrorToast, showSuccessToast } from '@/lib/api/utils';
+import { logger } from '@/lib/logger';
 
 // Use the unified API client
 const fetchApi = apiFetch;
@@ -224,7 +225,7 @@ export const useCreateFormTemplate = () => {
       queryClient.invalidateQueries({ queryKey: [...queryKeys.all, 'forms', 'templates'] });
       showSuccessToast('Form template created successfully');
     },
-    onError: (error) => {
+    onError: (_error) => {
       showErrorToast('Failed to create form template');
     },
   });

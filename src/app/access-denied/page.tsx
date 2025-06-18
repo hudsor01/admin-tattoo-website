@@ -13,7 +13,7 @@ export default function AccessDeniedPage() {
           </div>
           <CardTitle className="text-2xl font-bold">Access Denied</CardTitle>
           <CardDescription>
-            You don't have permission to access the admin dashboard.
+            You don&apos;t have permission to access the admin dashboard.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

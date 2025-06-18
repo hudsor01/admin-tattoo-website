@@ -15,6 +15,7 @@ model User {
   email         String   @unique 
   emailVerified Boolean
   image         String?
+  role          String   @default("admin")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -90,6 +91,12 @@ model appointments {
   updatedAt      DateTime          @updatedAt
   tattoo_artists tattoo_artists    @relation(fields: [artistId], references: [id])
   clients        clients           @relation(fields: [clientId], references: [id])
+  
+  // Performance indexes for dashboard queries
+  @@index([scheduledDate, status])
+  @@index([clientId, scheduledDate])
+  @@index([status])
+  @@index([scheduledDate])
 }
 
 model audit_logs {
@@ -128,6 +135,10 @@ model clients {
   updatedAt       DateTime          @updatedAt
   appointments    appointments[]
   tattoo_sessions tattoo_sessions[]
+  
+  // Performance indexes for dashboard queries
+  @@index([createdAt])
+  @@index([email])
 }
 
 model tattoo_artists {
@@ -187,6 +198,13 @@ model tattoo_sessions {
   updatedAt         DateTime       @updatedAt
   tattoo_artists    tattoo_artists @relation(fields: [artistId], references: [id])
   clients           clients        @relation(fields: [clientId], references: [id])
+  
+  // Performance indexes for dashboard queries
+  @@index([appointmentDate, status])
+  @@index([appointmentDate, totalCost])
+  @@index([status])
+  @@index([appointmentDate])
+  @@index([updatedAt])
 }
 
 enum AppointmentStatus {
@@ -210,4 +228,18 @@ enum SessionStatus {
   COMPLETED
   CANCELLED
   NO_SHOW
+}
+
+model settings {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  value          Json
+  category       String   // e.g., "studioInfo", "calcom", "appearance", "notifications"
+  description    String?
+  isEnvironment  Boolean  @default(false) // true if this should be in env vars
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([category])
+  @@index([key])
 }

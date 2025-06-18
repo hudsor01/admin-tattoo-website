@@ -1,7 +1,6 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { DashboardStats } from '@/types/database';
+import type { AppointmentResponse, ClientResponse, DashboardStats } from '@/types/database';
 import type { RecentSession } from '@/types/dashboard';
-import type { AppointmentResponse, ClientResponse } from '@/types/database';
 import type { FilterParams } from '@/types/filters';
 import { apiFetch, queryKeys } from '@/lib/api/client';
 import { showErrorToast, showSuccessToast } from '@/lib/api/utils';
@@ -154,7 +153,7 @@ export const useUpdateAppointmentStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: ({ id, status }: { id: string; status: string }) => {
       return fetchApi(`${API_BASE_URL}/appointments/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
@@ -198,7 +197,7 @@ export const useDeleteCustomer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (customerId: string) => {
+    mutationFn: (customerId: string) => {
       return fetchApi(`${API_BASE_URL}/customers/${customerId}`, {
         method: 'DELETE',
       });
@@ -238,7 +237,7 @@ export const useSendMessage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ conversationId, content, sender = 'admin' }: {
+    mutationFn: ({ conversationId, content, sender = 'admin' }: {
       conversationId: string;
       content: string;
       sender?: string;
@@ -266,7 +265,7 @@ export const useCreateCustomer = () => {
   type CreateCustomerInput = Partial<ClientResponse>;
 
   return useMutation({
-    mutationFn: async (customerData: CreateCustomerInput) => {
+    mutationFn: (customerData: CreateCustomerInput) => {
       return fetchApi<ClientResponse>(`${API_BASE_URL}/customers`, {
         method: 'POST',
         body: JSON.stringify(customerData),
@@ -293,7 +292,7 @@ export const useUpdateCustomer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updateData }: { id: string } & Partial<ClientResponse>) => {
+    mutationFn: ({ id, ...updateData }: { id: string } & Partial<ClientResponse>) => {
       return fetchApi(`${API_BASE_URL}/customers/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(updateData),

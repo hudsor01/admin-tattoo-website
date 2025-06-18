@@ -93,7 +93,7 @@ async function checkAuth(): Promise<HealthCheckResult> {
   }
 }
 
-async function checkEnvironment(): Promise<HealthCheckResult> {
+function checkEnvironment(): HealthCheckResult {
   try {
     const requiredEnvVars = [
       'DATABASE_URL',
@@ -159,7 +159,7 @@ async function performHealthCheck(): Promise<HealthCheck> {
   };
 }
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   try {
     // Check cache first
     const now = Date.now();
@@ -170,11 +170,13 @@ export async function GET() {
     // Perform health check
     const healthCheck = await performHealthCheck();
     
-    // Update cache
-    healthCheckCache = {
+    // Update cache atomically to prevent race condition
+    const cacheEntry = {
       result: healthCheck,
       timestamp: now
     };
+    // eslint-disable-next-line require-atomic-updates
+    healthCheckCache = cacheEntry;
 
     // Set appropriate HTTP status based on health
     const httpStatus = healthCheck.status === 'healthy' ? 200 : 

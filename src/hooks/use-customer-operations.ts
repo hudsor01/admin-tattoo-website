@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { CreateCustomer, CustomerFilter } from '@/lib/validations'
 import { apiFetch, queryKeys } from '@/lib/api/client'
-import { buildQueryString, showErrorToast, showSuccessToast } from '@/lib/api/utils'
+import { showErrorToast, showSuccessToast } from '@/lib/api/utils'
+// import { buildQueryString } from '@/lib/api/utils' // Available if needed
 import type { ClientResponse } from '@/types/database'
+import { logger } from '@/lib/logger'
 
 interface UseCustomerOperationsOptions {
   search?: string
@@ -84,8 +86,8 @@ export function useCustomerOperations(options: UseCustomerOperationsOptions = {}
       body: JSON.stringify(data),
     }),
     onError: (error) => {
-      showErrorToast(error, 'Failed to create customer');
-      void logger.error('Failed to create customer:', error);
+      showErrorToast('Failed to create customer');
+      logger.error('Failed to create customer:', error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
@@ -101,8 +103,8 @@ export function useCustomerOperations(options: UseCustomerOperationsOptions = {}
         body: JSON.stringify(data),
       }),
     onError: (error) => {
-      showErrorToast(error, 'Failed to update customer');
-      void logger.error('Failed to update customer:', error);
+      showErrorToast('Failed to update customer');
+      logger.error('Failed to update customer:', error);
     },
     onSuccess: (updatedCustomer, { id }) => {
       queryClient.setQueryData(queryKeys.customers.detail(id), updatedCustomer);
@@ -117,8 +119,8 @@ export function useCustomerOperations(options: UseCustomerOperationsOptions = {}
       method: 'DELETE',
     }),
     onError: (error) => {
-      showErrorToast(error, 'Failed to delete customer');
-      void logger.error('Failed to delete customer:', error);
+      showErrorToast('Failed to delete customer');
+      logger.error('Failed to delete customer:', error);
     },
     onSuccess: (_, customerId) => {
       queryClient.removeQueries({ queryKey: queryKeys.customers.detail(customerId) });

@@ -246,12 +246,12 @@ export const testDb = {
   
   async createUser(userData: any) {
     const { prisma } = await import('@/lib/prisma');
-    return await prisma.user.create({ data: userData });
+    return prisma.user.create({ data: userData });
   },
   
   async createSession(sessionData: any) {
     const { prisma } = await import('@/lib/prisma');
-    return await prisma.session.create({ data: sessionData });
+    return prisma.session.create({ data: sessionData });
   }
 };
 
