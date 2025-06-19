@@ -38,7 +38,7 @@ export default function AuthenticationPage() {
             <h1 className="text-2xl font-semibold tracking-tight text-white">
               Welcome back
             </h1>
-            <p className="text-sm text-gray-300">
+            <p className="text-sm !text-gray-300">
               Enter your credentials to access the admin dashboard
             </p>
           </div>

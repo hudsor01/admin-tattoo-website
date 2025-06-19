@@ -28,13 +28,14 @@ export default async function DashboardLayout({
         style={
           {
             "--sidebar-width": "16rem",
+            "--sidebar-width-mobile": "100vw",
           } as React.CSSProperties
         }
       >
         <AppSidebar />
         <SidebarInset className="flex-1 flex flex-col overflow-hidden">
           <SiteHeader />
-          <main className="flex-1 overflow-auto">{children}</main>
+          <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
     </div>

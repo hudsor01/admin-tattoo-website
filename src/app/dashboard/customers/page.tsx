@@ -37,15 +37,15 @@ export default function CustomersPage() {
           <SectionCards />
           
           {/* Page Header */}
-          <div className="px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-6">
+          <div className="px-4 md:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-brand-gradient">
-                  <Users className="h-6 w-6 text-white" />
+                  <Users className="h-5 w-5 md:h-6 md:w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-black text-foreground tracking-tight">Customers</h1>
-                  <p className="text-muted-foreground">
+                  <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">Customers</h1>
+                  <p className="text-sm md:text-base text-muted-foreground">
                     Manage your client database and relationships
                   </p>
                 </div>
@@ -53,7 +53,8 @@ export default function CustomersPage() {
               <div className="flex items-center gap-3">
                 <Button
                   onClick={handleCreateNew}
-                  className="bg-brand-gradient-hover"
+                  className="bg-brand-gradient-hover w-full sm:w-auto"
+                  size="sm"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add Customer
@@ -62,7 +63,7 @@ export default function CustomersPage() {
             </div>
           </div>
           
-          <div className="px-6 lg:px-8">
+          <div className="px-4 md:px-6 lg:px-8">
             <CustomersList 
               onView={handleView}
               onEdit={handleEdit}

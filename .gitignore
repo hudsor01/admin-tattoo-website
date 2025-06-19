@@ -277,3 +277,4 @@ tests/*
 /test/
 */test/*
 */tests/*
+.env
